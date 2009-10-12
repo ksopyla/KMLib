@@ -1,0 +1,5 @@
+Kernel Machine Library - SVM (Support Vectors Machine) library for .net, main goal is extensibility. It use diferent datatype Vector, Matrix,String etc. and specific kernels 
+
+Library is written in .net 3.5 use 
+- Parallel Extension (june CTP)
+- dnAnalitycs library - form matrix and vector manipulation
