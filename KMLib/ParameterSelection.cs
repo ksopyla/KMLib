@@ -23,11 +23,11 @@ namespace KMLib
         /// <summary>
         /// min power of <see cref="PowerBase"/> for finding C parameter (default 2^-5)
         /// </summary>
-        public  double MinCPower = -5;
+        public  double MinCPower = -5; //0,03125
         /// <summary>
         /// max power of <see cref="PowerBase"/> for finding C parameter (default 2^15)
         /// </summary>
-        public  double MaxCPower = 15;
+        public  double MaxCPower = 15; //32768
         /// <summary>
         /// step for changing power, (MinPower+step,  .... MaxCPower)
         /// </summary>
@@ -36,11 +36,11 @@ namespace KMLib
         /// <summary>
         /// Default minimum power for the Gamma value (-15)
         /// </summary>
-        public int MinGammaPower = -15;
+        public int MinGammaPower = -15; //0,000030517578125
         /// <summary>
         /// Default maximum power  for the Gamma Value (3)
         /// </summary>
-        public int MaxGammaPower = 3;
+        public int MaxGammaPower = 3; // 8
 
         /// <summary>
         /// Default power base
@@ -118,9 +118,9 @@ namespace KMLib
                                 maxG = rbfKernels[i].Gamma;
                             }
                         }
-                        if(ShowDebug)
+                        if (ShowDebug)
                         {
-                            Console.WriteLine("[{0:0.000000},{1:0.000000}]={2:0.0000}", rbfKernels[i].Gamma,rangeC[i],acc);
+                            Console.WriteLine("[{0:0.000000},{1:0.000000}]={2:0.0000}", rbfKernels[i].Gamma, rangeC[i], acc);
                         }
                     }
 
@@ -136,6 +136,10 @@ namespace KMLib
                 Console.WriteLine("Max accuracy={0} c={1} gamma={2}  ", crossValidation, C, Gamma);
             }
         }
+
+
+
+
 
     }
 }

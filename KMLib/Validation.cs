@@ -59,7 +59,7 @@ namespace KMLib
             for (int i = 0; i < probSize; i++)
                 permutation[i] = i;
 
-            //compute permutation, swap random pair indexes
+            //compute permutation, randomly swap pair of indexes
             for (int i = 0; i < probSize; i++)
             {
                 //method for permuation without repetition
@@ -80,17 +80,12 @@ namespace KMLib
 
                 //Problem<TProblemElement> test;
                 //Problem<TProblemElement> train;
-
-
                 //Split(problem, out test, out train);
-
-
 
                 //SVM<TProblemElement> svMachine = new SVM<TProblemElement>(train,kernel,C);
 
                 int begin = foldStart[i];
                 int end = foldStart[i + 1];
-
 
                 //count number of elements for i-th fold
                 int subProbSize = probSize - (end - begin);
@@ -139,7 +134,7 @@ namespace KMLib
                 }
             }
 
-            //todo: accuracy count for cros validation
+            //todo: accuracy count for cross validation
             return (float)correct / probSize;
 
         }

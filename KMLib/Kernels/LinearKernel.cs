@@ -68,7 +68,7 @@ namespace KMLib.Kernels
         {
             return  (float) element1.DotProduct(element2);
 
-            //todo: test witch version is faster
+            //todo: test which version is faster
              /*
             var iter1 = element1.GetIndexedEnumerator().GetEnumerator();
             var iter2 = element2.GetIndexedEnumerator().GetEnumerator();

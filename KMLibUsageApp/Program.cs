@@ -8,6 +8,8 @@ using KMLib.Helpers;
 using KMLib.Kernels;
 using System.Diagnostics;
 using dnaLA = dnAnalytics.LinearAlgebra;
+using CenterSpace.NMath.Matrix;
+using CenterSpace.NMath.Core;
 
 namespace KMLibUsageApp
 {
@@ -32,9 +34,10 @@ namespace KMLibUsageApp
             Problem<Vector> test = IOHelper.ReadDNAVectorsFromFile(testFile,numberOfFeatures);
 
 
+            
+            ComputeLinearMahalanobisKernel();
 
-
-            IKernel<Vector> kernel = new RbfKernel(0.5f, train.Elements);
+            //IKernel<Vector> kernel = new RbfKernel(0.5f, train.Elements);
             //IKernel<Vector> kernel = new CosineKernel(train.Elements);
             //IKernel<Vector> kernel = new LinearKernel(train.Elements); 
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);
@@ -45,14 +48,126 @@ namespace KMLibUsageApp
             //DoCrossValidation(train, kernel);
 
 
-            FindParameterForRbf(train);
+            //FindParameterForRbf(train);
 
 
             Console.ReadKey();
 
         }
 
+        private static void ComputeLinearMahalanobisKernel()
+        {
+            //original covariance matrix, but det==0
+            float[,] cov = new float[4, 4] {
+                { 30.0f/125, -5.0f/125, -30.0f/125, -15.0f/125},
+                { -5.0f/125, 30.0f/125, 5.0f/125, -10.0f/125},
+                { -30.0f/125, 5.0f/125, 30.0f/125, 15.0f/125},
+                { -15.0f/125, -10.0f/125, 15.0f/125, 20.0f/125}
+            };
 
+            FloatMatrix matrix =new FloatMatrix(cov);
+
+            
+
+
+            FloatMatrix identity = 0.01f*FloatMatrix.Identity(4);
+            
+            ////regularization, add to main diagonal some small value
+            matrix += identity;
+
+            Console.WriteLine("Matrix frobenius norm ={0}", MatrixFunctions.FrobNorm(matrix));
+            
+            //matrix *= 4;
+            FloatSymmetricMatrix covMatrix = new FloatSymmetricMatrix(matrix);
+             
+            Console.WriteLine("Matrix frobenius norm ={0}", covMatrix.DataVector.TwoNorm());
+
+            //DoubleSymmetricMatrix covMatrix = new DoubleSymmetricMatrix(3);
+            
+
+            ShowMatrix(covMatrix);
+
+
+            Console.WriteLine("Det = " + MatrixFunctions.Determinant(covMatrix));
+            float norm = MatrixFunctions.OneNorm(covMatrix);
+            Console.WriteLine("Matrix one norm ={0}", norm);
+
+            FloatSymEigDecomp eigDecomp = new FloatSymEigDecomp(covMatrix);
+
+            Console.WriteLine("Eigen values="+eigDecomp.EigenValues.ToString());
+
+            
+            
+            //DoubleSymmetricMatrix invertedCovMatrix = MatrixFunctions.Inverse(covMatrix);
+            FloatSymmetricMatrix invertedCovMatrix = MatrixFunctions.Inverse(covMatrix);
+
+           ShowMatrix(invertedCovMatrix);
+
+
+          // norm =MatrixFunctions.OneNorm(invertedCovMatrix);
+            //Console.WriteLine("Matrix one norm ={0}",norm);
+
+
+            //invertedCovMatrix *= invertedCovMatrix.Transpose();
+
+            norm=invertedCovMatrix.DataVector.TwoNorm();
+            Console.WriteLine("Matrix frobenius norm ={0}", norm);
+            
+          
+
+            invertedCovMatrix /= norm;
+
+            ShowMatrix(invertedCovMatrix);
+
+            Vector[] vectors = new Vector[]
+                                   {
+                                       new SparseVector(new double[]{1,2,3,1}),
+                                       new SparseVector(new double[]{0,1,2,2}),
+                                       new SparseVector(new double[]{1,1,3,2})
+
+                                   };
+
+            Problem<Vector> train = new Problem<Vector>(vectors, new float[] {1, 1, -1,-1});
+            IKernel<Vector> kernel = new LinearMahalanobisKernel(train.Elements, invertedCovMatrix);
+
+
+            for (int i = 0; i < vectors.Length; i++)
+            {
+                for (int j = i; j < vectors.Length; j++)
+                {
+                    //Mahalanobis linear product
+                    Console.WriteLine("M [{0},{1}]={2}",i,j,kernel.Product(i, j));
+                    //Normal dot product
+                    Console.WriteLine("N [{0},{1}]={2}",i,j,vectors[i].DotProduct(vectors[j]));
+                    Console.WriteLine();
+                }
+            }
+
+
+        }
+
+        private static void ShowMatrix(FloatSymmetricMatrix covMatrix)
+        {
+            for (int i = 0; i < covMatrix.Rows; i++)
+            {
+                for (int j = 0; j < covMatrix.Cols; j++)
+                {
+                    Console.Write(" "+covMatrix[i,j]);
+                }
+                Console.WriteLine();
+            }
+        }
+        private static void ShowMatrix(DoubleSymmetricMatrix covMatrix)
+        {
+            for (int i = 0; i < covMatrix.Rows; i++)
+            {
+                for (int j = 0; j < covMatrix.Cols; j++)
+                {
+                    Console.Write(" " + covMatrix[i, j]);
+                }
+                Console.WriteLine();
+            }
+        }
 
         /// <summary>
         /// Testing methods for searching parameter C and Gamma
