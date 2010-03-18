@@ -33,20 +33,13 @@ namespace KMLib.Kernels
         /// for easiest Product computing  
         /// </summary>
         /// <param name="vectors"></param>
-        public LinearMahalanobisKernel(Vector[] vectors,FloatSymmetricMatrix invertedCovarianceMatrix):base(vectors)
+        public LinearMahalanobisKernel(FloatSymmetricMatrix invertedCovarianceMatrix)
         {
           //  problemVectors = vectors;
 
 
             invertedCovMatrix = invertedCovarianceMatrix;
 
-            DiagonalDotCache=new float[vectors.Length];
-            for (int i = 0; i < DiagonalDotCache.Length; i++)
-            {
-                DiagonalDotCache[i] = this.Product(vectors[i], vectors[i]);
-            }
-
-           
         }
 
 
@@ -146,7 +139,7 @@ namespace KMLib.Kernels
                 return DiagonalDotCache[element1];
 
 
-            return this.Product(problemVectors[element1], problemVectors[element2]);
+            return this.Product(ProblemElements[element1], ProblemElements[element2]);
             
         }
 

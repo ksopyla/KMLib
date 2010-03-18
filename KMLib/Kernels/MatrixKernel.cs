@@ -10,6 +10,12 @@ namespace KMLib.Kernels
     {
         protected Matrix[] problemElements;
 
+        public Matrix[] ProblemElements
+        {
+            get { throw new NotImplementedException(); }
+            set { throw new NotImplementedException(); }
+        }
+
         public float[] DiagonalDotCache
         {
             get; protected set;
@@ -19,6 +25,8 @@ namespace KMLib.Kernels
         {
             problemElements = elements;
         }
+
+        
 
         public abstract float Product(Matrix element1, Matrix element2);
         public abstract float Product(int element1, int element2);

@@ -28,16 +28,21 @@ namespace KMLib.Kernels
         /// for easiest Product computing  
         /// </summary>
         /// <param name="vectors"></param>
-        public LinearKernel(Vector[] vectors):base(vectors)
+        //public LinearKernel(Vector[] vectors):base(vectors)
+        //{
+        //  //  problemVectors = vectors;
+
+        //    DiagonalDotCache=new float[vectors.Length];
+        //    for (int i = 0; i < DiagonalDotCache.Length; i++)
+        //    {
+        //        DiagonalDotCache[i] = this.Product(vectors[i], vectors[i]);
+        //    }
+
+        //    useCache = false;
+        //}
+
+        public LinearKernel() 
         {
-          //  problemVectors = vectors;
-
-            DiagonalDotCache=new float[vectors.Length];
-            for (int i = 0; i < DiagonalDotCache.Length; i++)
-            {
-                DiagonalDotCache[i] = this.Product(vectors[i], vectors[i]);
-            }
-
             useCache = false;
         }
 
@@ -47,11 +52,11 @@ namespace KMLib.Kernels
         /// </summary>
         /// <param name="vectors"></param>
         /// <param name="cacheSize"></param>
-        public LinearKernel(Vector[] vectors,int cacheSize):this(vectors)
-        {
-            useCache = true;
-            cache = new LRUCache<Point2D, float>(cacheSize);
-        }
+        //public LinearKernel(Vector[] vectors,int cacheSize):this(vectors)
+        //{
+        //    useCache = true;
+        //    cache = new LRUCache<Point2D, float>(cacheSize);
+        //}
 
         #region IKernel<Vector> Members
 
@@ -152,7 +157,7 @@ namespace KMLib.Kernels
 
             if (!useCache)
             {
-                return this.Product(problemVectors[element1], problemVectors[element2]);
+                return this.Product(ProblemElements[element1], ProblemElements[element2]);
             }
 
             Point2D indexes;
@@ -178,7 +183,7 @@ namespace KMLib.Kernels
             else
             {
                 //
-                prod = this.Product(problemVectors[x], problemVectors[y]);
+                prod = this.Product(ProblemElements[x], ProblemElements[y]);
                 cache.Add(indexes,prod);
                 //Console.WriteLine("{0}-{1}={2}", x, y, prod);
                

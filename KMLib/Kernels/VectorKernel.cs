@@ -12,7 +12,28 @@ namespace KMLib.Kernels
     /// </summary>
     public abstract class VectorKernel: IKernel<Vector>
     {
+
+       
         protected Vector[] problemVectors;
+        public virtual Vector[] ProblemElements
+        {
+            get { return problemVectors; }
+            set
+            {
+                problemVectors = value;
+                ComputeDiagonalDotCache();
+
+            }
+        }
+
+        protected void ComputeDiagonalDotCache()
+        {
+            DiagonalDotCache = new float[ProblemElements.Length];
+            for (int i = 0; i < DiagonalDotCache.Length; i++)
+            {
+                DiagonalDotCache[i] = Product(ProblemElements[i], ProblemElements[i]);
+            }
+        }
 
         public float[] DiagonalDotCache
         {
@@ -20,12 +41,15 @@ namespace KMLib.Kernels
             protected set;
         }
 
-        public VectorKernel(Vector[] vectors)
-        {
-            problemVectors = vectors;
-        }
+        //public VectorKernel(Vector[] vectors)
+        //{
+        //    problemVectors = vectors;
+        //}
+
 
         #region IKernel<Vector> Members
+
+        
 
         public abstract float Product(Vector element1, Vector element2);
 

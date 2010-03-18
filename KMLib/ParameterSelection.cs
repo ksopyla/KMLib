@@ -91,7 +91,9 @@ namespace KMLib
             IList<RbfKernel> rbfKernels = new List<RbfKernel>(rangeGamma.Count);
             foreach (var gamma in rangeGamma)
             {
-                rbfKernels.Add(new RbfKernel((float)gamma, problem.Elements));
+                var kernel = new RbfKernel((float)gamma);
+                kernel.ProblemElements = problem.Elements;
+                rbfKernels.Add(kernel);
             }
 
 

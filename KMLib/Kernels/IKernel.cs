@@ -12,6 +12,8 @@ namespace KMLib
     /// <typeparam name="TProblemElement"></typeparam>
     public interface IKernel<TProblemElement>
     {
+
+        TProblemElement[] ProblemElements { get; set; }
         /// <summary>
         /// Product of 2 elements, methods of messure similarity
         /// </summary>

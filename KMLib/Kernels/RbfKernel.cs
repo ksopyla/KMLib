@@ -16,16 +16,38 @@ namespace KMLib.Kernels
 
         private LinearKernel linKernel;
 
-        public RbfKernel(float gamma,Vector[] vectors):base(vectors)
+
+        public override Vector[] ProblemElements
+        {
+            get { return ProblemElements; }
+            set
+            {
+                linKernel.ProblemElements = value;
+
+                ProblemElements = value;
+
+                ComputeDiagonalDotCache();
+
+            }
+        }
+
+        //public RbfKernel(float gamma,Vector[] vectors):base(vectors)
+        //{
+        //    Gamma = gamma;
+        //    linKernel = new LinearKernel(vectors);
+
+        //    DiagonalDotCache = new float[vectors.Length];
+        //    for (int i = 0; i < DiagonalDotCache.Length; i++)
+        //    {
+        //        DiagonalDotCache[i] = Product(vectors[i], vectors[i]);
+        //    }
+        //}
+
+        public RbfKernel(float gamma)
         {
             Gamma = gamma;
-            linKernel = new LinearKernel(vectors);
+            linKernel = new LinearKernel();
 
-            DiagonalDotCache = new float[vectors.Length];
-            for (int i = 0; i < DiagonalDotCache.Length; i++)
-            {
-                DiagonalDotCache[i] = Product(vectors[i], vectors[i]);
-            }
         }
 
         #region IKernel<Vector> Members

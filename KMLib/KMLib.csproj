@@ -105,7 +105,6 @@
     <Compile Include="Helpers\IOHelpers.cs" />
     <Compile Include="Helpers\Point2D.cs" />
     <Compile Include="Kernels\CachedKernel.cs" />
-    <Compile Include="Kernels\CosineKernel.cs" />
     <Compile Include="Kernels\IKernel.cs" />
     <Compile Include="Kernels\LinearMahalanobisKernel.cs" />
     <Compile Include="Kernels\PolinominalKernel.cs" />

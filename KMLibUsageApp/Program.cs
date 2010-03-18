@@ -128,7 +128,9 @@ namespace KMLibUsageApp
                                    };
 
             Problem<Vector> train = new Problem<Vector>(vectors, new float[] {1, 1, -1,-1});
-            IKernel<Vector> kernel = new LinearMahalanobisKernel(train.Elements, invertedCovMatrix);
+            IKernel<Vector> kernel = new LinearMahalanobisKernel( invertedCovMatrix);
+
+            kernel.ProblemElements= train.Elements;
 
 
             for (int i = 0; i < vectors.Length; i++)

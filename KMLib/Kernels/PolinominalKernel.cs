@@ -19,6 +19,19 @@ namespace KMLib.Kernels
 
         private LinearKernel linKernel;
 
+        public override Vector[] ProblemElements
+        {
+            get { return ProblemElements; }
+            set
+            {
+                linKernel.ProblemElements = value;
+
+                ProblemElements = value;
+
+                ComputeDiagonalDotCache();
+
+            }
+        }
 
         /// <summary>
         /// Creates Polinominal Kernel,
@@ -27,22 +40,15 @@ namespace KMLib.Kernels
         /// <param name="degree">polinominal Degree</param>
         /// <param name="coef">coeficient</param>
         /// <param name="gamma">Gamma</param>
-        public PolinominalKernel(double degree, double coef, double gamma, Vector[] vectors)
-            : base(vectors)
+        public PolinominalKernel(double degree, double coef, double gamma)
         {
             Degree = degree;
             Coef = coef;
             Gamma = gamma;
 
-            linKernel = new LinearKernel(vectors);
+            linKernel = new LinearKernel();
 
-            DiagonalDotCache = new float[vectors.Length];
-            for (int i = 0; i < DiagonalDotCache.Length; i++)
-            {
-                DiagonalDotCache[i] = Product(vectors[i], vectors[i]);
-            }
-
-
+            
         }
 
 
