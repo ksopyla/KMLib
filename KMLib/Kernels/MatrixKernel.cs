@@ -10,6 +10,7 @@ namespace KMLib.Kernels
     {
         protected Matrix[] problemElements;
 
+
         public Matrix[] ProblemElements
         {
             get { throw new NotImplementedException(); }

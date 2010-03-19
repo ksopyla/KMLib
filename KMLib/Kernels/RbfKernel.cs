@@ -19,12 +19,12 @@ namespace KMLib.Kernels
 
         public override Vector[] ProblemElements
         {
-            get { return ProblemElements; }
             set
             {
+                if (value == null) throw new ArgumentNullException("value");
                 linKernel.ProblemElements = value;
 
-                ProblemElements = value;
+                problemVectors = value;
 
                 ComputeDiagonalDotCache();
 
