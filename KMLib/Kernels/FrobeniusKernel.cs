@@ -14,16 +14,6 @@ namespace KMLib.Kernels
     public class FrobeniusKernel: MatrixKernel
     {
 
-
-        public FrobeniusKernel(Matrix[] elements):base(elements)
-        {
-            DiagonalDotCache = new float[elements.Length];
-            for (int i = 0; i < DiagonalDotCache.Length; i++)
-            {
-                DiagonalDotCache[i] = Product(elements[i], elements[i]);
-            }
-        }
-
         public override sealed float Product(Matrix element1, Matrix element2)
         {
 
