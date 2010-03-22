@@ -31,5 +31,7 @@ namespace KMLib
         float Product(int element1, int element2);
 
         float[] DiagonalDotCache { get; }
+
+        ParameterSelection<TProblemElement> CreateParameterSelection();
     }
 }

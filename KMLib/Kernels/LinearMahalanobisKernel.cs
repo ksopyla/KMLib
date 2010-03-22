@@ -143,6 +143,11 @@ namespace KMLib.Kernels
             
         }
 
+        public override ParameterSelection<Vector> CreateParameterSelection()
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
     }
 }

@@ -13,6 +13,10 @@ namespace KMLib.Kernels
     /// </summary>
     public class FrobeniusKernel: MatrixKernel
     {
+        public override ParameterSelection<Matrix> CreateParameterSelection()
+        {
+            throw new NotImplementedException();
+        }
 
         public override sealed float Product(Matrix element1, Matrix element2)
         {

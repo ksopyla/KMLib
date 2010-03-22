@@ -35,15 +35,16 @@ namespace KMLibUsageApp
 
 
             
-            ComputeLinearMahalanobisKernel();
+            //ComputeLinearMahalanobisKernel();
 
-            //IKernel<Vector> kernel = new RbfKernel(0.5f, train.Elements);
+            IKernel<Vector> kernel = new RbfKernel(0.5f);
+            kernel.ProblemElements = train.Elements;
             //IKernel<Vector> kernel = new CosineKernel(train.Elements);
             //IKernel<Vector> kernel = new LinearKernel(train.Elements); 
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);
 
 
-           // SVMClassify(train,test, kernel);
+            SVMClassify(train,test, kernel);
 
             //DoCrossValidation(train, kernel);
 
@@ -55,6 +56,10 @@ namespace KMLibUsageApp
 
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
         private static void ComputeLinearMahalanobisKernel()
         {
             //original covariance matrix, but det==0
@@ -175,16 +180,18 @@ namespace KMLibUsageApp
         /// Testing methods for searching parameter C and Gamma
         /// </summary>
         /// <param name="train"></param>
-        private static void FindParameterForRbf(Problem<Vector> train)
+        private static void FindParameterForRbf(Problem<Vector> train,IKernel<Vector> kernel)
         {
-            ParameterSelection pSelection = new ParameterSelection();
+            var pSelection = kernel.CreateParameterSelection();
             pSelection.ShowDebug = true;
             
 
             double G;
             float C;
+            IKernel<Vector> bestKernel;
             Stopwatch sw = Stopwatch.StartNew();
-            pSelection.GridSearchForRbfKerel(train,out C,out G);
+            pSelection.SearchParams(train,out C,out bestKernel);
+                //GridSearchForRbfKerel(train,out C,out G);
             sw.Stop();
             Console.WriteLine("Parameter selection time ={0}",sw.Elapsed);
 
@@ -258,7 +265,7 @@ namespace KMLibUsageApp
                 timer.Start();
                 double tempAcc = Validation.CrossValidation(train, kernel, penaltyC[i], folds);
                 timer.Stop();
-                Console.WriteLine("Tmp acuuracy = {0} C={1} time={2}", tempAcc, penaltyC[i], timer.Elapsed);
+                Debug.WriteLine(string.Format("Tmp acuuracy = {0} C={1} time={2}", tempAcc, penaltyC[i], timer.Elapsed));
                 if (tempAcc > acc)
                 {
                     acc = tempAcc;

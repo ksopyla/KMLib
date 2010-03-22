@@ -26,9 +26,9 @@ namespace KMLib.Kernels
             {
                 linKernel.ProblemElements = value;
 
-                ProblemElements = value;
+                base.ProblemElements = value;
 
-                ComputeDiagonalDotCache();
+                //ComputeDiagonalDotCache();
 
             }
         }
@@ -63,7 +63,7 @@ namespace KMLib.Kernels
 
         public override float Product(int element1, int element2)
         {
-            if (element1 == element2 && (DiagonalDotCache != null))
+            if (element1 == element2 && (DiagonalDotCacheBuilded))
                 return DiagonalDotCache[element1];
 
 
@@ -72,6 +72,11 @@ namespace KMLib.Kernels
             float prod = (float)Math.Pow((Gamma *dot+Coef),Degree);
 
             return prod;
+        }
+
+        public override ParameterSelection<Vector> CreateParameterSelection()
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using dnAnalytics.LinearAlgebra;
 
 
@@ -24,9 +25,10 @@ namespace KMLib.Kernels
                 if (value == null) throw new ArgumentNullException("value");
                 linKernel.ProblemElements = value;
 
-                problemVectors = value;
+                base.ProblemElements = value;
+                //problemVectors = value;
 
-                ComputeDiagonalDotCache();
+                //ComputeDiagonalDotCache();
 
             }
         }
@@ -84,8 +86,16 @@ namespace KMLib.Kernels
 
         public override float Product(int element1, int element2)
         {
-            if (element1 == element2 && (DiagonalDotCache != null))
+            if (element1 >= ProblemElements.Length)
+                throw new IndexOutOfRangeException("element1 out of range");
+
+            if (element2 >= ProblemElements.Length)
+                throw new IndexOutOfRangeException("element2 out of range");
+
+
+            if (element1 == element2 && (DiagonalDotCacheBuilded))
                 return DiagonalDotCache[element1];
+
 
             float x1Squere = linKernel.Product(element1, element1);
             float x2Squere = linKernel.Product(element2, element2);
@@ -95,6 +105,11 @@ namespace KMLib.Kernels
             float prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
 
             return prod;
+        }
+
+        public override ParameterSelection<Vector> CreateParameterSelection()
+        {
+            return new RBFParameterSelection();
         }
     }
 }

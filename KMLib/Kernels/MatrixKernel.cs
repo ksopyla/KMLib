@@ -36,6 +36,8 @@ namespace KMLib.Kernels
             get; protected set;
         }
 
+        public abstract ParameterSelection<Matrix> CreateParameterSelection();
+
 
         public abstract float Product(Matrix element1, Matrix element2);
         public abstract float Product(int element1, int element2);

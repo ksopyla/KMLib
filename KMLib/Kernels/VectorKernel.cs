@@ -13,6 +13,7 @@ namespace KMLib.Kernels
     public abstract class VectorKernel: IKernel<Vector>
     {
 
+        protected bool DiagonalDotCacheBuilded = false;
        
         protected Vector[] problemVectors;
         public virtual Vector[] ProblemElements
@@ -20,6 +21,7 @@ namespace KMLib.Kernels
             get { return problemVectors; }
             set
             {
+                DiagonalDotCacheBuilded = false;
                 problemVectors = value;
                 ComputeDiagonalDotCache();
 
@@ -31,8 +33,11 @@ namespace KMLib.Kernels
             DiagonalDotCache = new float[ProblemElements.Length];
             for (int i = 0; i < DiagonalDotCache.Length; i++)
             {
-                DiagonalDotCache[i] = Product(ProblemElements[i], ProblemElements[i]);
+              // DiagonalDotCache[i] = Product(ProblemElements[i], ProblemElements[i]);
+
+              DiagonalDotCache[i] = Product(i,i);
             }
+            DiagonalDotCacheBuilded = true;
         }
 
         public float[] DiagonalDotCache
@@ -56,5 +61,8 @@ namespace KMLib.Kernels
         public abstract float Product(int element1, int element2);
 
         #endregion
+
+
+        public abstract ParameterSelection<Vector> CreateParameterSelection();
     }
 }

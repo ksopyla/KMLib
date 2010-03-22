@@ -152,7 +152,14 @@ namespace KMLib.Kernels
         /// <returns></returns>
         public override float  Product(int element1, int element2)
         {
-            if (element1 == element2 && (DiagonalDotCache!=null))
+            if (element1 >= ProblemElements.Length)
+                throw new IndexOutOfRangeException("element1 out of range");
+
+            if (element2 >= ProblemElements.Length)
+                throw new IndexOutOfRangeException("element2 out of range");
+
+
+            if (element1 == element2 && (DiagonalDotCacheBuilded))
                 return DiagonalDotCache[element1];
 
             if (!useCache)
@@ -190,6 +197,11 @@ namespace KMLib.Kernels
             }
            
             return prod;
+        }
+
+        public override ParameterSelection<Vector> CreateParameterSelection()
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

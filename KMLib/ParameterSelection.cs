@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using dnAnalytics.LinearAlgebra;
 using KMLib.Kernels;
+using System.Diagnostics;
 
 namespace KMLib
 {
@@ -13,7 +14,7 @@ namespace KMLib
     /// Contains static methods for parameter selection in diferent SVM models
     /// find penalty C and other parameters used in kernels
     /// </summary>
-    public class ParameterSelection
+    public abstract class ParameterSelection<T>
     {
         public  bool ShowDebug = false;
 
@@ -68,7 +69,7 @@ namespace KMLib
             return range;
         }
 
-
+        /* moved to concrete params selection class
         /// <summary>
         /// Perform Grid Search for parameter Selection for vector problem
         /// finds best penalty C and Gamma parameter in Rbf Kernel
@@ -120,10 +121,9 @@ namespace KMLib
                                 maxG = rbfKernels[i].Gamma;
                             }
                         }
-                        if (ShowDebug)
-                        {
-                            Console.WriteLine("[{0:0.000000},{1:0.000000}]={2:0.0000}", rbfKernels[i].Gamma, rangeC[i], acc);
-                        }
+                        
+                            Debug.WriteLine(string.Format("[{0:0.000000},{1:0.000000}]={2:0.0000}", rbfKernels[i].Gamma, rangeC[i], acc));
+                        
                     }
 
                 });
@@ -131,15 +131,13 @@ namespace KMLib
             C = (float)maxC;
             Gamma = maxG;
 
-            if (ShowDebug)
-            {
-                Console.WriteLine();
-                Console.WriteLine("-------------- Grid Search summary ------------");
-                Console.WriteLine("Max accuracy={0} c={1} gamma={2}  ", crossValidation, C, Gamma);
-            }
+           
+                Debug.WriteLine("\n");
+                Debug.WriteLine("-------------- Grid Search summary ------------");
+                Debug.WriteLine(string.Format("Max accuracy={0} c={1} gamma={2}  ", crossValidation, C, Gamma));
         }
-
-
+        */
+       public abstract void SearchParams(Problem<T> problem,out float C,out IKernel<T> kernel);
 
 
 

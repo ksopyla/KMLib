@@ -47,7 +47,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
@@ -96,6 +96,7 @@
     <Compile Include="Kernels\LinearKernel.cs" />
     <Compile Include="Kernels\MatrixKernel.cs" />
     <Compile Include="ParameterSelection.cs" />
+    <Compile Include="RBFParameterSelection.cs" />
     <Compile Include="Validation.cs" />
     <Compile Include="Helpers\BlockCache.cs" />
     <Compile Include="Helpers\ListHelper.cs" />
@@ -138,6 +139,7 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy  "$(TargetDir)*.dll" "D:\UWM\praca naukowa\doktorat\code\ReadRess\Libs" /Y</PostBuildEvent>
