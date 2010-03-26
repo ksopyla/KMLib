@@ -161,7 +161,7 @@ namespace KMLib
                 }
                 //create sub problem based on previous subProblemElements and subProbLabels
                 Problem<TProblemElement> trainSubprob = new Problem<TProblemElement>(subProbElem, subLabels);
-
+                kernel.ProblemElements = subProbElem;
                 CSVM<TProblemElement> svm = new CSVM<TProblemElement>(trainSubprob, kernel, C);
 
                 svm.Train();
