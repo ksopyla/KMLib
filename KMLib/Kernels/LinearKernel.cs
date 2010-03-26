@@ -205,5 +205,10 @@ namespace KMLib.Kernels
         }
 
         #endregion
+
+        public override string ToString()
+        {
+            return "Linear Kernel";
+        }
     }
 }

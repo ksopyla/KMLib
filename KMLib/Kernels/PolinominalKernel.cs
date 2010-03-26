@@ -78,5 +78,10 @@ namespace KMLib.Kernels
         {
             throw new NotImplementedException();
         }
+
+        public override string ToString()
+        {
+            return string.Format("Polinominal kernel, Gamma={0}", Gamma);
+        }
     }
 }

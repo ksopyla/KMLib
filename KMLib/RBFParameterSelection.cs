@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using dnAnalytics.LinearAlgebra;
 using System.Threading;
 using KMLib.Kernels;
 
 namespace KMLib
 {
-   public class RBFParameterSelection: ParameterSelection<Vector>
+    public class RBFParameterSelection : ParameterSelection<Vector>
     {
 
 
@@ -26,7 +27,7 @@ namespace KMLib
             foreach (var gamma in rangeGamma)
             {
                 var tmpkernel = new RbfKernel((float)gamma);
-                tmpkernel.ProblemElements = problem.Elements;
+              //  tmpkernel.ProblemElements = problem.Elements;
                 rbfKernels.Add(tmpkernel);
             }
 
@@ -34,42 +35,55 @@ namespace KMLib
 
             double crossValidation = double.MinValue;
             double maxC = double.MinValue;
-            int bestKernelIndex = 0;
+            RbfKernel bestKernelIndex = null;
             object lockObj = new object();
 
             //paralle search for best C and gamma, for each kernel try different C
-            Parallel.For(0, rbfKernels.Count,
-                (i) =>
+            //Parallel.For(0, rbfKernels.Count,
+            //    (i) =>
+            //    {
+
+            foreach (var rbfKernel in rbfKernels)
+            {
+
+                //Parallel.ForEach(rbfKernels, (rbfKernel) =>
+                //{
+                for (int j = 0; j < rangeC.Count; j++)
                 {
-                    for (int j = 0; j < rangeC.Count; j++)
+                    //do cross validation
+                    Stopwatch timer = Stopwatch.StartNew();
+                    
+                    double acc = Validation.CrossValidation(problem, rbfKernel,
+                                                            (float)rangeC[j], NrFolds);
+
+                    lock (lockObj)
                     {
-                        //do cross validation
-                        double acc = Validation.CrossValidation(problem, rbfKernels[i], (float)rangeC[i], NrFolds);
-
-                        lock (lockObj)
+                        if (acc > crossValidation)
                         {
-                            if (acc > crossValidation)
-                            {
-                                crossValidation = acc;
-                                maxC = rangeC[i];
-                                //maxG = rbfKernels[i].Gamma;
-                                bestKernelIndex = i;
-                            }
+                            crossValidation = acc;
+                            maxC = rangeC[j];
+                            //maxG = rbfKernels[i].Gamma;
+                            bestKernelIndex = rbfKernel;
                         }
-
-                        Debug.WriteLine(string.Format("[{0:0.000000},{1:0.000000}]={2:0.0000}", rbfKernels[i].Gamma, rangeC[i], acc));
-
                     }
 
-                });
+                    Debug.WriteLine(
+                        string.Format(
+                            "finish CV time={0},C={1:0.000000},gamma={2:0.000000}]-accuracy={3:0.0000}",
+                            timer.Elapsed, rangeC[j], rbfKernel.Gamma, acc));
+
+                }
+                Debug.WriteLine("\n");
+
+            }
 
             C = (float)maxC;
-            kernel = rbfKernels[bestKernelIndex];
+            kernel = bestKernelIndex;
 
-            
+
             Debug.WriteLine("\n");
             Debug.WriteLine("-------------- Grid Search summary ------------");
-            Debug.WriteLine(string.Format("Max accuracy={0} c={1} gamma={2}  ", crossValidation, C, rbfKernels[bestKernelIndex].Gamma));
+            Debug.WriteLine(string.Format("Max accuracy={0} c={1} gamma={2}  ", crossValidation, C, bestKernelIndex.Gamma));
         }
     }
 }

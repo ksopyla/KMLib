@@ -111,5 +111,11 @@ namespace KMLib.Kernels
         {
             return new RBFParameterSelection();
         }
+
+        public override string ToString()
+        {
+            string s = string.Format("RBF kernel, Gamma={0}", Gamma);
+            return s;
+        }
     }
 }
