@@ -93,17 +93,21 @@ namespace KMLib
             //array for equaly distributed indexes into folds
             int[] indexes = new int[probSize];
             for (int c = 0; c < nr_class; c++)
+            {
+                int begin = -1;
+                int end = 0;
                 for (int i = 0; i < nrFolds; i++)
                 {
-                    int begin = start[c] + i * count[c] / nrFolds;
-                    int end = start[c] + (i + 1) * count[c] / nrFolds;
+                    begin = start[c] + i * count[c] / nrFolds;
+
+                    end = start[c] + (i + 1) * count[c] / nrFolds;
                     for (int j = begin; j < end; j++)
                     {
                         indexes[foldStart[i]] = permutation[j];
                         foldStart[i]++;
                     }
                 }
-
+            }
             //above we modify folds starst so we have to set it again
             SetFoldsStarts(probSize, nrFolds, foldStart);
             //for (int i = 0; i <= nrFolds; i++)
@@ -195,10 +199,61 @@ namespace KMLib
                                                 Problem<TProblemElement> problem,
                                                 IKernel<TProblemElement> kernel, float C, int nrFolds)
         {
+            List<TProblemElement>[] foldsElements;
+            List<float>[] foldsLabels;
             int probSize = problem.ElementsCount;
+            MakeFoldsSplit(problem, nrFolds, out foldsElements, out foldsLabels);
 
-            //array for all folds predictions
-            float[] foldPredictions = new float[probSize];
+            double accuracy=CrossValidateOnFolds(probSize, foldsElements, foldsLabels, kernel, C);
+            return accuracy;
+
+            //todo: good for paralle computing, think about it later, do validation!
+            //long correct = 0l;
+            //for (int i = 0; i < nrFolds; i++)
+            //{
+
+            //    //array of sub problem elements (comes form permutation)
+            //    int subProbSize = 0;
+            //    var trainFoldIndexes = from t in Enumerable.Range(0, nrFolds)
+            //                           where t != i
+            //                           select t;
+
+            //    foreach (var s in trainFoldIndexes)
+            //    {
+            //        subProbSize += foldsElements[s].Count;
+            //    }
+
+            //    float[] subLabels;
+            //    TProblemElement[] subProbElem = CreateSubProblem(foldsElements, foldsLabels, trainFoldIndexes, subProbSize, out subLabels);
+
+
+            //    //create sub problem based on previous subProblemElements and subProbLabels
+            //    Problem<TProblemElement> trainSubprob = new Problem<TProblemElement>(subProbElem, subLabels);
+            //    kernel.ProblemElements = subProbElem;
+            //    CSVM<TProblemElement> svm = new CSVM<TProblemElement>(trainSubprob, kernel, C);
+
+            //    svm.Train();
+
+            //    for (int j = 0; j < foldsElements[i].Count; j++)
+            //    {
+            //        var element = foldsElements[i][j];
+
+            //        var prediction = svm.Predict(element);
+            //        if (prediction == foldsLabels[i][j])
+            //        {
+            //            ++correct;
+            //        }
+            //    }
+            //}
+
+            ////todo: accuracy count for cross validation
+            //return (float)correct / probSize;
+
+        }
+
+        public static void MakeFoldsSplit<TProblemElement>(Problem<TProblemElement> problem, int nrFolds, out List<TProblemElement>[] foldsElements, out List<float>[] foldsLabels)
+        {
+            int probSize = problem.ElementsCount;
 
             //array which stores computed permutation of problem element indexes
             int[] permutation = new int[probSize];
@@ -232,8 +287,8 @@ namespace KMLib
                 }
             }
 
-            List<TProblemElement>[] foldsElements = new List<TProblemElement>[nrFolds];
-            List<float >[] foldsLabels = new List<float>[nrFolds];
+            foldsElements = new List<TProblemElement>[nrFolds];
+            foldsLabels = new List<float>[nrFolds];
 
             for (int i = 0; i < nrFolds; i++)
             {
@@ -256,18 +311,26 @@ namespace KMLib
                 }
                 foldIndex = 0;
             }
+            //return probSize;
+        }
 
-            //todo: good for paralle computing, think about it later, do validation!
+        public static double CrossValidateOnFolds<TProblemElement>(
+                                                int probSize,
+                                                List<TProblemElement>[] foldsElements,
+                                                List<float>[] foldsLabels,
+                                                IKernel<TProblemElement> kernel, float C)
+        {
+            Debug.Assert(foldsElements.Length == foldsLabels.Length, "array lenght should have the same lenght");
+            int nrFolds = foldsElements.Length;
             long correct = 0l;
             for (int i = 0; i < nrFolds; i++)
             {
-
                 //array of sub problem elements (comes form permutation)
                 int subProbSize = 0;
-                var trainFoldIndexes = Enumerable.Range(0, nrFolds);
-                trainFoldIndexes = from t in trainFoldIndexes
-                                   where t != i
-                                   select t;
+                var trainFoldIndexes = from t in Enumerable.Range(0, nrFolds)
+                                       where t != i
+                                       select t;
+
                 foreach (var s in trainFoldIndexes)
                 {
                     subProbSize += foldsElements[s].Count;
@@ -276,10 +339,9 @@ namespace KMLib
                 float[] subLabels;
                 TProblemElement[] subProbElem = CreateSubProblem(foldsElements, foldsLabels, trainFoldIndexes, subProbSize, out subLabels);
 
-       
                 //create sub problem based on previous subProblemElements and subProbLabels
                 Problem<TProblemElement> trainSubprob = new Problem<TProblemElement>(subProbElem, subLabels);
-                kernel.ProblemElements = subProbElem;
+                
                 CSVM<TProblemElement> svm = new CSVM<TProblemElement>(trainSubprob, kernel, C);
 
                 svm.Train();
@@ -296,7 +358,7 @@ namespace KMLib
                 }
             }
 
-           //todo: accuracy count for cross validation
+            //todo: accuracy count for cross validation
             return (float)correct / probSize;
 
         }
@@ -304,22 +366,21 @@ namespace KMLib
         private static TProblemElement[] CreateSubProblem<TProblemElement>(List<TProblemElement>[] foldsElements, List<float>[] foldsLabels, IEnumerable<int> trainFoldIndexes, int subProbSize, out float[] subLabels)
         {
             TProblemElement[] subProbElem = new TProblemElement[subProbSize];
-            subLabels = new float[subProbSize];
 
-         List<TProblemElement> groupElements = new List<TProblemElement>(subProbSize);
-         List<float > groupLabels = new List<float>(subProbSize);
+            List<TProblemElement> groupElements = new List<TProblemElement>(subProbSize);
+            List<float> groupLabels = new List<float>(subProbSize);
             foreach (var trainFoldIndex in trainFoldIndexes)
             {
                 Debug.Assert(foldsLabels[trainFoldIndex].Count == foldsElements[trainFoldIndex].Count, "---Two lists should have the same lenght");
                 groupElements.AddRange(foldsElements[trainFoldIndex]);
                 groupLabels.AddRange(foldsLabels[trainFoldIndex]);
-             
+
             }
 
             subLabels = groupLabels.ToArray();
             subProbElem = groupElements.ToArray();
 
-            Debug.Assert(subProbElem.Length==subLabels.Length,"two array should have same sizes");
+            Debug.Assert(subProbElem.Length == subLabels.Length, "two array should have same sizes");
             return subProbElem;
         }
 

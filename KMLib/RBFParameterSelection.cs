@@ -16,6 +16,9 @@ namespace KMLib
 
         public override void SearchParams(Problem<Vector> problem, out float C, out IKernel<Vector> kernel)
         {
+
+            Debug.WriteLine("Starting Parameter Selection for RBF kernel");
+
             //create range for penalty parameter C
             IList<double> rangeC = PowerRange(MinCPower, MaxCPower, PowerBase, PowerStep);
 
@@ -27,7 +30,7 @@ namespace KMLib
             foreach (var gamma in rangeGamma)
             {
                 var tmpkernel = new RbfKernel((float)gamma);
-              //  tmpkernel.ProblemElements = problem.Elements;
+                //  tmpkernel.ProblemElements = problem.Elements;
                 rbfKernels.Add(tmpkernel);
             }
 
@@ -38,23 +41,30 @@ namespace KMLib
             RbfKernel bestKernelIndex = null;
             object lockObj = new object();
 
+
+            List<Vector>[] foldsElements;
+            List<float>[] foldsLabels;
+            Validation.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
+
+
             //paralle search for best C and gamma, for each kernel try different C
-            //Parallel.For(0, rbfKernels.Count,
-            //    (i) =>
-            //    {
 
-            foreach (var rbfKernel in rbfKernels)
+            //foreach (var rbfKernel in rbfKernels)
+            //{
+
+            Parallel.ForEach(rbfKernels, (rbfKernel) =>
             {
-
-                //Parallel.ForEach(rbfKernels, (rbfKernel) =>
-                //{
                 for (int j = 0; j < rangeC.Count; j++)
                 {
                     //do cross validation
                     Stopwatch timer = Stopwatch.StartNew();
-                    
-                    double acc = Validation.CrossValidation(problem, rbfKernel,
-                                                            (float)rangeC[j], NrFolds);
+
+                    //double acc = Validation.CrossValidation(problem, rbfKernel,(float)rangeC[j], NrFolds);
+
+                    double acc = Validation.CrossValidateOnFolds(problem.ElementsCount,
+                                                                 foldsElements,
+                                                                 foldsLabels, rbfKernel,
+                                                                 (float)rangeC[j]);
 
                     lock (lockObj)
                     {
@@ -69,13 +79,12 @@ namespace KMLib
 
                     Debug.WriteLine(
                         string.Format(
-                            "finish CV time={0},C={1:0.000000},gamma={2:0.000000}]-accuracy={3:0.0000}",
+                            "CrossValidation time={0},C={1},gamma={2}->{3:0.#####}",
                             timer.Elapsed, rangeC[j], rbfKernel.Gamma, acc));
 
                 }
-                Debug.WriteLine("\n");
 
-            }
+            });
 
             C = (float)maxC;
             kernel = bestKernelIndex;

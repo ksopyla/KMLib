@@ -17,10 +17,10 @@ namespace KMLib
     {
 
         private Problem<TProblemElement> problem;
-        
-        private float C=0.5f;
-        
-        
+
+        private float C = 0.5f;
+
+
         private IKernel<TProblemElement> kernel;
 
         public Model<TProblemElement> Model;
@@ -32,23 +32,24 @@ namespace KMLib
         /// and <see cref="SmoFanSolver{TProblemElement}"/> solver from LibSVM library
         /// </remarks>
         private Solver<TProblemElement> solver;
-    
-        public CSVM(Problem<TProblemElement> trainProblem, IKernel<TProblemElement> kernel,float C)
+
+        public CSVM(Problem<TProblemElement> trainProblem, IKernel<TProblemElement> kernel, float C)
         {
             this.problem = trainProblem;
-           
+
             this.kernel = kernel;
             this.C = C;
 
-          //  solver = new SMOSolver<TProblemElement>(problem, kernel, C);
+            //  solver = new SMOSolver<TProblemElement>(problem, kernel, C);
             solver = new SmoFanSolver<TProblemElement>(trainProblem, kernel, C);
-                
+
         }
-        
+
 
         public void Train()
         {
-           Model = solver.ComputeModel();
+            kernel.ProblemElements = problem.Elements;
+            Model = solver.ComputeModel();
         }
 
         public float Predict(TProblemElement problemElement)
@@ -70,7 +71,7 @@ namespace KMLib
 
         }
 
-       
+
 
 
     }
