@@ -157,10 +157,6 @@ namespace KMLib.SVMSolvers
             //this.l = l;
             //this.Q = Q;
 
-
-
-
-
             p = (float[])minusOnes.Clone();
             y = (sbyte[])y_.Clone();
             alpha = (float[])alpha_.Clone();

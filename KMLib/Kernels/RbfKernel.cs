@@ -107,9 +107,15 @@ namespace KMLib.Kernels
             return prod;
         }
 
+
+      
+        /// <summary>
+        /// Creates object for parameters selection for RBF kernel
+        /// </summary>
+        /// <returns></returns>
         public override ParameterSelection<Vector> CreateParameterSelection()
         {
-            return new RBFParameterSelection();
+            return new RbfParameterSelection();
         }
 
         public override string ToString()

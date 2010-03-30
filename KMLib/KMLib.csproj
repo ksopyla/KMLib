@@ -90,10 +90,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Kernels\FrobeniusKernel.cs" />
+    <Compile Include="Kernels\FrobeniusParameterSelection.cs" />
     <Compile Include="Kernels\LinearKernel.cs" />
+    <Compile Include="Kernels\LinearParameterSelection.cs" />
     <Compile Include="Kernels\MatrixKernel.cs" />
-    <Compile Include="ParameterSelection.cs" />
-    <Compile Include="RBFParameterSelection.cs" />
+    <Compile Include="Kernels\ParameterSelection.cs" />
+    <Compile Include="Kernels\RBFParameterSelection.cs" />
     <Compile Include="Validation.cs" />
     <Compile Include="Helpers\BlockCache.cs" />
     <Compile Include="Helpers\ListHelper.cs" />
@@ -117,7 +119,6 @@
     <Compile Include="SVMSolvers\SMOSolver.cs" />
     <Compile Include="Solver.cs" />
     <Compile Include="CSVM.cs" />
-    <Compile Include="DataStructers\Vector.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using KMLib.DataStructers;
 using dnaLA = dnAnalytics.LinearAlgebra;
 
 namespace KMLib.Helpers
@@ -18,78 +17,78 @@ namespace KMLib.Helpers
         /// </summary>
         /// <param name="fileName">Data set file name</param>
         /// <returns></returns>
-        public static Problem<Vector> ReadVectorsFromFile(string fileName)
-        {
+        //public static Problem<Vector> ReadVectorsFromFile(string fileName)
+        //{
 
 
 
-            List<float> labels = new List<float>();
+        //    List<float> labels = new List<float>();
 
-            List<Vector> vectors = new List<Vector>();
+        //    List<Vector> vectors = new List<Vector>();
 
-            using (FileStream fileStream = File.OpenRead(fileName))
-            {
-                using (StreamReader input = new StreamReader(fileStream))
-                {
+        //    using (FileStream fileStream = File.OpenRead(fileName))
+        //    {
+        //        using (StreamReader input = new StreamReader(fileStream))
+        //        {
 
-                    int max_index = 0;
+        //            int max_index = 0;
 
-                    while (input.Peek() > -1)
-                    {
-                        string[] parts = input.ReadLine().Trim().Split();
+        //            while (input.Peek() > -1)
+        //            {
+        //                string[] parts = input.ReadLine().Trim().Split();
 
-                        //label
-                        labels.Add(float.Parse(parts[0]));
+        //                //label
+        //                labels.Add(float.Parse(parts[0]));
 
-                        //other parts with index and value
-                        int m = parts.Length - 1;
-
-
-                        List<Vector.Node> nodes = new List<Vector.Node>();
+        //                //other parts with index and value
+        //                int m = parts.Length - 1;
 
 
-                        int index = 0;
-                        float value;
-                        for (int j = 0; j < m; j++)
-                        {
+        //                List<Vector.Node> nodes = new List<Vector.Node>();
 
-                            string[] nodeParts = parts[j + 1].Split(':');
-                            index = int.Parse(nodeParts[0]);
-                            value = float.Parse(nodeParts[1], System.Globalization.CultureInfo.InvariantCulture);
 
-                            nodes.Add(new Vector.Node(index, (float)value));
-                            // v[index] = value;
+        //                int index = 0;
+        //                float value;
+        //                for (int j = 0; j < m; j++)
+        //                {
 
-                        }
+        //                    string[] nodeParts = parts[j + 1].Split(':');
+        //                    index = int.Parse(nodeParts[0]);
+        //                    value = float.Parse(nodeParts[1], System.Globalization.CultureInfo.InvariantCulture);
 
-                        if (m > 0)
-                        {
-                            max_index = Math.Max(max_index, index);
-                        }
-                        vectors.Add(new Vector(nodes));
-                    }
+        //                    nodes.Add(new Vector.Node(index, (float)value));
+        //                    // v[index] = value;
 
-                    //assing max index as  vector Dimension,
-                    //not always true for different data sets
-                    for (int i = 0; i < vectors.Count; i++)
-                    {
-                        vectors[i].Dimension = max_index;
-                    }
+        //                }
 
-                }
-            }
-            /*
-            Problem<Vector> vectorProblem = new Problem<Vector>(vectors.ToArray(),labels.ToArray());
+        //                if (m > 0)
+        //                {
+        //                    max_index = Math.Max(max_index, index);
+        //                }
+        //                vectors.Add(new Vector(nodes));
+        //            }
+
+        //            //assing max index as  vector Dimension,
+        //            //not always true for different data sets
+        //            for (int i = 0; i < vectors.Count; i++)
+        //            {
+        //                vectors[i].Dimension = max_index;
+        //            }
+
+        //        }
+        //    }
+            
+        //    //Problem<Vector> vectorProblem = new Problem<Vector>(vectors.ToArray(),labels.ToArray());
             
             
-            vectorProblem.Elements = vectors.ToArray();
-            vectorProblem.ElementsCount = vectors.Count;
-            vectorProblem.Labels = labels.ToArray();
+        //    //vectorProblem.Elements = vectors.ToArray();
+        //    //vectorProblem.ElementsCount = vectors.Count;
+        //    //vectorProblem.Labels = labels.ToArray();
             
-            return vectorProblem;
-            */
-            return new Problem<Vector>(vectors.ToArray(), labels.ToArray());
-        }
+        //    //return vectorProblem;
+            
+        //    return new Problem<Vector>(vectors.ToArray(), labels.ToArray());
+        //}
 
 
         /// <summary>

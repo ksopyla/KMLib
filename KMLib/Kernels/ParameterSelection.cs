@@ -1,13 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using dnAnalytics.LinearAlgebra;
-using KMLib.Kernels;
-using System.Diagnostics;
 
-namespace KMLib
+namespace KMLib.Kernels
 {
 
     /// <summary>
@@ -137,9 +131,11 @@ namespace KMLib
                 Debug.WriteLine(string.Format("Max accuracy={0} c={1} gamma={2}  ", crossValidation, C, Gamma));
         }
         */
-       public abstract void SearchParams(Problem<T> problem,out float C,out IKernel<T> kernel);
+        public abstract void SearchParams(Problem<T> problem,out float C,out IKernel<T> kernel);
 
 
 
     }
 }
+
+

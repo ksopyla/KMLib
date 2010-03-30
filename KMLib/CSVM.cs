@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KMLib.Kernels;
 using KMLib.SVMSolvers;
 
 namespace KMLib
@@ -23,10 +24,10 @@ namespace KMLib
 
         private IKernel<TProblemElement> kernel;
 
-        public Model<TProblemElement> Model;
+        private Model<TProblemElement> model;
 
         /// <summary>
-        /// Solver, solves C-SVM optimiaztion problem 
+        /// Solver, solves C-SVM optimization problem 
         /// </summary>
         /// <remarks>Now KMLib implements two solvers clasic <see cref="SMOSolver{TProblemElement}"/>
         /// and <see cref="SmoFanSolver{TProblemElement}"/> solver from LibSVM library
@@ -40,8 +41,10 @@ namespace KMLib
             this.kernel = kernel;
             this.C = C;
 
-            //  solver = new SMOSolver<TProblemElement>(problem, kernel, C);
-            solver = new SmoFanSolver<TProblemElement>(trainProblem, kernel, C);
+             //=======================================================================//
+            //  solver = new SMOSolver<TProblemElement>(problem, kernel, C);         //
+           // solver = new SmoFanSolver<TProblemElement>(trainProblem, kernel, C);  //
+          //=======================================================================//
 
         }
 
@@ -49,7 +52,8 @@ namespace KMLib
         public void Train()
         {
             kernel.ProblemElements = problem.Elements;
-            Model = solver.ComputeModel();
+            solver = new SmoFanSolver<TProblemElement>(problem, kernel, C);
+            model = solver.ComputeModel();
         }
 
         public float Predict(TProblemElement problemElement)
@@ -60,10 +64,10 @@ namespace KMLib
             for (int i = 0; i < problem.Elements.Length; i++)
             {
 
-                sum += Model.Alpha[i] * problem.Labels[i] * kernel.Product(problem.Elements[i], problemElement);
+                sum += model.Alpha[i] * problem.Labels[i] * kernel.Product(problem.Elements[i], problemElement);
             }
 
-            sum -= Model.Rho;
+            sum -= model.Rho;
 
             float ret = sum > 0 ? 1 : -1;
 

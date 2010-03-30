@@ -6,16 +6,21 @@ using dnAnalytics.LinearAlgebra;
 
 namespace KMLib.Kernels
 {
+
+    /// <summary>
+    /// abstract class for matrix kernles
+    /// </summary>
     public abstract class MatrixKernel: IKernel<Matrix>
     {
 
         protected Matrix[] problemElements;
-
+        protected bool DiagonalDotCacheBuilded = false;
         public Matrix[] ProblemElements
         {
             get { return problemElements; }
             set
             {
+                DiagonalDotCacheBuilded = false;
                 problemElements = value;
                 ComputeDiagonalDotCache();
             }
@@ -26,8 +31,10 @@ namespace KMLib.Kernels
             DiagonalDotCache = new float[ProblemElements.Length];
             for (int i = 0; i < DiagonalDotCache.Length; i++)
             {
-                DiagonalDotCache[i] = Product(ProblemElements[i], ProblemElements[i]);
+                //DiagonalDotCache[i] = Product(ProblemElements[i], ProblemElements[i]);
+                DiagonalDotCache[i] = Product(i,i);
             }
+            DiagonalDotCacheBuilded = true;
         }
 
 
