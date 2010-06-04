@@ -7,7 +7,7 @@ using KMLib.Helpers;
 
 namespace KMLib.Kernels
 {
-    public class LinearKernel: VectorKernel
+    public class LinearKernel: VectorKernel<SparseVector> 
     {
        // protected Vector[] problemVectors;
 
@@ -69,7 +69,7 @@ namespace KMLib.Kernels
         /// <returns></returns>
         
         
-        public override float Product(Vector element1, Vector element2)
+        public override float Product(SparseVector element1, SparseVector element2)
         {
             return  (float) element1.DotProduct(element2);
 
@@ -199,9 +199,9 @@ namespace KMLib.Kernels
             return prod;
         }
 
-        public override ParameterSelection<Vector> CreateParameterSelection()
+        public override ParameterSelection<SparseVector> CreateParameterSelection()
         {
-            throw new NotImplementedException();
+            return new LinearParameterSelection();
         }
 
         #endregion

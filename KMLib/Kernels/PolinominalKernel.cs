@@ -10,7 +10,7 @@ namespace KMLib.Kernels
     /// <summary>
     /// Represents polinominal kernel (Gamma*dot(x,y)+Coef)^deg
     /// </summary>
-    public class PolinominalKernel:VectorKernel
+    public class PolinominalKernel:VectorKernel<SparseVector>
     {
         public readonly double Degree = 3;
         public readonly double Coef = 0;
@@ -19,7 +19,7 @@ namespace KMLib.Kernels
 
         private LinearKernel linKernel;
 
-        public override Vector[] ProblemElements
+        public override SparseVector[] ProblemElements
         {
             get { return ProblemElements; }
             set
@@ -52,7 +52,7 @@ namespace KMLib.Kernels
         }
 
 
-        public override float Product(Vector element1, Vector element2)
+        public override float Product(SparseVector element1, SparseVector element2)
         {
             float dot = linKernel.Product(element1, element2);
 
@@ -74,7 +74,7 @@ namespace KMLib.Kernels
             return prod;
         }
 
-        public override ParameterSelection<Vector> CreateParameterSelection()
+        public override ParameterSelection<SparseVector> CreateParameterSelection()
         {
             throw new NotImplementedException();
         }

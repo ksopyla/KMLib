@@ -54,10 +54,6 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="dnAnalytics, Version=2009.8.0.0, Culture=neutral, PublicKeyToken=47f8433cf19ffb12, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Libs\dnAnalytics.dll</HintPath>
-    </Reference>
     <Reference Include="NMathCoreKernelx86, Version=2.6.0.0, Culture=neutral, PublicKeyToken=873235918a322639, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Libs\NMathCoreKernelx86.dll</HintPath>
@@ -95,7 +91,13 @@
     <Compile Include="Kernels\LinearParameterSelection.cs" />
     <Compile Include="Kernels\MatrixKernel.cs" />
     <Compile Include="Kernels\ParameterSelection.cs" />
+    <Compile Include="Kernels\PolinominalKernel.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Kernels\RBFParameterSelection.cs" />
+    <Compile Include="SVMSolvers\AlphaPair.cs" />
+    <Compile Include="SVMSolvers\ModSMOSolver.cs" />
+    <Compile Include="SVMSolvers\ParallelSMOSolver.cs" />
     <Compile Include="Validation.cs" />
     <Compile Include="Helpers\BlockCache.cs" />
     <Compile Include="Helpers\ListHelper.cs" />
@@ -107,7 +109,6 @@
     <Compile Include="Kernels\CachedKernel.cs" />
     <Compile Include="Kernels\IKernel.cs" />
     <Compile Include="Kernels\LinearMahalanobisKernel.cs" />
-    <Compile Include="Kernels\PolinominalKernel.cs" />
     <Compile Include="Kernels\RbfKernel.cs" />
     <Compile Include="Kernels\VectorKernel.cs" />
     <Compile Include="Model.cs" />
@@ -137,7 +138,12 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\..\dnAnalitycsMod\dnAnalytics_managed\src\Managed\Managed.csproj">
+      <Project>{40250524-2CA2-4002-9890-168ADF344723}</Project>
+      <Name>Managed</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy  "$(TargetDir)*.dll" "D:\UWM\praca naukowa\doktorat\code\ReadRess\Libs" /Y</PostBuildEvent>

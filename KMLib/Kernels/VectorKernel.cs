@@ -10,13 +10,13 @@ namespace KMLib.Kernels
     /// <summary>
     /// Base class for vector kernels
     /// </summary>
-    public abstract class VectorKernel: IKernel<Vector>
+    public abstract class VectorKernel<T>: IKernel<T> where T:Vector
     {
 
         protected bool DiagonalDotCacheBuilded = false;
        
-        protected Vector[] problemVectors;
-        public virtual Vector[] ProblemElements
+        protected T[] problemVectors;
+        public virtual T[] ProblemElements
         {
             get { return problemVectors; }
             set
@@ -54,15 +54,15 @@ namespace KMLib.Kernels
 
         #region IKernel<Vector> Members
 
-        
 
-        public abstract float Product(Vector element1, Vector element2);
+
+        public abstract float Product(T element1, T element2);
 
         public abstract float Product(int element1, int element2);
 
         #endregion
 
 
-        public abstract ParameterSelection<Vector> CreateParameterSelection();
+        public abstract ParameterSelection<T> CreateParameterSelection();
     }
 }

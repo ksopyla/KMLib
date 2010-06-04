@@ -29,15 +29,15 @@ namespace KMLibUsageApp
 
             //in a1a problem max index is 123
             int numberOfFeatures = 123;
-            Problem<Vector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile,numberOfFeatures);
+            Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile,numberOfFeatures);
 
-            Problem<Vector> test = IOHelper.ReadDNAVectorsFromFile(testFile,numberOfFeatures);
+            Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
 
 
             
             //ComputeLinearMahalanobisKernel();
 
-            IKernel<Vector> kernel = new RbfKernel(0.5f);
+            IKernel<SparseVector> kernel = new RbfKernel(0.5f);
             kernel.ProblemElements = train.Elements;
             //IKernel<Vector> kernel = new CosineKernel(train.Elements);
             //IKernel<Vector> kernel = new LinearKernel(train.Elements); 
@@ -52,7 +52,7 @@ namespace KMLibUsageApp
             //FindParameterForRbf(train);
 
 
-            Console.ReadKey();
+            //Console.ReadKey();
 
         }
 
@@ -133,7 +133,7 @@ namespace KMLibUsageApp
                                    };
 
             Problem<Vector> train = new Problem<Vector>(vectors, new float[] {1, 1, -1,-1});
-            IKernel<Vector> kernel = new LinearMahalanobisKernel( invertedCovMatrix);
+            IKernel<Vector> kernel = new LinearMahalanobisKernel<Vector>( invertedCovMatrix);
 
             kernel.ProblemElements= train.Elements;
 
@@ -205,13 +205,13 @@ namespace KMLibUsageApp
         /// <param name="train"></param>
         /// <param name="test"></param>
         /// <param name="kernel"></param>
-        private static void SVMClassify(Problem<Vector> train, Problem<Vector> test, IKernel<Vector> kernel)
+        private static void SVMClassify(Problem<SparseVector> train, Problem<SparseVector> test, IKernel<SparseVector> kernel)
         {
            
 
            //float[] penaltyC = new[] {0.125f, 0.025f, 0.5f, 1, 2,4,8,128};
 
-            float[] penaltyC = new float[] { 0.5f, 4 ,32, 128 };
+            float[] penaltyC = new float[] {  4 };
 
             double acc = 0, bestC = 0;
 

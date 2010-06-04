@@ -10,8 +10,10 @@ namespace KMLib.SVMSolvers
     /// SMO solver for SVM, implemented according to John C. Plat article
     /// "Fast Training of Support Vector Machin using Sequential Minimal Optimization"
     /// some code based on NSvm library http://nsvm.sourceforge.net/
+    /// 
+    /// Modified version of original SMO algorithm
     /// </summary>
-    public class SMOSolver<TProblemElement> : Solver<TProblemElement>
+    public class ModSMOSolver<TProblemElement> : Solver<TProblemElement>
     {
 
         static Random random = new Random();
@@ -31,13 +33,13 @@ namespace KMLib.SVMSolvers
         protected float[] errorCache;
 
         /// <summary>Cache of Gram matrix diagonal.</summary>
-       // protected float[] diagGramCache;
+        // protected float[] diagGramCache;
 
 
-        public SMOSolver(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
+        public ModSMOSolver(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
             : base(problem, kernel, C)
         {
- 
+
         }
 
         public override Model<TProblemElement> ComputeModel()
@@ -81,7 +83,7 @@ namespace KMLib.SVMSolvers
 
             // cleaning
             errorCache = null;
-            
+
 
 
             Model<TProblemElement> model = new Model<TProblemElement>();
@@ -114,8 +116,8 @@ namespace KMLib.SVMSolvers
             float y1 = problem.Labels[i1],
                   alph1 = alpha[i1],
                   E1 = 0;
-            
-           
+
+
             if (alph1 > 0 && alph1 < C)
             {
                 E1 = errorCache[i1];
@@ -134,60 +136,82 @@ namespace KMLib.SVMSolvers
                 // Inner loop: choosing the second element
 
                 // Second heuristing: testing a priori most interesting element
-                int i2max = -1;
-                float tmax = 0;
-
-                for (int i2 = 0; i2 < problem.ElementsCount; i2++)
-                {
-                    if (alpha[i2] > 0 && alpha[i2] < C)
-                    {
-                        float E2 = errorCache[i2];
-                        float temp = Math.Abs(E1 - E2);
-
-                        if (temp > tmax)
-                        {
-                            tmax = temp;
-                            i2max = i2;
-                        }
-                    }
-                }
-
-                if (i2max >= 0)
-                {
-                    if (TakeStep(i1, i2max))
-                    {
-                        return true;
-                    }
-                }
+                if (FirstHeuristic(i1, E1))
+                    return true;
 
                 // Third heuristic: testing non-bound elements
-                int k0 = random.Next(problem.ElementsCount);
-                for (int k = k0; k < problem.ElementsCount + k0; k++)
-                {
-                    int i2 = k % problem.ElementsCount;
 
-                    if (alpha[i2] > 0 && alpha[i2] < C)
-                    {
-                        if (TakeStep(i1, i2))
-                        {
-                            return true;
-                        }
-                    }
-                }
+                if (SecondHeuristic(i1))
+                    return true;
 
                 // Finally: testing all elements
-                k0 = random.Next(problem.ElementsCount);
-                for (int k = k0; k < problem.ElementsCount + k0; k++)
-                {
-                    int i2 = k % problem.ElementsCount;
+                if (ThirdHeuristic(i1))
+                    return true;
+            }
 
+            return false;
+        }
+
+        private bool ThirdHeuristic(int i1)
+        {
+            int k0 = random.Next(problem.ElementsCount);
+            for (int k = k0; k < problem.ElementsCount + k0; k++)
+            {
+                int i2 = k % problem.ElementsCount;
+
+                if (TakeStep(i1, i2))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool SecondHeuristic(int i1)
+        {
+            int k0 = random.Next(problem.ElementsCount);
+            for (int k = k0; k < problem.ElementsCount + k0; k++)
+            {
+                int i2 = k % problem.ElementsCount;
+
+                if (alpha[i2] > 0 && alpha[i2] < C)
+                {
                     if (TakeStep(i1, i2))
                     {
                         return true;
                     }
                 }
             }
+            return false;
+        }
 
+        private bool FirstHeuristic(int i1, float E1)
+        {
+            int i2max = -1;
+            float tmax = 0;
+
+            for (int i2 = 0; i2 < problem.ElementsCount; i2++)
+            {
+                if (alpha[i2] > 0 && alpha[i2] < C)
+                {
+                    float E2 = errorCache[i2];
+                    float temp = Math.Abs(E1 - E2);
+
+                    if (temp > tmax)
+                    {
+                        tmax = temp;
+                        i2max = i2;
+                    }
+                }
+            }
+
+            if (i2max >= 0)
+            {
+                if (TakeStep(i1, i2max))
+                {
+                    return true;
+                }
+            }
             return false;
         }
 
@@ -200,7 +224,7 @@ namespace KMLib.SVMSolvers
             }
         }
         
-         */ 
+         */
 
         /// <summary>This method solves the two Lagrange multipliers problem.</summary>
         /// <returns>Indicates if the step has been taken.</returns>
@@ -264,7 +288,7 @@ namespace KMLib.SVMSolvers
                 else
                 {
                     L = 0;
-                    H = C-gamma;
+                    H = C - gamma;
                 }
                 /*
                 float gamma = alph1 - alph2;
@@ -278,7 +302,7 @@ namespace KMLib.SVMSolvers
                     L = -gamma;
                     H = C;
                 }
-                 */ 
+                 */
             }
 
             if (L == H)
@@ -393,7 +417,7 @@ namespace KMLib.SVMSolvers
         private float Product(int i1, int i)
         {
 
-            return kernel.Product(i1,i);
+            return kernel.Product(i1, i);
 
         }
 
@@ -411,8 +435,8 @@ namespace KMLib.SVMSolvers
             //sum can by compute only on support vectors
             for (int i = 0; i < problem.Elements.Length; i++)
             {
-                if(alpha[i]!=0)
-                    sum += alpha[i] * problem.Labels[i] * Product(i,k);
+                if (alpha[i] != 0)
+                    sum += alpha[i] * problem.Labels[i] * Product(i, k);
             }
 
             sum -= b;

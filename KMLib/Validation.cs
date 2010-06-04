@@ -464,6 +464,8 @@ namespace KMLib
             svm.Train();
 
             int correct = 0;
+
+            Stopwatch t = Stopwatch.StartNew();
             for (int i = 0; i < testProblem.ElementsCount; i++)
             {
 
@@ -473,7 +475,8 @@ namespace KMLib
                     ++correct;
 
             }
-
+            t.Stop();
+            Debug.Write(string.Format("test validation on {0} elements takes {1}",testProblem.ElementsCount,t.Elapsed ));
             return (float)correct / testProblem.ElementsCount;
         }
 

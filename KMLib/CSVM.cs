@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using KMLib.Kernels;
 using KMLib.SVMSolvers;
+using System.Diagnostics;
 
 namespace KMLib
 {
@@ -52,7 +53,11 @@ namespace KMLib
         public void Train()
         {
             kernel.ProblemElements = problem.Elements;
-            solver = new SmoFanSolver<TProblemElement>(problem, kernel, C);
+
+
+            //solver = new ParallelSMOSolver<TProblemElement>(problem, kernel, C); 
+            solver = new ModSMOSolver<TProblemElement>(problem, kernel, C); 
+            //solver = new SmoFanSolver<TProblemElement>(problem, kernel, C);
             model = solver.ComputeModel();
         }
 
@@ -61,11 +66,26 @@ namespace KMLib
             float sum = 0;
             //sum( apha_i*y_i*K(x_i,problemElement)) + b
             //sum can by compute only on support vectors
-            for (int i = 0; i < problem.Elements.Length; i++)
-            {
 
-                sum += model.Alpha[i] * problem.Labels[i] * kernel.Product(problem.Elements[i], problemElement);
+           
+            //for (int i = 0; i < problem.Elements.Length; i++)
+            //{
+            //    //todo: alpha array is sparse, try to exploit it
+            //    sum += model.Alpha[i] * problem.Labels[i] * kernel.Product(problem.Elements[i], problemElement);
+            //}
+
+
+            int index = -1;
+            
+            
+            for (int k = 0; k < model.SupportElementsIndexes.Length; k++)
+            {
+                index = model.SupportElementsIndexes[k];
+
+                //todo: alpha array is sparse, try to exploit it
+                sum += model.Alpha[index] * problem.Labels[index] * kernel.Product(problem.Elements[index], problemElement);
             }
+            
 
             sum -= model.Rho;
 

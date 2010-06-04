@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>KMLibUsageApp</RootNamespace>
     <AssemblyName>KMLibUsageApp</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
@@ -32,6 +32,7 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -53,10 +54,6 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="dnAnalytics, Version=2009.8.0.0, Culture=neutral, PublicKeyToken=47f8433cf19ffb12, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Libs\dnAnalytics.dll</HintPath>
-    </Reference>
     <Reference Include="NMathCoreKernelx86, Version=2.6.0.0, Culture=neutral, PublicKeyToken=873235918a322639, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Libs\NMathCoreKernelx86.dll</HintPath>
@@ -95,12 +92,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\KMLib\KMLib.csproj">
-      <Project>{7CF41CFB-0611-4BDC-95D5-DD15EEF9CD20}</Project>
-      <Name>KMLib</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
       <Visible>False</Visible>
       <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
@@ -116,6 +107,19 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\dnAnalitycsMod\dnAnalytics_managed\src\Managed\Managed.csproj">
+      <Project>{40250524-2CA2-4002-9890-168ADF344723}</Project>
+      <Name>Managed</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\KMLib\KMLib.csproj">
+      <Project>{7CF41CFB-0611-4BDC-95D5-DD15EEF9CD20}</Project>
+      <Name>KMLib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

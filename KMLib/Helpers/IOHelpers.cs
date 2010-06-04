@@ -99,7 +99,7 @@ namespace KMLib.Helpers
         /// </summary>
         /// <param name="fileName">Data set file name</param>
         /// <returns></returns>
-        public static Problem<dnaLA.Vector> ReadDNAVectorsFromFile(string fileName,int numberOfFeatures)
+        public static Problem<dnaLA.SparseVector> ReadDNAVectorsFromFile(string fileName,int numberOfFeatures) 
         {
 
 
@@ -168,12 +168,12 @@ namespace KMLib.Helpers
             }
 
             //list of Vectors, currently use SparseVector implementation from dnAnalitycs
-            List<dnaLA.Vector> dnaVectors = new List<dnaLA.Vector>(vectors.Count);
+            List<dnaLA.SparseVector> dnaVectors = new List<dnaLA.SparseVector>(vectors.Count);
             //assing max index as  vector Dimension,
             //not always true for different data sets
             for (int i = 0; i < vectors.Count; i++)
             {
-                dnaLA.Vector oneVec = new dnaLA.SparseVector(max_index+1);
+                dnaLA.SparseVector oneVec = new dnaLA.SparseVector(max_index+1);
                 
                 for (int j = 0; j < vectors[i].Length; j++)
                 {
@@ -188,7 +188,7 @@ namespace KMLib.Helpers
 
 
 
-            return new Problem<dnaLA.Vector>(dnaVectors.ToArray(), labels.ToArray());
+            return new Problem<dnaLA.SparseVector>(dnaVectors.ToArray(), labels.ToArray());
         }
     }
 }

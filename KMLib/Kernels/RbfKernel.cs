@@ -11,14 +11,14 @@ namespace KMLib.Kernels
     /// <summary>
     /// Rbf kernel, use Linear kernel to compute normal dot products
     /// </summary>
-    public class RbfKernel: VectorKernel
+    public class RbfKernel: VectorKernel<SparseVector>
     {
         public readonly float Gamma = 0.5f;
 
         private LinearKernel linKernel;
 
 
-        public override Vector[] ProblemElements
+        public override SparseVector[] ProblemElements
         {
             set
             {
@@ -61,7 +61,7 @@ namespace KMLib.Kernels
         /// <param name="element1"></param>
         /// <param name="element2"></param>
         /// <returns></returns>
-        public override float Product(Vector element1, Vector element2)
+        public override float Product(SparseVector element1, SparseVector element2)
         {
             // epx(-g*|x-y|^2) =exp(-g*dot(x-y,x-y))= exp(-g*[ (x1-y1)^2+ ....(xN-yN)^2])
             //=exp(-g*( x1^2+...+xN^2 + y1^2+...+yN^2 -2x1y1+...+ -2xNyN))
@@ -113,7 +113,7 @@ namespace KMLib.Kernels
         /// Creates object for parameters selection for RBF kernel
         /// </summary>
         /// <returns></returns>
-        public override ParameterSelection<Vector> CreateParameterSelection()
+        public override ParameterSelection<SparseVector> CreateParameterSelection()
         {
             return new RbfParameterSelection();
         }

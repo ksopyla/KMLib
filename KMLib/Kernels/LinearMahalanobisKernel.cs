@@ -19,7 +19,7 @@ namespace KMLib.Kernels
     /// X,Y - are a feature vector
     /// invC - is inverted covariance Matrix
     /// </remarks>
-    public class LinearMahalanobisKernel: VectorKernel
+    public class LinearMahalanobisKernel<T>: VectorKernel<T> where T:Vector
     {
         /// <summary>
         /// Inverted covariance matrix
@@ -53,7 +53,7 @@ namespace KMLib.Kernels
         /// <param name="element1"></param>
         /// <param name="element2"></param>
         /// <returns></returns>
-        public override float Product(Vector element1, Vector element2)
+        public override float Product(T element1, T element2)
         {
            // return  (float) element1.DotProduct(element2);
 
@@ -143,7 +143,7 @@ namespace KMLib.Kernels
             
         }
 
-        public override ParameterSelection<Vector> CreateParameterSelection()
+        public override ParameterSelection<T> CreateParameterSelection()
         {
             throw new NotImplementedException();
         }

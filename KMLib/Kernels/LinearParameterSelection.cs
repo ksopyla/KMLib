@@ -13,11 +13,11 @@ namespace KMLib.Kernels
     /// Class for finding best parameters for Linear kernel, in this case 
     /// <see cref="SearchParams"/> search only one parameter C
     /// </summary>
-    public class LinearParameterSelection: ParameterSelection<Vector>
+    public class LinearParameterSelection: ParameterSelection<SparseVector> 
     {
-        public override void SearchParams(Problem<Vector> problem, 
+        public override void SearchParams(Problem<SparseVector> problem, 
             out float C, 
-            out IKernel<Vector> kernel)
+            out IKernel<SparseVector> kernel)
         {
          //   throw new NotImplementedException();
             Debug.WriteLine("Starting Parameter Selection for Linear kernel");
@@ -31,7 +31,7 @@ namespace KMLib.Kernels
             object lockObj = new object();
 
 
-            List<Vector>[] foldsElements;
+            List<SparseVector>[] foldsElements;
             List<float>[] foldsLabels;
             Validation.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
 

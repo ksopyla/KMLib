@@ -9,7 +9,7 @@ namespace KMLib.Kernels
     /// <summary>
     /// Clas for searching best parameters "C" and "Gamma" for RbfKernel
     /// </summary>
-    public class RbfParameterSelection : ParameterSelection<Vector>
+    public class RbfParameterSelection : ParameterSelection<SparseVector>
     {
 
         /// <summary>
@@ -18,7 +18,7 @@ namespace KMLib.Kernels
         /// <param name="problem"></param>
         /// <param name="C"></param>
         /// <param name="kernel"></param>
-        public override void SearchParams(Problem<Vector> problem, out float C, out IKernel<Vector> kernel)
+        public override void SearchParams(Problem<SparseVector> problem, out float C, out IKernel<SparseVector> kernel)
         {
 
             Debug.WriteLine("Starting Parameter Selection for RBF kernel");
@@ -44,7 +44,7 @@ namespace KMLib.Kernels
             object lockObj = new object();
 
 
-            List<Vector>[] foldsElements;
+            List<SparseVector>[] foldsElements;
             List<float>[] foldsLabels;
             Validation.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
 
