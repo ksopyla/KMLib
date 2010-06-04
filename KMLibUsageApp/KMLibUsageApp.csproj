@@ -54,6 +54,10 @@
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="dnAnalytics, Version=2009.8.0.0, Culture=neutral, PublicKeyToken=47f8433cf19ffb12, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Libs\dnAnalytics.dll</HintPath>
+    </Reference>
     <Reference Include="NMathCoreKernelx86, Version=2.6.0.0, Culture=neutral, PublicKeyToken=873235918a322639, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Libs\NMathCoreKernelx86.dll</HintPath>
@@ -112,10 +116,6 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\dnAnalitycsMod\dnAnalytics_managed\src\Managed\Managed.csproj">
-      <Project>{40250524-2CA2-4002-9890-168ADF344723}</Project>
-      <Name>Managed</Name>
-    </ProjectReference>
     <ProjectReference Include="..\KMLib\KMLib.csproj">
       <Project>{7CF41CFB-0611-4BDC-95D5-DD15EEF9CD20}</Project>
       <Name>KMLib</Name>
