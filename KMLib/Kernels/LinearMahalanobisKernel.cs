@@ -139,7 +139,7 @@ namespace KMLib.Kernels
                 return DiagonalDotCache[element1];
 
 
-            return this.Product(ProblemElements[element1], ProblemElements[element2]);
+            return this.Product(problemElements[element1], problemElements[element2]);
             
         }
 

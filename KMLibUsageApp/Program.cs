@@ -17,34 +17,69 @@ namespace KMLibUsageApp
     {
         private static void Main(string[] args)
         {
-            string dataFolder = @"D:\UWM\praca naukowa\doktorat\code\KMLib\KMLibUsageApp\Data";
+            if (args.Length < 1)
+                throw new ArgumentException("to liitle arguments");
 
 
-            string trainningFile = dataFolder + "/a1a.train";
-            string testFile = dataFolder + "/a1a.test";
+            string dataFolder = args[0];// @"D:\UWM\praca naukowa\doktorat\code\KMLib\KMLibUsageApp\Data";
 
+
+            //string trainningFile = dataFolder + "/a1a.train";
+            ////string testFile = dataFolder + "/a1a.test";
+            //string testFile = dataFolder + "/a1a.train";
+            //////in a1a problem max index is 123
+            //int numberOfFeatures = 123;
+
+            //string trainningFile = dataFolder + "/colon-cancer.train";
+            //string testFile = dataFolder + "/colon-cancer.train";
+            //int numberOfFeatures = 2000;
+
+            //string trainningFile = dataFolder + "/leu";
+            //string testFile = dataFolder + "/leu.t";
+            //int numberOfFeatures = 7129;
+
+            //string trainningFile = dataFolder + "/duke";
+            //string testFile = dataFolder + "/duke.tr";
+            //int numberOfFeatures = 7129;
+
+
+            //string trainningFile = dataFolder + "/real-sim_small_3K";
+            //string trainningFile = dataFolder + "/real-sim_med_6K";
+            //string trainningFile = dataFolder + "/real-sim_med_10K";
+            string trainningFile = dataFolder + "/real-sim";
+            string testFile = dataFolder + "/real-sim.t";
+            int numberOfFeatures = 20958;
+            
+
+            //for test
+            //string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
+            //string testFile = dataFolder + "/liver-disorders_scale_small.txt";
+            ////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
+            ////string testFile = dataFolder + "/liver-disorders_scale.txt";
+            //int numberOfFeatures = 6;
             //  string trainningFile = dataFolder + "/australian_scale.txt";
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
 
-            //in a1a problem max index is 123
-            int numberOfFeatures = 123;
-            Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile,numberOfFeatures);
+
+            Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
+            Console.WriteLine();
+            Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
             Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
 
 
-            
+
             //ComputeLinearMahalanobisKernel();
 
             IKernel<SparseVector> kernel = new RbfKernel(0.5f);
-            kernel.ProblemElements = train.Elements;
-            //IKernel<Vector> kernel = new CosineKernel(train.Elements);
-            //IKernel<Vector> kernel = new LinearKernel(train.Elements); 
+
+            // IKernel<SparseVector> kernel = new LinearKernel(); 
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);
 
+            //kernel.ProblemElements = train.Elements;
 
-            SVMClassify(train,test, kernel);
+            SVMClassify(train, test, kernel);
 
             //DoCrossValidation(train, kernel);
 
@@ -70,25 +105,25 @@ namespace KMLibUsageApp
                 { -15.0f/125, -10.0f/125, 15.0f/125, 20.0f/125}
             };
 
-            FloatMatrix matrix =new FloatMatrix(cov);
-
-            
+            FloatMatrix matrix = new FloatMatrix(cov);
 
 
-            FloatMatrix identity = 0.01f*FloatMatrix.Identity(4);
-            
+
+
+            FloatMatrix identity = 0.01f * FloatMatrix.Identity(4);
+
             ////regularization, add to main diagonal some small value
             matrix += identity;
 
             Console.WriteLine("Matrix frobenius norm ={0}", MatrixFunctions.FrobNorm(matrix));
-            
+
             //matrix *= 4;
             FloatSymmetricMatrix covMatrix = new FloatSymmetricMatrix(matrix);
-             
+
             Console.WriteLine("Matrix frobenius norm ={0}", covMatrix.DataVector.TwoNorm());
 
             //DoubleSymmetricMatrix covMatrix = new DoubleSymmetricMatrix(3);
-            
+
 
             ShowMatrix(covMatrix);
 
@@ -99,26 +134,26 @@ namespace KMLibUsageApp
 
             FloatSymEigDecomp eigDecomp = new FloatSymEigDecomp(covMatrix);
 
-            Console.WriteLine("Eigen values="+eigDecomp.EigenValues.ToString());
+            Console.WriteLine("Eigen values=" + eigDecomp.EigenValues.ToString());
 
-            
-            
+
+
             //DoubleSymmetricMatrix invertedCovMatrix = MatrixFunctions.Inverse(covMatrix);
             FloatSymmetricMatrix invertedCovMatrix = MatrixFunctions.Inverse(covMatrix);
 
-           ShowMatrix(invertedCovMatrix);
+            ShowMatrix(invertedCovMatrix);
 
 
-          // norm =MatrixFunctions.OneNorm(invertedCovMatrix);
+            // norm =MatrixFunctions.OneNorm(invertedCovMatrix);
             //Console.WriteLine("Matrix one norm ={0}",norm);
 
 
             //invertedCovMatrix *= invertedCovMatrix.Transpose();
 
-            norm=invertedCovMatrix.DataVector.TwoNorm();
+            norm = invertedCovMatrix.DataVector.TwoNorm();
             Console.WriteLine("Matrix frobenius norm ={0}", norm);
-            
-          
+
+
 
             invertedCovMatrix /= norm;
 
@@ -132,10 +167,10 @@ namespace KMLibUsageApp
 
                                    };
 
-            Problem<Vector> train = new Problem<Vector>(vectors, new float[] {1, 1, -1,-1});
-            IKernel<Vector> kernel = new LinearMahalanobisKernel<Vector>( invertedCovMatrix);
+            Problem<Vector> train = new Problem<Vector>(vectors, new float[] { 1, 1, -1, -1 });
+            IKernel<Vector> kernel = new LinearMahalanobisKernel<Vector>(invertedCovMatrix);
 
-            kernel.ProblemElements= train.Elements;
+            kernel.ProblemElements = train.Elements;
 
 
             for (int i = 0; i < vectors.Length; i++)
@@ -143,9 +178,9 @@ namespace KMLibUsageApp
                 for (int j = i; j < vectors.Length; j++)
                 {
                     //Mahalanobis linear product
-                    Console.WriteLine("M [{0},{1}]={2}",i,j,kernel.Product(i, j));
+                    Console.WriteLine("M [{0},{1}]={2}", i, j, kernel.Product(i, j));
                     //Normal dot product
-                    Console.WriteLine("N [{0},{1}]={2}",i,j,vectors[i].DotProduct(vectors[j]));
+                    Console.WriteLine("N [{0},{1}]={2}", i, j, vectors[i].DotProduct(vectors[j]));
                     Console.WriteLine();
                 }
             }
@@ -159,7 +194,7 @@ namespace KMLibUsageApp
             {
                 for (int j = 0; j < covMatrix.Cols; j++)
                 {
-                    Console.Write(" "+covMatrix[i,j]);
+                    Console.Write(" " + covMatrix[i, j]);
                 }
                 Console.WriteLine();
             }
@@ -180,20 +215,20 @@ namespace KMLibUsageApp
         /// Testing methods for searching parameter C and Gamma
         /// </summary>
         /// <param name="train"></param>
-        private static void FindParameterForRbf(Problem<Vector> train,IKernel<Vector> kernel)
+        private static void FindParameterForRbf(Problem<Vector> train, IKernel<Vector> kernel)
         {
             var pSelection = kernel.CreateParameterSelection();
             pSelection.ShowDebug = true;
-            
+
 
             double G;
             float C;
             IKernel<Vector> bestKernel;
             Stopwatch sw = Stopwatch.StartNew();
-            pSelection.SearchParams(train,out C,out bestKernel);
-                //GridSearchForRbfKerel(train,out C,out G);
+            pSelection.SearchParams(train, out C, out bestKernel);
+            //GridSearchForRbfKerel(train,out C,out G);
             sw.Stop();
-            Console.WriteLine("Parameter selection time ={0}",sw.Elapsed);
+            Console.WriteLine("Parameter selection time ={0}", sw.Elapsed);
 
         }
 
@@ -207,11 +242,11 @@ namespace KMLibUsageApp
         /// <param name="kernel"></param>
         private static void SVMClassify(Problem<SparseVector> train, Problem<SparseVector> test, IKernel<SparseVector> kernel)
         {
-           
 
-           //float[] penaltyC = new[] {0.125f, 0.025f, 0.5f, 1, 2,4,8,128};
 
-            float[] penaltyC = new float[] {  4 };
+            //float[] penaltyC = new[] {0.125f, 0.025f, 0.5f, 1, 2,4,8,128};
+
+            float[] penaltyC = new float[] { 4 };
 
             double acc = 0, bestC = 0;
 
@@ -236,7 +271,7 @@ namespace KMLibUsageApp
             globalTimer.Stop();
 
             Console.WriteLine("Validation on test data best acuuracy = {0} C={1} time={2}", acc, bestC, globalTimer.Elapsed);
-            
+
         }
 
         /// <summary>
@@ -281,6 +316,6 @@ namespace KMLibUsageApp
 
 
 
-        
+
     }
 }

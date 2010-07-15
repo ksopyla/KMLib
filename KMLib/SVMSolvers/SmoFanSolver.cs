@@ -5,7 +5,7 @@ using System.Text;
 using KMLib.Helpers;
 using KMLib.Kernels;
 
-namespace KMLib.SVMSolvers
+namespace KMLib.Helpers
 {
     /// <summary>
     ///  An SMO algorithm in Fan et al., JMLR 6(2005), p. 1889--1918, implementation based on 

@@ -152,10 +152,10 @@ namespace KMLib.Kernels
         /// <returns></returns>
         public override float  Product(int element1, int element2)
         {
-            if (element1 >= ProblemElements.Length)
+            if (element1 >= problemElements.Length)
                 throw new IndexOutOfRangeException("element1 out of range");
 
-            if (element2 >= ProblemElements.Length)
+            if (element2 >= problemElements.Length)
                 throw new IndexOutOfRangeException("element2 out of range");
 
 
@@ -164,7 +164,7 @@ namespace KMLib.Kernels
 
             if (!useCache)
             {
-                return this.Product(ProblemElements[element1], ProblemElements[element2]);
+                return this.Product(problemElements[element1], problemElements[element2]);
             }
 
             Point2D indexes;
@@ -190,7 +190,7 @@ namespace KMLib.Kernels
             else
             {
                 //
-                prod = this.Product(ProblemElements[x], ProblemElements[y]);
+                prod = this.Product(problemElements[x], problemElements[y]);
                 cache.Add(indexes,prod);
                 //Console.WriteLine("{0}-{1}={2}", x, y, prod);
                

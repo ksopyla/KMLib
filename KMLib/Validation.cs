@@ -323,7 +323,7 @@ namespace KMLib
         {
             Debug.Assert(foldsElements.Length == foldsLabels.Length, "array lenght should have the same lenght");
             int nrFolds = foldsElements.Length;
-            long correct = 0l;
+            long correct = 0L;
             for (int i = 0; i < nrFolds; i++)
             {
                 //array of sub problem elements (comes form permutation)
@@ -465,6 +465,7 @@ namespace KMLib
 
             int correct = 0;
 
+            Console.WriteLine("Start Predict");
             Stopwatch t = Stopwatch.StartNew();
             for (int i = 0; i < testProblem.ElementsCount; i++)
             {

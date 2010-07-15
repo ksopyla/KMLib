@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using KMLib.Kernels;
 
-namespace KMLib.SVMSolvers
+namespace KMLib.Helpers
 {
     /// <summary>
     /// SMO solver for SVM, implemented according to John C. Plat article

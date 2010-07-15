@@ -15,14 +15,14 @@ namespace KMLib.Kernels
 
         protected bool DiagonalDotCacheBuilded = false;
        
-        protected T[] problemVectors;
+        protected T[] problemElements;
         public virtual T[] ProblemElements
         {
-            get { return problemVectors; }
+            get { return problemElements; }
             set
             {
                 DiagonalDotCacheBuilded = false;
-                problemVectors = value;
+                problemElements = value;
                 ComputeDiagonalDotCache();
 
             }
@@ -30,7 +30,7 @@ namespace KMLib.Kernels
 
         protected void ComputeDiagonalDotCache()
         {
-            DiagonalDotCache = new float[ProblemElements.Length];
+            DiagonalDotCache = new float[problemElements.Length];
             for (int i = 0; i < DiagonalDotCache.Length; i++)
             {
               // DiagonalDotCache[i] = Product(ProblemElements[i], ProblemElements[i]);

@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using KMLib.Kernels;
+using System.Diagnostics;
 
-namespace KMLib.SVMSolvers
+namespace KMLib.Helpers
 {
     /// <summary>
     /// SMO solver for SVM, implemented according to John C. Plat article
@@ -50,14 +51,33 @@ namespace KMLib.SVMSolvers
             int numChange = 0;
             int examineAll = 1;
 
+
+            long mainIter = 0;
+            long subIter = 0;
+
             while (numChange > 0 || examineAll > 0)
             {
+                mainIter++;
+
                 numChange = 0;
+
+                //for (int k = 0; k < problem.ElementsCount; k++)
+                //{
+                //    if (ExamineExample(k))
+                //    {
+                //        numChange++;
+                //        subIter++;
+                //    }
+                //}
                 if (examineAll > 0)
                 {
                     for (int k = 0; k < problem.ElementsCount; k++)
                     {
-                        if (ExamineExample(k)) numChange++;
+                        if (ExamineExample(k))
+                        {
+                            numChange++;
+                            subIter++;
+                        }
                     }
                 }
                 else
@@ -66,7 +86,11 @@ namespace KMLib.SVMSolvers
                     {
                         if (alpha[k] != 0 && alpha[k] != C)
                         {
-                            if (ExamineExample(k)) numChange++;
+                            if (ExamineExample(k))
+                            {
+                                numChange++;
+                                subIter++;
+                            }
                         }
                     }
                 }
@@ -106,7 +130,9 @@ namespace KMLib.SVMSolvers
             model.SupportElements = supportElements.ToArray();
             model.SupportElementsIndexes = suporrtIndexes.ToArray();
 
-
+            Debug.WriteLine("Main iteration=" + mainIter + " subIteration=" + subIter);
+            Console.WriteLine("Main iteration=" + mainIter + " subIteration=" + subIter);
+            Console.WriteLine("SV=" + model.SupportElementsIndexes.Length);
             return model;
         }
 
@@ -136,17 +162,23 @@ namespace KMLib.SVMSolvers
                 // Inner loop: choosing the second element
 
                 // Second heuristing: testing a priori most interesting element
-                if (FirstHeuristic(i1, E1))
-                    return true;
+                //if (FirstHeuristic(i1, E1))
+                //    return true;
 
-                // Third heuristic: testing non-bound elements
+                //// Third heuristic: testing non-bound elements
 
-                if (SecondHeuristic(i1))
-                    return true;
+                //if (SecondHeuristic(i1))
+                //    return true;
 
-                // Finally: testing all elements
-                if (ThirdHeuristic(i1))
-                    return true;
+                //// Finally: testing all elements
+                //if (ThirdHeuristic(i1))
+                //    return true;
+
+                foreach (var i2 in GlobalHeuristic(i1))
+                {
+                    if (TakeStep(i1, i2))
+                        return true;
+                }
             }
 
             return false;
@@ -407,6 +439,70 @@ namespace KMLib.SVMSolvers
             return true; // step taken
         }
 
+
+        private IEnumerable<int> GlobalHeuristic(int i1)
+        {
+            int i2max = -1;
+            float tmax = 0;
+
+            //first max, then group of indexes for not bound alphas, last bound alphas
+            LinkedList<int> groupedIndexes = new LinkedList<int>();
+
+            float E1 = 0f, alph1 = alpha[i1],
+            y1 = problem.Labels[i1];
+            if (alph1 > 0 && alph1 < C)
+            {
+                E1 = errorCache[i1];
+            }
+            else
+            {
+                E1 = DecisionFunc(i1) - y1;
+            }
+
+
+            int k0 = random.Next(problem.ElementsCount);
+            
+            //todo: remove this
+            k0 = 0;
+            for (int k = k0; k < problem.ElementsCount + k0; k++)
+            {
+                int i = k % problem.ElementsCount;
+
+                if (alpha[i] > 0 && alpha[i] < C)
+                {
+                    float E2 = errorCache[i];
+                    float temp = Math.Abs(E1 - E2);
+
+                    if (temp > tmax)
+                    {
+                        tmax = temp;
+                        i2max = i;
+
+                        groupedIndexes.AddFirst(i2max);
+                    }
+                    else
+                    {
+                        if (groupedIndexes.First != null)
+                            groupedIndexes.AddAfter(groupedIndexes.First, i);
+                        else
+                            groupedIndexes.AddFirst(i);
+                    }
+                }
+                else
+                {
+                    groupedIndexes.AddLast(i);
+                }
+
+
+            }
+
+            foreach (var item in groupedIndexes)
+            {
+                yield return item;
+            }
+
+
+        }
 
         /// <summary>
         /// Helper method for computing Kernel Product

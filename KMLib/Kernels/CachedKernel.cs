@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using KMLib.Helpers;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace KMLib.Kernels
 {
@@ -80,11 +82,31 @@ namespace KMLib.Kernels
         public float[] GetQ(int i, int len)
         {
             float[] data = null;
-            int start, j;
+            int start=0, j;
+
+
+            //data = new float[problem.ElementsCount];
+            //for (j = start; j < len; j++)
+            //    data[j] = (y[i] * y[j] * kernel.Product(i, j));
+
+            //with cache
             if ((start = cache.GetData(i, ref data, len)) < len)
             {
-                for (j = start; j < len; j++)
-                    data[j] = (y[i] * y[j] * kernel.Product(i, j));
+                //for (j = start; j < len; j++)
+                //    data[j] = (y[i] * y[j] * kernel.Product(i, j));
+
+                var partition = Partitioner.Create(start, len);
+
+                Parallel.ForEach(partition, (range) =>
+                {
+                    for (int k = range.Item1; k < range.Item2; k++)
+                    {
+                        data[k] = (y[i] * y[k] * kernel.Product(i, k));
+                    }
+
+                });
+
+
             }
             return data;
         }
@@ -106,50 +128,6 @@ namespace KMLib.Kernels
             QD.SwapIndex(i, j);
         }
 
-        /* old implementation with computing kernel product
-                /// <summary>
-                /// linear dot product
-                /// </summary>
-                /// <param name="element1"></param>
-                /// <param name="element2"></param>
-                /// <returns></returns>
-                public float Product(Vector element1, Vector element2)
-                {
-                    float sum = 0;
-
-                    uint i1 = 0, i2 = 0;
-
-                    while (i1 < element1.Data.Length && i2 < element2.Data.Length)
-                    {
-                        int index1 = element1.Data[i1].Index;
-                        int index2 = element2.Data[i2].Index;
-
-                        if (index1 == index2)
-                        {
-                            sum += element1.Data[i1].Value * element2.Data[i2].Value;
-                            i1++;
-                            i2++;
-                        }
-                        else
-                        {
-                            if (index1 < index2)
-                                i1++;
-                            else
-                                i2++;
-                        }
-
-                    }
-                    return sum;
-                }
-
-                public float Product(int element1, int element2)
-                {
-                    if (element1 == element2 && (QD != null))
-                        return QD[element1];
-
-                    return this.Product(problem.Elements[element1], problem.Elements[element2]);
-           
-                }
-         */
+      
     }
 }

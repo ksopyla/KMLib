@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using dnaLA = dnAnalytics.LinearAlgebra;
+using System.Globalization;
 
 namespace KMLib.Helpers
 {
@@ -124,10 +125,10 @@ namespace KMLib.Helpers
 
                     while (input.Peek() > -1)
                     {
-                        string[] parts = input.ReadLine().Trim().Split();
+                        string[] parts = input.ReadLine().Trim().Split(new []{" "},StringSplitOptions.RemoveEmptyEntries);
 
                         //label
-                        labels.Add(float.Parse(parts[0]));
+                        labels.Add(float.Parse(parts[0],CultureInfo.InvariantCulture));
 
                         //other parts with index and value
                         int m = parts.Length - 1;
