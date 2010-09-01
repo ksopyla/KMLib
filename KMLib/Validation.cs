@@ -460,6 +460,7 @@ namespace KMLib
         {
 
             CSVM<TProblemElement> svm = new CSVM<TProblemElement>(trainProblem, kernel, C);
+            svm.Init();
 
             svm.Train();
 

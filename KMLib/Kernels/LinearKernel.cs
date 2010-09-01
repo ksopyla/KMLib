@@ -9,9 +9,7 @@ namespace KMLib.Kernels
 {
     public class LinearKernel: VectorKernel<SparseVector> 
     {
-       // protected Vector[] problemVectors;
-
-       // public float[] DiagonalDotCache { get; private set; }
+      
 
         private LRUCache<Point2D, float> cache;
         
@@ -23,40 +21,13 @@ namespace KMLib.Kernels
         private bool useCache;
 
 
-        /// <summary>
-        /// Construct kernel, vectors are nesseery for some precomputing eg. DiagonalDotCache and
-        /// for easiest Product computing  
-        /// </summary>
-        /// <param name="vectors"></param>
-        //public LinearKernel(Vector[] vectors):base(vectors)
-        //{
-        //  //  problemVectors = vectors;
-
-        //    DiagonalDotCache=new float[vectors.Length];
-        //    for (int i = 0; i < DiagonalDotCache.Length; i++)
-        //    {
-        //        DiagonalDotCache[i] = this.Product(vectors[i], vectors[i]);
-        //    }
-
-        //    useCache = false;
-        //}
+      
 
         public LinearKernel() 
         {
             useCache = false;
         }
 
-
-        /// <summary>
-        /// constructor with cache construction
-        /// </summary>
-        /// <param name="vectors"></param>
-        /// <param name="cacheSize"></param>
-        //public LinearKernel(Vector[] vectors,int cacheSize):this(vectors)
-        //{
-        //    useCache = true;
-        //    cache = new LRUCache<Point2D, float>(cacheSize);
-        //}
 
         #region IKernel<Vector> Members
 
@@ -67,8 +38,6 @@ namespace KMLib.Kernels
         /// <param name="element1"></param>
         /// <param name="element2"></param>
         /// <returns></returns>
-        
-        
         public override float Product(SparseVector element1, SparseVector element2)
         {
             return  (float) element1.DotProduct(element2);
@@ -145,7 +114,7 @@ namespace KMLib.Kernels
 
 
         /// <summary>
-        /// 
+        /// compute linear kernel between two element given by indexes
         /// </summary>
         /// <param name="element1"></param>
         /// <param name="element2"></param>

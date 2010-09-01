@@ -76,8 +76,6 @@ namespace KMLib.Kernels
 
             float prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
 
-         
-
             return prod;
             
         }
@@ -120,8 +118,7 @@ namespace KMLib.Kernels
 
         public override string ToString()
         {
-            string s = string.Format("RBF kernel, Gamma={0}", Gamma);
-            return s;
+            return string.Format("RBF kernel, Gamma={0}", Gamma);
         }
     }
 }

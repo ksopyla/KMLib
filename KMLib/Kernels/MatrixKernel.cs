@@ -22,7 +22,7 @@ namespace KMLib.Kernels
             {
                 DiagonalDotCacheBuilded = false;
                 problemElements = value;
-                ComputeDiagonalDotCache();
+               // ComputeDiagonalDotCache();
             }
         }
 
@@ -49,6 +49,34 @@ namespace KMLib.Kernels
         public abstract float Product(Matrix element1, Matrix element2);
         public abstract float Product(int element1, int element2);
 
-        
+
+
+        #region IKernel<Matrix> Members
+
+
+        public float[] Labels
+        {
+            get
+           ;
+            set;
+        }
+
+        public float[] AllProducts(int element1)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region IKernel<Matrix> Members
+
+
+        public void Init()
+        {
+            ComputeDiagonalDotCache();
+            
+        }
+
+        #endregion
     }
 }

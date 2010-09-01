@@ -14,8 +14,16 @@ namespace KMLib.Kernels
     {
 
         protected bool DiagonalDotCacheBuilded = false;
-       
+        protected bool Initilized = false;
+
+        public float[] Labels
+        {
+            get;
+            set;
+        }
+
         protected T[] problemElements;
+       
         public virtual T[] ProblemElements
         {
             get { return problemElements; }
@@ -23,7 +31,7 @@ namespace KMLib.Kernels
             {
                 DiagonalDotCacheBuilded = false;
                 problemElements = value;
-                ComputeDiagonalDotCache();
+              //  ComputeDiagonalDotCache();
 
             }
         }
@@ -64,5 +72,55 @@ namespace KMLib.Kernels
 
 
         public abstract ParameterSelection<T> CreateParameterSelection();
+
+        #region IKernel<T> Members
+
+        /// <summary>
+        /// computes product between <see cref="element1"/> and rest of vectors
+        /// </summary>
+        /// <param name="element1"></param>
+        /// <returns></returns>
+        public virtual float[] AllProducts(int element1)
+        {
+            if (!Initilized)
+            {
+                throw new ApplicationException("Kernel not initialized");
+            }
+            
+            float[] data = new float[Labels.LongLength];
+            for (int j = 0; j < data.Length; j++)
+                data[j] = (Labels[element1] * Labels[j] * Product(element1, j));
+
+
+            //var partition = Partitioner.Create(0, problem.ElementsCount);
+
+            //Parallel.ForEach(partition, (range) =>
+            //{
+            //    for (int k = range.Item1; k < range.Item2; k++)
+            //    {
+            //        data[k] = (y[i] * y[k] * kernel.Product(i, k));
+            //    }
+
+            //});
+
+            return data;
+
+        }
+
+        #endregion
+
+
+
+        #region IKernel<T> Members
+
+
+        public virtual void Init()
+        {
+            ComputeDiagonalDotCache();
+
+            Initilized = true;
+        }
+
+        #endregion
     }
 }

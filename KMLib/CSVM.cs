@@ -30,10 +30,7 @@ namespace KMLib
         /// <summary>
         /// Solver, solves C-SVM optimization problem 
         /// </summary>
-        /// <remarks>Now KMLib implements two solvers clasic <see cref="SMOSolver{TProblemElement}"/>
-        /// and <see cref="SmoFanSolver{TProblemElement}"/> solver from LibSVM library
-        /// </remarks>
-        private Solver<TProblemElement> solver;
+        protected Solver<TProblemElement> Solver;
 
         public CSVM(Problem<TProblemElement> trainProblem, IKernel<TProblemElement> kernel, float C)
         {
@@ -50,21 +47,35 @@ namespace KMLib
         }
 
 
-        public void Train()
+        /// <summary>
+        /// Initialize clasifficator, initialize kernel and solver
+        /// </summary>
+        public void Init()
         {
             kernel.ProblemElements = problem.Elements;
+            kernel.Labels = problem.Labels;
+            kernel.Init();
 
             //solver = new ParallelSMOSolver<TProblemElement>(problem, kernel, C);
             //solver = new ModSMOSolver<TProblemElement>(problem, kernel, C);
             //solver = new SMOSolver<TProblemElement>(problem, kernel, C); 
 
-            solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
-            //solver = new SmoFanSolver<TProblemElement>(problem, kernel, C);
+            Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+           // Solver = new SmoFanSolver<TProblemElement>(problem, kernel, C);
+        }
 
-            Console.WriteLine("User solver {0}", solver.ToString());
+        public void Train()
+        {
+            if (kernel.ProblemElements == null)
+                throw new ArgumentNullException("Not initialized, should call Init method");
+           
+
+           
+
+            Console.WriteLine("User solver {0}", Solver.ToString());
 
             Stopwatch timer = Stopwatch.StartNew();
-            model = solver.ComputeModel();
+            model = Solver.ComputeModel();
             Console.WriteLine("Model computed {0}", timer.Elapsed);
         }
 

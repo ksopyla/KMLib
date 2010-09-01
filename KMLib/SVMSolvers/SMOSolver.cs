@@ -40,6 +40,8 @@ namespace KMLib.Helpers
  
         }
 
+       
+
         public override Model<TProblemElement> ComputeModel()
         {
             errorCache = new float[problem.ElementsCount];
@@ -191,16 +193,6 @@ namespace KMLib.Helpers
             return false;
         }
 
-        /*
-        private void BuildCacheForRow(int i1)
-        {
-            for (int i2 = 0; i2 < problem.ElementsCount; i2++)
-            {
-                I1Cache[i2] = kernel.Product(problem.Elements[i1], problem.Elements[i2]);
-            }
-        }
-        
-         */ 
 
         /// <summary>This method solves the two Lagrange multipliers problem.</summary>
         /// <returns>Indicates if the step has been taken.</returns>

@@ -25,7 +25,7 @@ namespace KMLib.Kernels
         /// <summary>
         /// kernel matrix diagonal elements array
         /// </summary>
-         private float[] QD;
+        private float[] QD;
 
         /// <summary>
         /// 
@@ -82,7 +82,7 @@ namespace KMLib.Kernels
         public float[] GetQ(int i, int len)
         {
             float[] data = null;
-            int start=0, j;
+            int start = 0, j;
 
 
             //data = new float[problem.ElementsCount];
@@ -92,22 +92,37 @@ namespace KMLib.Kernels
             //with cache
             if ((start = cache.GetData(i, ref data, len)) < len)
             {
-                //for (j = start; j < len; j++)
-                //    data[j] = (y[i] * y[j] * kernel.Product(i, j));
+                data = kernel.AllProducts(i);
 
-                var partition = Partitioner.Create(start, len);
+                // for (j = start; j < len; j++)
+                //     data[j] = (y[i] * y[j] * kernel.Product(i, j));
 
-                Parallel.ForEach(partition, (range) =>
-                {
-                    for (int k = range.Item1; k < range.Item2; k++)
-                    {
-                        data[k] = (y[i] * y[k] * kernel.Product(i, k));
-                    }
 
-                });
+                //var  data2 = kernel.AllProducts(i);
+
+                //for (int k = 0; k < len; k++)
+                //{
+                //    if (data[k] != data2[k])
+                //        throw new InvalidOperationException(string.Format("different val on {0} position", k));
+                //}
+
+                //var partition = Partitioner.Create(start, len);
+
+                //Parallel.ForEach(partition, (range) =>
+                //{
+                //    for (int k = range.Item1; k < range.Item2; k++)
+                //    {
+                //        data[k] = (y[i] * y[k] * kernel.Product(i, k));
+                //    }
+
+                //});
+
 
 
             }
+
+
+
             return data;
         }
 
@@ -128,6 +143,6 @@ namespace KMLib.Kernels
             QD.SwapIndex(i, j);
         }
 
-      
+
     }
 }

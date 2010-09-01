@@ -8,6 +8,8 @@
     {
 
         TProblemElement[] ProblemElements { get; set; }
+
+        float[] Labels { get; set; }
         /// <summary>
         /// Product of 2 elements, methods of messure similarity
         /// </summary>
@@ -24,8 +26,24 @@
         /// <returns></returns>
         float Product(int element1, int element2);
 
+        /// <summary>
+        /// Cache for kenrle products between two the same vectors
+        /// </summary>
         float[] DiagonalDotCache { get; }
 
+        /// <summary>
+        /// Kernel initialization
+        /// </summary>
+        void Init();
+
+        /// <summary>
+        /// Products between one element and all of the rest vectors
+        /// </summary>
+        /// <param name="element1"></param>
+        /// <returns></returns>
+        float[] AllProducts(int element1);
+
         ParameterSelection<TProblemElement> CreateParameterSelection();
+
     }
 }

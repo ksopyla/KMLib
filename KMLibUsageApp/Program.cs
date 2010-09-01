@@ -25,9 +25,9 @@ namespace KMLibUsageApp
 
 
             //string trainningFile = dataFolder + "/a1a.train";
-            ////string testFile = dataFolder + "/a1a.test";
-            //string testFile = dataFolder + "/a1a.train";
-            //////in a1a problem max index is 123
+            //string testFile = dataFolder + "/a1a.test";
+            ////string testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
             //int numberOfFeatures = 123;
 
             //string trainningFile = dataFolder + "/colon-cancer.train";
@@ -46,17 +46,17 @@ namespace KMLibUsageApp
             //string trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
             //string trainningFile = dataFolder + "/real-sim_med_10K";
-            string trainningFile = dataFolder + "/real-sim";
-            string testFile = dataFolder + "/real-sim.t";
-            int numberOfFeatures = 20958;
-            
+            //string trainningFile = dataFolder + "/real-sim";
+            //string testFile = dataFolder + "/real-sim.t";
+            //int numberOfFeatures = 20958;
+
 
             //for test
-            //string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //string testFile = dataFolder + "/liver-disorders_scale_small.txt";
-            ////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
-            ////string testFile = dataFolder + "/liver-disorders_scale.txt";
-            //int numberOfFeatures = 6;
+            string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
+            string testFile = dataFolder + "/liver-disorders_scale_small.txt";
+            //string trainningFile = dataFolder + "/liver-disorders_scale.txt";
+            //string testFile = dataFolder + "/liver-disorders_scale.txt";
+            int numberOfFeatures = 6;
             //  string trainningFile = dataFolder + "/australian_scale.txt";
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);

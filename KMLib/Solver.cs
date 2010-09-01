@@ -8,9 +8,9 @@ namespace KMLib
 {
     public abstract class Solver<TProblemElement>
     {
-        protected Problem<TProblemElement> problem;
-        protected float C;
-        protected IKernel<TProblemElement> kernel;
+        public Problem<TProblemElement> problem;
+        public float C;
+        public IKernel<TProblemElement> kernel;
 
 
         public Solver(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
@@ -22,5 +22,8 @@ namespace KMLib
 
         public abstract Model<TProblemElement> ComputeModel();
 
+
+       // public abstract void Init() { }
+        
     }
 }
