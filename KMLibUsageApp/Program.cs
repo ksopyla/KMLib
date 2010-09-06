@@ -6,6 +6,7 @@ using dnAnalytics.LinearAlgebra;
 using KMLib;
 using KMLib.Helpers;
 using KMLib.Kernels;
+using KMLib.Kernels.GPU;
 using System.Diagnostics;
 using dnaLA = dnAnalytics.LinearAlgebra;
 using CenterSpace.NMath.Matrix;
@@ -72,9 +73,11 @@ namespace KMLibUsageApp
 
             //ComputeLinearMahalanobisKernel();
 
-            IKernel<SparseVector> kernel = new RbfKernel(0.5f);
+            //IKernel<SparseVector> kernel = new RbfKernel(0.5f);
 
-            // IKernel<SparseVector> kernel = new LinearKernel(); 
+            // IKernel<SparseVector> kernel = new LinearKernel();
+
+             IKernel<SparseVector> kernel = new CudaLinearKernel();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);
 
             //kernel.ProblemElements = train.Elements;

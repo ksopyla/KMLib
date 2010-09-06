@@ -61,10 +61,7 @@ namespace KMLib.Kernels
             set;
         }
 
-        public float[] AllProducts(int element1)
-        {
-            throw new NotImplementedException();
-        }
+       
 
         #endregion
 
@@ -75,6 +72,16 @@ namespace KMLib.Kernels
         {
             ComputeDiagonalDotCache();
             
+        }
+
+        #endregion
+
+        #region IKernel<Matrix> Members
+
+
+        public void AllProducts(int element1, ref float[] results)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

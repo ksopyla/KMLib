@@ -12,7 +12,7 @@ using System.IO;
 
 namespace KMLib.Kernels.GPU
 {
-    class CuLinearKernel : VectorKernel<SparseVector> , IDisposable
+   public class CudaLinearKernel : VectorKernel<SparseVector> , IDisposable
     {
 
         private const string cudaModuleName = "structKernel.cubin";
@@ -83,7 +83,7 @@ namespace KMLib.Kernels.GPU
         /// <summary>
         /// Array for dot product results
         /// </summary>
-        float[] productResults;
+        //float[] productResults;
 
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace KMLib.Kernels.GPU
         }
 
 
-        public CuLinearKernel()
+        public CudaLinearKernel()
         {
             linKernel = new LinearKernel();
 
@@ -129,7 +129,7 @@ namespace KMLib.Kernels.GPU
             return linKernel.CreateParameterSelection();
         }
 
-        public override float[] AllProducts(int element1)
+        public override void AllProducts(int element1,ref float[] results)
         {
 
             //cuda calculation
@@ -151,9 +151,8 @@ namespace KMLib.Kernels.GPU
             cuda.Launch(cuFunc, blocksPerGrid, 1);
 
             cuda.SynchronizeContext();
-            cuda.CopyDeviceToHost(outputPtr, productResults);
-
-            return productResults;
+            cuda.CopyDeviceToHost(outputPtr, results);
+            
         }
 
 
@@ -214,8 +213,10 @@ namespace KMLib.Kernels.GPU
             vecLenghtPtr = cuda.CopyHostToDevice(vecLenght);
 
             //alocate memory on device
-            productResults = new float[problemElements.Length];
-            outputPtr = cuda.Allocate(productResults);
+            //productResults = new float[problemElements.Length];
+            //outputPtr = cuda.Allocate(productResults);
+            
+            outputPtr=cuda.Allocate( (uint)(sizeof(float) * problemElements.Length));
 
             cuModule = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, cudaModuleName));
             cuFunc = cuda.GetModuleFunction(cudaKernelName);

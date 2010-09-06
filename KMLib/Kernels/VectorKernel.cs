@@ -80,16 +80,18 @@ namespace KMLib.Kernels
         /// </summary>
         /// <param name="element1"></param>
         /// <returns></returns>
-        public virtual float[] AllProducts(int element1)
+        public virtual void AllProducts(int element1,ref float[] results)
         {
             if (!Initilized)
             {
                 throw new ApplicationException("Kernel not initialized");
             }
             
-            float[] data = new float[Labels.LongLength];
-            for (int j = 0; j < data.Length; j++)
-                data[j] = (Labels[element1] * Labels[j] * Product(element1, j));
+            //float[] data = new float[Labels.LongLength];
+            if (results == null)
+                throw new ApplicationException("result array should not be null");
+            for (int j = 0; j < results.Length; j++)
+                results[j] = (Labels[element1] * Labels[j] * Product(element1, j));
 
 
             //var partition = Partitioner.Create(0, problem.ElementsCount);
@@ -103,7 +105,7 @@ namespace KMLib.Kernels
 
             //});
 
-            return data;
+           // return data;
 
         }
 

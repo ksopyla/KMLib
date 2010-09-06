@@ -41,7 +41,7 @@
         /// </summary>
         /// <param name="element1"></param>
         /// <returns></returns>
-        float[] AllProducts(int element1);
+        void AllProducts(int element1,ref float[] results);
 
         ParameterSelection<TProblemElement> CreateParameterSelection();
 

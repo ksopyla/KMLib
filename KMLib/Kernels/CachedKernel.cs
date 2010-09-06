@@ -92,7 +92,9 @@ namespace KMLib.Kernels
             //with cache
             if ((start = cache.GetData(i, ref data, len)) < len)
             {
-                data = kernel.AllProducts(i);
+                
+                //todo: error we change referecne
+                kernel.AllProducts(i,ref data);
 
                 // for (j = start; j < len; j++)
                 //     data[j] = (y[i] * y[j] * kernel.Product(i, j));

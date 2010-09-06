@@ -95,7 +95,7 @@
     <Compile Include="Helpers\Pair.cs" />
     <Compile Include="Helpers\AlphaInfo.cs" />
     <Compile Include="Helpers\StepVariable.cs" />
-    <Compile Include="Kernels\GPU\CuLinearKernel.cs" />
+    <Compile Include="Kernels\GPU\CudaLinearKernel.cs" />
     <Compile Include="Kernels\FrobeniusKernel.cs" />
     <Compile Include="Kernels\FrobeniusParameterSelection.cs" />
     <Compile Include="Kernels\LinearKernel.cs" />
