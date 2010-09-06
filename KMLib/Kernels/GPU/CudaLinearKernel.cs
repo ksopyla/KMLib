@@ -183,6 +183,7 @@ namespace KMLib.Kernels.GPU
             {
                 var vec = problemElements[i];
 
+                //todo: mValues and mIndices have extra zero element at the end
                 vecValsL.AddRange(Array.ConvertAll<double, float>(vec.mValues, Convert.ToSingle));
 
                 vecIdxL.AddRange(vec.mIndices);

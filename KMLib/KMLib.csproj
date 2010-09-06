@@ -122,7 +122,6 @@
     <Compile Include="Helpers\Point2D.cs" />
     <Compile Include="Kernels\CachedKernel.cs" />
     <Compile Include="Kernels\IKernel.cs" />
-    <Compile Include="Kernels\LinearMahalanobisKernel.cs" />
     <Compile Include="Kernels\RbfKernel.cs" />
     <Compile Include="Kernels\VectorKernel.cs" />
     <Compile Include="Model.cs" />
@@ -152,9 +151,15 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="structKernel.cubin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy  "$(TargetDir)*.dll" "D:\UWM\praca naukowa\doktorat\code\ReadRess\Libs" /Y</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
