@@ -87,7 +87,7 @@ namespace KMLib.Kernels
                 throw new ApplicationException("Kernel not initialized");
             }
             
-            //float[] data = new float[Labels.LongLength];
+            
             if (results == null)
                 throw new ApplicationException("result array should not be null");
             for (int j = 0; j < results.Length; j++)

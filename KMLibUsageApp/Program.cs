@@ -43,45 +43,40 @@ namespace KMLibUsageApp
             //int numberOfFeatures = 7129;
 
 
-            //string trainningFile = dataFolder + "/real-sim_small_3K";
+            string trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
             //string trainningFile = dataFolder + "/real-sim_med_10K";
             //string trainningFile = dataFolder + "/real-sim";
-            //string testFile = dataFolder + "/real-sim.t";
-            //int numberOfFeatures = 20958;
-
-
+            string testFile = dataFolder + "/real-sim.t";
+            int numberOfFeatures = 20958;
+            
             //for test
-            string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
-            string testFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //string trainningFile = dataFolder + "/liver-disorders_scale.txt";
-            //string testFile = dataFolder + "/liver-disorders_scale.txt";
-            int numberOfFeatures = 6;
+            //string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
+            //string testFile = dataFolder + "/liver-disorders_scale_small.txt";
+            ////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
+            ////string testFile = dataFolder + "/liver-disorders_scale.txt";
+            //int numberOfFeatures = 6;
             //  string trainningFile = dataFolder + "/australian_scale.txt";
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
-
-
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
             Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
             Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
 
-
-
             //ComputeLinearMahalanobisKernel();
-
             //IKernel<SparseVector> kernel = new RbfKernel(0.5f);
-
-            // IKernel<SparseVector> kernel = new LinearKernel();
-
-             IKernel<SparseVector> kernel = new CudaLinearKernel();
+            IKernel<SparseVector> kernel = new LinearKernel();
+            IKernel<SparseVector> kernel2 = new CudaLinearKernel();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);
 
             //kernel.ProblemElements = train.Elements;
 
             SVMClassify(train, test, kernel);
+
+            Console.WriteLine("\n ------------------------------ \n");
+            SVMClassify(train, test, kernel2);
 
             //DoCrossValidation(train, kernel);
 
