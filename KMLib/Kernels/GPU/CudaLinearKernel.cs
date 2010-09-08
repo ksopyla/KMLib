@@ -297,14 +297,24 @@ namespace KMLib.Kernels.GPU
             cuda.SetTextureArray(cuMainVecTexRef, cuMainVecArray);
 
             cuLabelsTexRef = cuda.GetModuleTexture(cuModule, cudaLabelsTexRefName);
-            cuda.SetTextureFlags(cuLabelsTexRef, 0);
 
-            cuLabelsArray = cuda.CreateArray(Labels);
-            cuda.SetTextureArray(cuLabelsTexRef, cuLabelsArray);
-            cuda.CopyHostToArray(cuLabelsArray, Labels, 0);
-            //labelsPtr= cuda.CopyHostToDevice(Labels);
-            //cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, (uint)(sizeof(float) * Labels.Length));
+            uint flag = CUDADriver.CU_TRSF_READ_AS_INTEGER;
+           // cuda.SetTextureFlags(cuLabelsTexRef, flag);
 
+            
+
+            //cuLabelsArray = cuda.CreateArray(Labels);
+            //cuda.SetTextureArray(cuLabelsTexRef, cuLabelsArray);
+            //cuda.CopyHostToArray(cuLabelsArray, Labels, 0);
+
+           // cuda.SetTextureAddressMode(cuLabelsTexRef, 1, CUAddressMode.Clamp);
+            labelsPtr = cuda.CopyHostToDevice(Labels);
+            
+          //   uint align = cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, 0);
+            
+          uint align= cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, (uint)(sizeof(float) * Labels.Length));
+
+         
         }
 
 

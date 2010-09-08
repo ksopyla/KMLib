@@ -5,6 +5,7 @@ using System.Text;
 using KMLib.Helpers;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace KMLib.Kernels
 {
@@ -123,9 +124,10 @@ namespace KMLib.Kernels
 
             }
 
+            //string debStr = i.ToString() + " ->" + string.Join("; ", data);
+            //Debug.WriteLine(debStr);
 
-
-            return data;
+             return data;
         }
 
         public float[] GetQD()

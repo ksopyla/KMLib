@@ -43,19 +43,19 @@ namespace KMLibUsageApp
             //int numberOfFeatures = 7129;
 
 
-            string trainningFile = dataFolder + "/real-sim_small_3K";
-            //string trainningFile = dataFolder + "/real-sim_med_6K";
-            //string trainningFile = dataFolder + "/real-sim_med_10K";
-            //string trainningFile = dataFolder + "/real-sim";
-            string testFile = dataFolder + "/real-sim.t";
-            int numberOfFeatures = 20958;
+            //string trainningFile = dataFolder + "/real-sim_small_3K";
+            ////string trainningFile = dataFolder + "/real-sim_med_6K";
+            ////string trainningFile = dataFolder + "/real-sim_med_10K";
+            ////string trainningFile = dataFolder + "/real-sim";
+            //string testFile = dataFolder + "/real-sim.t";
+            //int numberOfFeatures = 20958;
             
             //for test
-            //string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //string testFile = dataFolder + "/liver-disorders_scale_small.txt";
+            string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
+            string testFile = dataFolder + "/liver-disorders_scale_small.txt";
             ////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
             ////string testFile = dataFolder + "/liver-disorders_scale.txt";
-            //int numberOfFeatures = 6;
+            int numberOfFeatures = 6;
             //  string trainningFile = dataFolder + "/australian_scale.txt";
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
@@ -71,13 +71,14 @@ namespace KMLibUsageApp
             IKernel<SparseVector> kernel2 = new CudaLinearKernel();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);
 
-            //kernel.ProblemElements = train.Elements;
+            
 
             SVMClassify(train, test, kernel);
 
             Console.WriteLine("\n ------------------------------ \n");
             SVMClassify(train, test, kernel2);
 
+            ((CudaLinearKernel)kernel2).Dispose();
             //DoCrossValidation(train, kernel);
 
 

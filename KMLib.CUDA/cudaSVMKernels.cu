@@ -67,13 +67,18 @@ extern "C" __global__ void linearCsrFormatKernel(const float * vals,
         sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
        
 
+		
 
         // first thread writes warp result
         if (thread_lane == 0){
             //results[row] += sdata[threadIdx.x];
-			results[row] =tex1D(labelsTexRef,mainVecIndex)*tex1D(labelsTexRef,row) * sdata[threadIdx.x];
+			results[row] += sdata[threadIdx.x];
+			//results[row] =tex1D(labelsTexRef,mainVecIndex)*tex1D(labelsTexRef,row) * sdata[threadIdx.x];
 			//results[row] = tex1D(labelsTexRef,mainVecIndex)*sdata[threadIdx.x];
+			//results[row] = tex1D(labelsTexRef,row);
+			//results[row] = tex1Dfetch(labelsTexRef,row)*tex1Dfetch(labelsTexRef,mainVecIndex)*sdata[threadIdx.x];
 		}
+
 			
     }
 }
