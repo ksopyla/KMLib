@@ -437,8 +437,8 @@ namespace KMLib.Helpers
             Parallel.ForEach(rangePart, () => new Pair<int, float>(-1, -INF),
               (range, loopState, localMax) =>
               {
-
-                  for (int t = range.Item1; t < range.Item2; t++)
+                  int endRange = range.Item2;
+                  for (int t = range.Item1; t < endRange; t++)
                   {
 
                       if (y[t] == +1)

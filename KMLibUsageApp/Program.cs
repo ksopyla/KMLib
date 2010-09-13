@@ -25,8 +25,8 @@ namespace KMLibUsageApp
 
 
             //string trainningFile = dataFolder + "/a1a.train";
-            //string testFile = dataFolder + "/a1a.test";
-            ////string testFile = dataFolder + "/a1a.train";
+            ////string testFile = dataFolder + "/a1a.test";
+            //string testFile = dataFolder + "/a1a.train";
             ////in a1a problem max index is 123
             //int numberOfFeatures = 123;
 
@@ -42,20 +42,28 @@ namespace KMLibUsageApp
             //string testFile = dataFolder + "/duke.tr";
             //int numberOfFeatures = 7129;
 
+            // string trainningFile = dataFolder + "/rcv1_train.binary";
+            //string testFile = dataFolder + "/rcv1_train_test.binary";
+            //int numberOfFeatures = 47236;
+
+            string trainningFile = dataFolder + "/news20.binary";
+            string testFile = dataFolder + "/news20_test.binary";
+            int numberOfFeatures = 1335191;
+            
 
             //string trainningFile = dataFolder + "/real-sim_small_3K";
-            ////string trainningFile = dataFolder + "/real-sim_med_6K";
-            ////string trainningFile = dataFolder + "/real-sim_med_10K";
-            ////string trainningFile = dataFolder + "/real-sim";
+           // string trainningFile = dataFolder + "/real-sim_med_6K";
+            //string trainningFile = dataFolder + "/real-sim_med_10K";
+            //string trainningFile = dataFolder + "/real-sim";
             //string testFile = dataFolder + "/real-sim.t";
             //int numberOfFeatures = 20958;
-            
+
             //for test
-            string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
-            string testFile = dataFolder + "/liver-disorders_scale_small.txt";
+           // string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
+            //string testFile = dataFolder + "/liver-disorders_scale_small.txt";
             ////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
             ////string testFile = dataFolder + "/liver-disorders_scale.txt";
-            int numberOfFeatures = 6;
+           // int numberOfFeatures = 6;
             //  string trainningFile = dataFolder + "/australian_scale.txt";
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
@@ -68,17 +76,17 @@ namespace KMLibUsageApp
             //ComputeLinearMahalanobisKernel();
             //IKernel<SparseVector> kernel = new RbfKernel(0.5f);
             IKernel<SparseVector> kernel = new LinearKernel();
-            IKernel<SparseVector> kernel2 = new CudaLinearKernel();
+          //  IKernel<SparseVector> kernel2 = new CudaLinearKernel();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);
 
-            
 
-            SVMClassify(train, test, kernel);
 
+            //SVMClassify(train, test, kernel2);
+            //((CudaLinearKernel)kernel2).Dispose();
             Console.WriteLine("\n ------------------------------ \n");
-            SVMClassify(train, test, kernel2);
+             SVMClassify(train, test, kernel);
 
-            ((CudaLinearKernel)kernel2).Dispose();
+            
             //DoCrossValidation(train, kernel);
 
 

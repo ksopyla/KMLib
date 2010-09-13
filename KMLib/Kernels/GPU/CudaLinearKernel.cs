@@ -17,6 +17,7 @@ namespace KMLib.Kernels.GPU
 
         private const string cudaModuleName = "cudaSVMKernels.cubin";
         const string cudaKernelName = "linearCsrFormatKernel";
+        //const string cudaKernelName = "linearCsrFormatKernelShared";
         const string cudaMainVecTexRefName = "mainVectorTexRef";
         const string cudaLabelsTexRefName = "labelsTexRef";
 
@@ -69,19 +70,27 @@ namespace KMLib.Kernels.GPU
         /// </summary>
         CUtexref cuMainVecTexRef;
 
+        CUdeviceptr mainVecPtr;
+
         /// <summary>
         /// cuda refeerenc to texture for labels
         /// </summary>
         CUtexref cuLabelsTexRef;
+       
+        /// <summary>
+        /// cuda pointer to labels, neded for coping to texture
+        /// </summary>
+        private CUdeviceptr labelsPtr;
+
         /// <summary>
         /// cuda array neded for copy vector to texture
         /// </summary>
-        CUarray cuMainVecArray;
+       // CUarray cuMainVecArray;
 
         /// <summary>
         /// cuda array neded for copy labels to texture
         /// </summary>
-        CUarray cuLabelsArray;
+       // CUarray cuLabelsArray;
         #endregion
 
         /// <summary>
@@ -113,7 +122,7 @@ namespace KMLib.Kernels.GPU
         /// index of current main problem element (vector)
         /// </summary>
         private uint mainVectorIdx=1;
-        private CUdeviceptr labelsPtr;
+       
 
         public override SparseVector[] ProblemElements
         {
@@ -150,25 +159,31 @@ namespace KMLib.Kernels.GPU
             return linKernel.CreateParameterSelection();
         }
 
-        public override void AllProducts(int element1, ref float[] results)
+        public override void AllProducts(int element1,  float[] results)
         {
 
             //cuda calculation
-
+            //todo: possible small improvements
+            //if mainVectorIdx==element1 then we don't have to copy to device
             SparseVector mainVec = problemElements[element1];
 
-
-            Array.Clear(mainVector, 0, mainVector.Length);
-            for (int j = 0; j < mainVec.mValueCount; j++)
+            if (mainVectorIdx != element1)
             {
-                int idx = mainVec.mIndices[j];
-                float val = (float)mainVec.mValues[j];
-                mainVector[idx] = val;
-            }
+                Array.Clear(mainVector, 0, mainVector.Length);
+                for (int j = 0; j < mainVec.mValueCount; j++)
+                {
+                    int idx = mainVec.mIndices[j];
+                    float val = (float)mainVec.mValues[j];
+                    mainVector[idx] = val;
+                }
 
+                cuda.CopyHostToDevice(mainVecPtr, mainVector);
+            }
+            uint align = cuda.SetTextureAddress(cuMainVecTexRef, mainVecPtr, (uint)(sizeof(float) * mainVector.Length));
 
             //copy to texture
-            cuda.CopyHostToArray(cuMainVecArray, mainVector, 0);
+           // cuda.CopyHostToArray(cuMainVecArray, mainVector, 0);
+            
 
             //set the last parameter for kernel
             mainVectorIdx = (uint)element1;
@@ -178,6 +193,8 @@ namespace KMLib.Kernels.GPU
 
             cuda.SynchronizeContext();
             cuda.CopyDeviceToHost(outputPtr, results);
+
+            
 
         }
 
@@ -209,15 +226,28 @@ namespace KMLib.Kernels.GPU
             {
                 var vec = problemElements[i];
 
-                // mValues and mIndices have extra zero element at the end, so 
-                //after conversion we have to remove last element from the end
-                vecValsL.AddRange(Array.ConvertAll<double, float>(vec.mValues, Convert.ToSingle));
-                //removeing last zero element
-                vecValsL.RemoveAt(vecValsL.Count - 1);
 
-                vecIdxL.AddRange(vec.mIndices);
+                //!!! It has error, because vector  not always has onyl one zero element at the end
+                //// mValues and mIndices have extra zero element at the end, so 
+                ////after conversion we have to remove last element from the end
+                //vecValsL.AddRange(Array.ConvertAll<double, float>(vec.mValues, Convert.ToSingle));
+                ////removeing last zero element
+                //vecValsL.RemoveAt(vecValsL.Count - 1);
+
+                //coping and converting from double to float
+                //double[] tmpArr = new double[vec.mValueCount];
+                //Array.Copy(vec.mValues, tmpArr, vec.mValueCount);
+                //vecValsL.AddRange(Array.ConvertAll<double, float>(vec.mValues, Convert.ToSingle));
+
+                //coping and converting from double to float using Linq
+                var converted = vec.mValues.Select(x => Convert.ToSingle(x)).Take(vec.mValueCount);
+                vecValsL.AddRange(converted);
+
+                
+
+                vecIdxL.AddRange(vec.mIndices.Take(vec.mValueCount));
                 //removeing last zero element
-                vecIdxL.RemoveAt(vecIdxL.Count - 1);
+                //vecIdxL.RemoveAt(vecIdxL.Count - 1);
 
 
                 vecLenghtL.Add(vecStartIdx);
@@ -282,37 +312,30 @@ namespace KMLib.Kernels.GPU
             offset += sizeof(int);
             cuda.SetParameterSize(cuFunc, (uint)offset);
 
+           // cuda.UseRuntimeExceptions = false;
+           // cuda.SetFunctionSharedSize(cuFunc, (uint)(sizeof(float) * problemElements[0].Count));
+
+            //var cuerr = CUDARuntime.cudaGetLastError();
+            //string errMsg = CUDARuntime.cudaGetErrorString(cuerr);
+            //var err= cuda.LastError;
             #endregion
 
             //get reference to cuda texture for main vector
             cuMainVecTexRef = cuda.GetModuleTexture(cuModule, cudaMainVecTexRefName);
-            cuda.SetTextureFlags(cuMainVecTexRef, 0);
+            //cuda.SetTextureFlags(cuMainVecTexRef, 0);
 
             //allocate memory for main vector, size of this vector is the same as dimenson, so many 
             //indexes will be zero, but cuda computation is faster
             mainVector = new float[problemElements[0].Count];
+            mainVecPtr = cuda.CopyHostToDevice(mainVector);
 
             //create cuda array and bind to texture
-            cuMainVecArray = cuda.CreateArray(mainVector);
-            cuda.SetTextureArray(cuMainVecTexRef, cuMainVecArray);
+            //cuMainVecArray = cuda.CreateArray(mainVector);
+            //cuda.SetTextureArray(cuMainVecTexRef, cuMainVecArray);
 
             cuLabelsTexRef = cuda.GetModuleTexture(cuModule, cudaLabelsTexRefName);
-
-            uint flag = CUDADriver.CU_TRSF_READ_AS_INTEGER;
-           // cuda.SetTextureFlags(cuLabelsTexRef, flag);
-
-            
-
-            //cuLabelsArray = cuda.CreateArray(Labels);
-            //cuda.SetTextureArray(cuLabelsTexRef, cuLabelsArray);
-            //cuda.CopyHostToArray(cuLabelsArray, Labels, 0);
-
-           // cuda.SetTextureAddressMode(cuLabelsTexRef, 1, CUAddressMode.Clamp);
             labelsPtr = cuda.CopyHostToDevice(Labels);
-            
-          //   uint align = cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, 0);
-            
-          uint align= cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, (uint)(sizeof(float) * Labels.Length));
+            uint align= cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, (uint)(sizeof(float) * Labels.Length));
 
          
         }
@@ -333,7 +356,7 @@ namespace KMLib.Kernels.GPU
                 cuda.Free(labelsPtr);
                 cuda.DestroyTexture(cuLabelsTexRef);
 
-                cuda.DestroyArray(cuMainVecArray);
+                cuda.Free(mainVecPtr);
 
                 cuda.DestroyTexture(cuMainVecTexRef);
 

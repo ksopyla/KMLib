@@ -7,8 +7,8 @@ namespace KMLib.Helpers
 {
     internal class Pair<T, U>
     {
-        public T First { get; set; }
-        public U Second { get; set; }
+        public T First;
+        public U Second;
 
         public Pair(T first, U second)
         {

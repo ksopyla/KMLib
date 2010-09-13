@@ -79,7 +79,7 @@ namespace KMLib.Kernels
         #region IKernel<Matrix> Members
 
 
-        public void AllProducts(int element1, ref float[] results)
+        public void AllProducts(int element1,  float[] results)
         {
             throw new NotImplementedException();
         }
