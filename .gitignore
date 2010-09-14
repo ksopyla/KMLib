@@ -31,4 +31,4 @@ KMLibUsageApp/Data/colon-cancer.bz2
 KMLibUsageApp.psess
 KMLibUsageApp/Data/real-sim.bz2
 *.vsp
-KMLibUsageApp/Data/rcv1_train.binary
+KMLibUsageApp/Data/*.binary

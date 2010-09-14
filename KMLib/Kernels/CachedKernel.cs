@@ -95,7 +95,7 @@ namespace KMLib.Kernels
             {
                 
                 //todo: error we change referecne
-                kernel.AllProducts(i,ref data);
+                kernel.AllProducts(i, data);
 
                 // for (j = start; j < len; j++)
                 //     data[j] = (y[i] * y[j] * kernel.Product(i, j));

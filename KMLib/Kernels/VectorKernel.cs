@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using dnAnalytics.LinearAlgebra;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace KMLib.Kernels
 {
@@ -80,7 +82,7 @@ namespace KMLib.Kernels
         /// </summary>
         /// <param name="element1"></param>
         /// <returns></returns>
-        public virtual void AllProducts(int element1,ref float[] results)
+        public virtual void AllProducts(int element1, float[] results)
         {
             if (!Initilized)
             {
@@ -90,22 +92,22 @@ namespace KMLib.Kernels
             
             if (results == null)
                 throw new ApplicationException("result array should not be null");
-            for (int j = 0; j < results.Length; j++)
-                results[j] = (Labels[element1] * Labels[j] * Product(element1, j));
+            //for (int j = 0; j < results.Length; j++)
+            //    results[j] = (Labels[element1] * Labels[j] * Product(element1, j));
 
 
-            //var partition = Partitioner.Create(0, problem.ElementsCount);
+            var partition = Partitioner.Create(0, problemElements.Length);
 
-            //Parallel.ForEach(partition, (range) =>
-            //{
-            //    for (int k = range.Item1; k < range.Item2; k++)
-            //    {
-            //        data[k] = (y[i] * y[k] * kernel.Product(i, k));
-            //    }
+            Parallel.ForEach(partition, (range) =>
+            {
+                for (int k = range.Item1; k < range.Item2; k++)
+                {
+                    results[k] = (Labels[element1] * Labels[k] * Product(element1, k));
+                }
 
-            //});
+            });
 
-           // return data;
+           
 
         }
 

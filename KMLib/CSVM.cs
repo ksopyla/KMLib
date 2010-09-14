@@ -72,11 +72,11 @@ namespace KMLib
 
            
 
-            Console.WriteLine("User solver {0}", Solver.ToString());
+            Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(),kernel.ToString());
 
             Stopwatch timer = Stopwatch.StartNew();
             model = Solver.ComputeModel();
-            Console.WriteLine("Model computed {0}", timer.Elapsed);
+            Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
         }
 
         public float Predict(TProblemElement problemElement)
