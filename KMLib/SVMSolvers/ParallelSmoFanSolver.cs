@@ -484,7 +484,7 @@ namespace KMLib.Helpers
             GMax = maxPair.Second;
             GMax_idx = maxPair.First;
 
-            #region orifinal sequential find max
+            #region original sequential find max
             //for (int t = 0; t < active_size; t++)
             //{
             //    if (y[t] == +1)

@@ -68,7 +68,7 @@ namespace KMLibUsageApp
             //ComputeLinearMahalanobisKernel();
             //IKernel<SparseVector> kernel = new RbfKernel(0.5f);
             IKernel<SparseVector> kernel = new LinearKernel();
-            IKernel<SparseVector> kernel2 = new CudaLinearKernel();
+            //IKernel<SparseVector> kernel2 = new CudaLinearKernel();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);
 
             
@@ -76,9 +76,9 @@ namespace KMLibUsageApp
             SVMClassify(train, test, kernel);
 
             Console.WriteLine("\n ------------------------------ \n");
-            SVMClassify(train, test, kernel2);
+            //SVMClassify(train, test, kernel2);
 
-            ((CudaLinearKernel)kernel2).Dispose();
+            //((CudaLinearKernel)kernel2).Dispose();
             //DoCrossValidation(train, kernel);
 
 
