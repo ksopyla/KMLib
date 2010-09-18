@@ -6,25 +6,22 @@ using dnAnalytics.LinearAlgebra;
 using GASS.CUDA;
 using GASS.CUDA.Types;
 using System.IO;
-using System.Runtime.InteropServices;
-
-
-
 
 namespace KMLib.Kernels.GPU
 {
 
     /// <summary>
-    /// class for computing linear kernel using cuda
+    /// Class for computing RBF kernel using cuda.
+    /// 
     /// </summary>
-    public class CudaLinearKernel : VectorKernel<SparseVector>, IDisposable
+    public class CudaRBFKernel: VectorKernel<SparseVector>, IDisposable
     {
-
-        private const string cudaModuleName = "cudaSVMKernels.cubin";
-        const string cudaKernelName = "linearCsrFormatKernel";
+         private const string cudaModuleName = "cudaSVMKernels.cubin";
+        const string cudaKernelName = "rbfCsrFormatKernel";
         //const string cudaKernelName = "linearCsrFormatKernelShared";
         const string cudaMainVecTexRefName = "mainVectorTexRef";
         const string cudaLabelsTexRefName = "labelsTexRef";
+        const string cudaSelfDotTexRefName = "selfDotTexRef";
 
 
 
@@ -99,11 +96,6 @@ namespace KMLib.Kernels.GPU
         #endregion
 
         /// <summary>
-        /// native pointer to output memory region
-        /// </summary>
-        IntPtr outputIntPtr;
-
-        /// <summary>
         /// vector for computing kernel product with other vectors
         /// </summary>
         /// <remarks>all the time this vector will be modified and copied to cuda array</remarks>
@@ -111,9 +103,9 @@ namespace KMLib.Kernels.GPU
 
 
         /// <summary>
-        /// Array for dot product results
+        /// Array for self dot product 
         /// </summary>
-        //float[] productResults;
+        float[] selfLinDot;
 
 
         /// <summary>
@@ -132,6 +124,7 @@ namespace KMLib.Kernels.GPU
         /// index of current main problem element (vector)
         /// </summary>
         private uint mainVectorIdx=1;
+        private int Gamma;
        
 
         public override SparseVector[] ProblemElements
@@ -148,7 +141,7 @@ namespace KMLib.Kernels.GPU
         }
 
 
-        public CudaLinearKernel()
+        public CudaRBFKernel()
         {
             linKernel = new LinearKernel();
 
@@ -156,17 +149,46 @@ namespace KMLib.Kernels.GPU
 
         public override float Product(SparseVector element1, SparseVector element2)
         {
-            return linKernel.Product(element1, element2);
+
+            float x1Squere = linKernel.Product(element1, element1);
+            float x2Squere = linKernel.Product(element2, element2);
+
+            float dot = linKernel.Product(element1, element2);
+
+            float prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+
+            return prod;
+            
         }
 
         public override float Product(int element1, int element2)
         {
-            return linKernel.Product(element1, element2);
+           if (element1 >= problemElements.Length)
+                throw new IndexOutOfRangeException("element1 out of range");
+
+            if (element2 >= problemElements.Length)
+                throw new IndexOutOfRangeException("element2 out of range");
+
+
+            if (element1 == element2 && (DiagonalDotCacheBuilded))
+                return DiagonalDotCache[element1];
+
+             float x1Squere = selfLinDot[element1];
+            float x2Squere  = selfLinDot[element2];
+            //float x1Squere = linKernel.Product(element1, element1);
+            //float x2Squere = linKernel.Product(element2, element2);
+
+            float dot = linKernel.Product(element1, element2);
+
+            float prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+
+            return prod;
         }
 
         public override ParameterSelection<SparseVector> CreateParameterSelection()
         {
-            return linKernel.CreateParameterSelection();
+            throw   new NotImplementedException();
+            //return new RbfParameterSelection();
         }
 
         public override void AllProducts(int element1,  float[] results)
@@ -179,23 +201,21 @@ namespace KMLib.Kernels.GPU
 
             if (mainVectorIdx != element1)
             {
-                CopyMainVectorVals(mainVec);
+                Array.Clear(mainVector, 0, mainVector.Length);
+                for (int j = 0; j < mainVec.mValueCount; j++)
+                {
+                    int idx = mainVec.mIndices[j];
+                    float val = (float)mainVec.mValues[j];
+                    mainVector[idx] = val;
+                }
 
                 cuda.CopyHostToDevice(mainVecPtr, mainVector);
+
+                
+
             }
             uint align = cuda.SetTextureAddress(cuMainVecTexRef, mainVecPtr, (uint)(sizeof(float) * mainVector.Length));
 
-            //IntPtr hostMem = cuda.HostAllocate((uint)100,(uint) CUMemHostAllocFlags.WriteCombined);
-            //unsafe
-            //{
-            //fixed(float* arr=(float*)hostMem.ToPointer()){
-            //    for (int i = 0; i < 10; i++)
-            //    {
-            //        arr[i] = i+0.0f;
-            //    }
-            //}
-            //}
-            
             //copy to texture
            // cuda.CopyHostToArray(cuMainVecArray, mainVector, 0);
             
@@ -207,24 +227,10 @@ namespace KMLib.Kernels.GPU
             cuda.Launch(cuFunc, blocksPerGrid, 1);
 
             cuda.SynchronizeContext();
-            //copy resulsts form device to host
-            //cuda.CopyDeviceToHost(outputPtr, results);
-            //copy results from native mapped memory pointer to array,
-            //faster then copyDtH function
-            Marshal.Copy(outputIntPtr, results, 0, results.Length);
+            cuda.CopyDeviceToHost(outputPtr, results);
 
+            
 
-        }
-
-        private void CopyMainVectorVals(SparseVector mainVec)
-        {
-            Array.Clear(mainVector, 0, mainVector.Length);
-            for (int j = 0; j < mainVec.mValueCount; j++)
-            {
-                int idx = mainVec.mIndices[j];
-                float val = (float)mainVec.mValues[j];
-                mainVector[idx] = val;
-            }
         }
 
 
@@ -256,16 +262,29 @@ namespace KMLib.Kernels.GPU
                 var vec = problemElements[i];
 
 
-                //!!!vector  not always has only one zero element at the end
-                // mValues and mIndices have extra zero elements at the end, so 
-                //after conversion we have to remove zeros from the end
-                
+                //!!! It has error, because vector  not always has onyl one zero element at the end
+                //// mValues and mIndices have extra zero element at the end, so 
+                ////after conversion we have to remove last element from the end
+                //vecValsL.AddRange(Array.ConvertAll<double, float>(vec.mValues, Convert.ToSingle));
+                ////removeing last zero element
+                //vecValsL.RemoveAt(vecValsL.Count - 1);
+
+                //coping and converting from double to float
+                //double[] tmpArr = new double[vec.mValueCount];
+                //Array.Copy(vec.mValues, tmpArr, vec.mValueCount);
+                //vecValsL.AddRange(Array.ConvertAll<double, float>(vec.mValues, Convert.ToSingle));
+
                 //coping and converting from double to float using Linq
                 var converted = vec.mValues.Select(x => Convert.ToSingle(x)).Take(vec.mValueCount);
                 vecValsL.AddRange(converted);
 
+                
+
                 vecIdxL.AddRange(vec.mIndices.Take(vec.mValueCount));
-               
+                //removeing last zero element
+                //vecIdxL.RemoveAt(vecIdxL.Count - 1);
+
+
                 vecLenghtL.Add(vecStartIdx);
                 vecStartIdx += vec.mValueCount;
             }
@@ -295,13 +314,7 @@ namespace KMLib.Kernels.GPU
             //productResults = new float[problemElements.Length];
             //outputPtr = cuda.Allocate(productResults);
 
-            uint memSize = (uint)(problemElements.Length * sizeof(float));
-            //allocate mapped memory for our results
-            outputIntPtr = cuda.HostAllocate(memSize, CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
-            outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
-           
-            //normal memory allocation
-            //outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
+            outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
 
             cuModule = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, cudaModuleName));
             cuFunc = cuda.GetModuleFunction(cudaKernelName);

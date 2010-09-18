@@ -86,6 +86,7 @@
     <Compile Include="Kernels\GPU\CudaLinearKernel.cs" />
     <Compile Include="Kernels\FrobeniusKernel.cs" />
     <Compile Include="Kernels\FrobeniusParameterSelection.cs" />
+    <Compile Include="Kernels\GPU\CudaRBFKernel.cs" />
     <Compile Include="Kernels\LinearKernel.cs" />
     <Compile Include="Kernels\LinearParameterSelection.cs" />
     <Compile Include="Kernels\MatrixKernel.cs" />

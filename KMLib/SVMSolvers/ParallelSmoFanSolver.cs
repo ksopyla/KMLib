@@ -335,7 +335,8 @@ namespace KMLib.Helpers
 
                 Parallel.ForEach(partition, (range) =>
                 {
-                    for (int k = range.Item1; k < range.Item2; k++)
+                    int rangeEnd = range.Item2;
+                    for (int k = range.Item1; k < rangeEnd; k++)
                     {
                         G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
                     }
