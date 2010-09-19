@@ -49,7 +49,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>nvcc cudaSVMKernels.cu --cubin   -ccbin "c:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin" -m32</PostBuildEvent>
+    <PostBuildEvent>nvcc cudaSVMKernels.cu --cubin   -ccbin "c:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin" -m32
+xcopy "$(TargetDir)cudaSVMKernels.cubin" "$(SolutionDir)KMLib\Kernels\GPU" /Y
+</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

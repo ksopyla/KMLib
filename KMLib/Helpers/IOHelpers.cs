@@ -121,7 +121,7 @@ namespace KMLib.Helpers
                 using (StreamReader input = new StreamReader(fileStream))
                 {
 
-
+                    
 
                     while (input.Peek() > -1)
                     {
@@ -168,6 +168,8 @@ namespace KMLib.Helpers
                 }
             }
 
+            long doubleCount = 0;
+            long valCount = 0;
             //list of Vectors, currently use SparseVector implementation from dnAnalitycs
             List<dnaLA.SparseVector> dnaVectors = new List<dnaLA.SparseVector>(vectors.Count);
             //assing max index as  vector Dimension,
@@ -182,6 +184,9 @@ namespace KMLib.Helpers
                     double val = vectors[i][j].Value;
                     oneVec[index] = val;
                 }
+                doubleCount += oneVec.mIndices.LongLength;
+                doubleCount += oneVec.mValues.LongLength;
+                valCount += oneVec.mValueCount;
 
                 dnaVectors.Add(oneVec);
 

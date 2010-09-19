@@ -94,7 +94,7 @@ namespace KMLib.Kernels
             if ((start = cache.GetData(i, ref data, len)) < len)
             {
                 
-                //todo: error we change referecne
+                
                 kernel.AllProducts(i, data);
 
                 // for (j = start; j < len; j++)
