@@ -32,3 +32,9 @@ KMLibUsageApp.psess
 KMLibUsageApp/Data/real-sim.bz2
 *.vsp
 KMLibUsageApp/Data/*.binary
+KMLibUsageApp/Data/a9a
+KMLibUsageApp/Data/a9a.t
+KMLibUsageApp/Data/mnist.scale
+KMLibUsageApp/Data/mnist.scale.t
+KMLibUsageApp/Data/w8a
+KMLibUsageApp/Data/w8a.t
