@@ -5,7 +5,7 @@ using System.Text;
 
 namespace KMLib.Helpers
 {
-    class Vector
+    internal class Vector
     {
 
         public int Dim;
