@@ -6,6 +6,7 @@ using dnAnalytics.LinearAlgebra;
 using GASS.CUDA;
 using GASS.CUDA.Types;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace KMLib.Kernels.GPU
 {
@@ -101,6 +102,10 @@ namespace KMLib.Kernels.GPU
         /// <remarks>all the time this vector will be modified and copied to cuda array</remarks>
         float[] mainVector;
 
+        /// <summary>
+        /// native pointer to output memory region
+        /// </summary>
+        IntPtr outputIntPtr;
 
         /// <summary>
         /// Array for self dot product 
@@ -125,6 +130,7 @@ namespace KMLib.Kernels.GPU
         /// </summary>
         private uint mainVectorIdx=1;
         private int Gamma;
+        private CUdeviceptr selfLinDotPtr;
        
 
         public override SparseVector[] ProblemElements
@@ -228,7 +234,7 @@ namespace KMLib.Kernels.GPU
 
             cuda.SynchronizeContext();
             cuda.CopyDeviceToHost(outputPtr, results);
-
+            Marshal.Copy(outputIntPtr, results, 0, results.Length);
             
 
         }
@@ -261,18 +267,9 @@ namespace KMLib.Kernels.GPU
             {
                 var vec = problemElements[i];
 
-
-                //!!! It has error, because vector  not always has onyl one zero element at the end
-                //// mValues and mIndices have extra zero element at the end, so 
-                ////after conversion we have to remove last element from the end
-                //vecValsL.AddRange(Array.ConvertAll<double, float>(vec.mValues, Convert.ToSingle));
-                ////removeing last zero element
-                //vecValsL.RemoveAt(vecValsL.Count - 1);
-
-                //coping and converting from double to float
-                //double[] tmpArr = new double[vec.mValueCount];
-                //Array.Copy(vec.mValues, tmpArr, vec.mValueCount);
-                //vecValsL.AddRange(Array.ConvertAll<double, float>(vec.mValues, Convert.ToSingle));
+                //!!!vector  not always has only one zero element at the end
+                // mValues and mIndices have extra zero elements at the end, so 
+                //after conversion we have to remove zeros from the end
 
                 //coping and converting from double to float using Linq
                 var converted = vec.mValues.Select(x => Convert.ToSingle(x)).Take(vec.mValueCount);
@@ -301,6 +298,8 @@ namespace KMLib.Kernels.GPU
             vecIdxL = null;
             vecLenghtL = null;
             vecValsL = null;
+            
+            selfLinDot = linKernel.DiagonalDotCache;
 
             #region cuda initialization
 
@@ -310,11 +309,19 @@ namespace KMLib.Kernels.GPU
             idxPtr = cuda.CopyHostToDevice(vecIdx);
             vecLenghtPtr = cuda.CopyHostToDevice(vecLenght);
 
+            selfLinDotPtr = cuda.CopyHostToDevice(selfLinDot);
+
             //alocate memory on device
             //productResults = new float[problemElements.Length];
             //outputPtr = cuda.Allocate(productResults);
 
-            outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
+            uint memSize = (uint)(problemElements.Length * sizeof(float));
+            //allocate mapped memory for our results
+            outputIntPtr = cuda.HostAllocate(memSize, CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
+            outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
+
+            //normal memory allocation
+            //outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
 
             cuModule = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, cudaModuleName));
             cuFunc = cuda.GetModuleFunction(cudaKernelName);
@@ -333,6 +340,10 @@ namespace KMLib.Kernels.GPU
             cuda.SetParameter(cuFunc, offset, vecLenghtPtr.Pointer);
             offset += IntPtr.Size;
 
+            cuda.SetParameter(cuFunc, offset, selfLinDotPtr.Pointer);
+            offset += IntPtr.Size;
+
+
             cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
             offset += IntPtr.Size;
 
@@ -341,18 +352,14 @@ namespace KMLib.Kernels.GPU
 
             lastParameterOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
-
-            
-
             offset += sizeof(int);
+
+            cuda.SetParameter(cuFunc, offset, Gamma);
+            offset += sizeof(float);
+
             cuda.SetParameterSize(cuFunc, (uint)offset);
 
-           // cuda.UseRuntimeExceptions = false;
-           // cuda.SetFunctionSharedSize(cuFunc, (uint)(sizeof(float) * problemElements[0].Count));
-
-            //var cuerr = CUDARuntime.cudaGetLastError();
-            //string errMsg = CUDARuntime.cudaGetErrorString(cuerr);
-            //var err= cuda.LastError;
+           
             #endregion
 
             //get reference to cuda texture for main vector
