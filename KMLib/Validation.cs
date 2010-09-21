@@ -460,14 +460,18 @@ namespace KMLib
         {
 
             CSVM<TProblemElement> svm = new CSVM<TProblemElement>(trainProblem, kernel, C);
-            svm.Init();
 
-            svm.Train();
-
-            int correct = 0;
-
-            Console.WriteLine("Start Predict");
             Stopwatch t = Stopwatch.StartNew();
+            svm.Init();
+            Console.WriteLine("SVM init time {0}", t.Elapsed);
+
+            t.Restart();
+            svm.Train();
+            Console.WriteLine("Svm train takes {0}", t.Elapsed);
+            int correct = 0;
+            t.Restart();
+            Console.WriteLine("Start Predict");
+            
             for (int i = 0; i < testProblem.ElementsCount; i++)
             {
 
@@ -478,7 +482,7 @@ namespace KMLib
 
             }
             t.Stop();
-            Debug.Write(string.Format("test validation on {0} elements takes {1}",testProblem.ElementsCount,t.Elapsed ));
+            Console.WriteLine(string.Format("prediction on {0} elements takes {1}",testProblem.ElementsCount,t.Elapsed ));
             return (float)correct / testProblem.ElementsCount;
         }
 

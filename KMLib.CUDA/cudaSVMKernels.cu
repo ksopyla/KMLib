@@ -194,12 +194,14 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 	__shared__ int shMainVecIdx;
 
 	__shared__ float shMainSelfDot;
+	__shared__ float shLabel;
 	
 	if(threadIdx.x==0)
 	{
 		shMainVecIdx=mainVecIndex;
 		shGamma = gamma;
 		shMainSelfDot = selfDot[shMainVecIdx];
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
 	}	
 
 	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
@@ -219,7 +221,7 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 		// compute local sum
 		float sum = 0;
 		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
-			sum += vals[jj] * tex1Dfetch(texRef,idx[jj]);
+			sum += vals[jj] * tex1Dfetch(mainVectorTexRef,idx[jj]);
 
 		// reduce local sums to row sum (ASSUME: warpsize 32)
 		sdata[threadIdx.x] = sum;
@@ -233,8 +235,9 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 
 		// first thread writes warp result
 		if (thread_lane == 0){
-		 //   results[row] += sdata[threadIdx.x];
-			results[row]=tex1Dfetch(labelsTexRef,row)*tex1Dfetch(labelsTexRef,shMainVecIdx)*expf(-shGamma*(selfDot[row]+selfDot[shMainVecIdx]-2*sdata[threadIdx.x]));
+			//results[row]=tex1Dfetch(labelsTexRef,row)*tex1Dfetch(labelsTexRef,shMainVecIdx)*expf(-shGamma*(selfDot[row]+selfDot[shMainVecIdx]-2*sdata[threadIdx.x]));
+			
+			results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*sdata[threadIdx.x]));
 		}
 	}
 }

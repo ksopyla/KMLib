@@ -15,9 +15,9 @@ namespace KMLib.Kernels.GPU
     /// Class for computing RBF kernel using cuda.
     /// 
     /// </summary>
-    public class CudaRBFKernel: VectorKernel<SparseVector>, IDisposable
+    public class CudaRBFKernel : VectorKernel<SparseVector>, IDisposable
     {
-         private const string cudaModuleName = "cudaSVMKernels.cubin";
+        private const string cudaModuleName = "cudaSVMKernels.cubin";
         const string cudaKernelName = "rbfCsrFormatKernel";
         //const string cudaKernelName = "linearCsrFormatKernelShared";
         const string cudaMainVecTexRefName = "mainVectorTexRef";
@@ -79,7 +79,7 @@ namespace KMLib.Kernels.GPU
         /// cuda refeerenc to texture for labels
         /// </summary>
         CUtexref cuLabelsTexRef;
-       
+
         /// <summary>
         /// cuda pointer to labels, neded for coping to texture
         /// </summary>
@@ -88,12 +88,12 @@ namespace KMLib.Kernels.GPU
         /// <summary>
         /// cuda array neded for copy vector to texture
         /// </summary>
-       // CUarray cuMainVecArray;
+        // CUarray cuMainVecArray;
 
         /// <summary>
         /// cuda array neded for copy labels to texture
         /// </summary>
-       // CUarray cuLabelsArray;
+        // CUarray cuLabelsArray;
         #endregion
 
         /// <summary>
@@ -128,10 +128,10 @@ namespace KMLib.Kernels.GPU
         /// <summary>
         /// index of current main problem element (vector)
         /// </summary>
-        private uint mainVectorIdx=1;
-        private int Gamma;
+        private uint mainVectorIdx = 0;
+        private float Gamma;
         private CUdeviceptr selfLinDotPtr;
-       
+
 
         public override SparseVector[] ProblemElements
         {
@@ -147,11 +147,13 @@ namespace KMLib.Kernels.GPU
         }
 
 
-        public CudaRBFKernel()
+        public CudaRBFKernel(float gamma)
         {
             linKernel = new LinearKernel();
+            Gamma = gamma;
 
         }
+
 
         public override float Product(SparseVector element1, SparseVector element2)
         {
@@ -164,40 +166,52 @@ namespace KMLib.Kernels.GPU
             float prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
 
             return prod;
-            
+
         }
 
         public override float Product(int element1, int element2)
         {
-           if (element1 >= problemElements.Length)
+            if (element1 >= problemElements.Length)
                 throw new IndexOutOfRangeException("element1 out of range");
 
             if (element2 >= problemElements.Length)
                 throw new IndexOutOfRangeException("element2 out of range");
 
 
-            if (element1 == element2 && (DiagonalDotCacheBuilded))
-                return DiagonalDotCache[element1];
+            float x1Squere = 0f, x2Squere = 0f, dot = 0f, prod = 0f;
 
-             float x1Squere = selfLinDot[element1];
-            float x2Squere  = selfLinDot[element2];
-            //float x1Squere = linKernel.Product(element1, element1);
-            //float x2Squere = linKernel.Product(element2, element2);
-
-            float dot = linKernel.Product(element1, element2);
-
-            float prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
-
+            if (element1 == element2)
+            {
+                if (DiagonalDotCacheBuilded)
+                    return DiagonalDotCache[element1];
+                else
+                {
+                    //all parts are the same
+                    // x1Squere = x2Squere = dot = linKernel.Product(element1, element1);
+                    //prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+                    // (x1Squere + x2Squere - 2 * dot)==0 this expresion is equal zero
+                    //so we can prod set to 1 beceause exp(0)==1
+                    prod = 1f;
+                }
+            }
+            else
+            {
+                //when element1 and element2 are different we have to compute all parts
+                x1Squere = linKernel.Product(element1, element1);
+                x2Squere = linKernel.Product(element2, element2);
+                dot = linKernel.Product(element1, element2);
+                prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+            }
             return prod;
         }
 
         public override ParameterSelection<SparseVector> CreateParameterSelection()
         {
-            throw   new NotImplementedException();
+            throw new NotImplementedException();
             //return new RbfParameterSelection();
         }
 
-        public override void AllProducts(int element1,  float[] results)
+        public override void AllProducts(int element1, float[] results)
         {
 
             //cuda calculation
@@ -207,24 +221,16 @@ namespace KMLib.Kernels.GPU
 
             if (mainVectorIdx != element1)
             {
-                Array.Clear(mainVector, 0, mainVector.Length);
-                for (int j = 0; j < mainVec.mValueCount; j++)
-                {
-                    int idx = mainVec.mIndices[j];
-                    float val = (float)mainVec.mValues[j];
-                    mainVector[idx] = val;
-                }
+                CopyMainVectorVals(mainVec);
 
                 cuda.CopyHostToDevice(mainVecPtr, mainVector);
-
-                
 
             }
             uint align = cuda.SetTextureAddress(cuMainVecTexRef, mainVecPtr, (uint)(sizeof(float) * mainVector.Length));
 
             //copy to texture
-           // cuda.CopyHostToArray(cuMainVecArray, mainVector, 0);
-            
+            // cuda.CopyHostToArray(cuMainVecArray, mainVector, 0);
+
 
             //set the last parameter for kernel
             mainVectorIdx = (uint)element1;
@@ -233,15 +239,17 @@ namespace KMLib.Kernels.GPU
             cuda.Launch(cuFunc, blocksPerGrid, 1);
 
             cuda.SynchronizeContext();
-            cuda.CopyDeviceToHost(outputPtr, results);
+           // cuda.CopyDeviceToHost(outputPtr, results);
             Marshal.Copy(outputIntPtr, results, 0, results.Length);
-            
+
 
         }
 
 
         public override void Init()
         {
+            linKernel.Init();
+           
             base.Init();
 
             //transform elements to specific array format -> CSR http://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR_or_CRS.29
@@ -275,7 +283,7 @@ namespace KMLib.Kernels.GPU
                 var converted = vec.mValues.Select(x => Convert.ToSingle(x)).Take(vec.mValueCount);
                 vecValsL.AddRange(converted);
 
-                
+
 
                 vecIdxL.AddRange(vec.mIndices.Take(vec.mValueCount));
                 //removeing last zero element
@@ -298,7 +306,7 @@ namespace KMLib.Kernels.GPU
             vecIdxL = null;
             vecLenghtL = null;
             vecValsL = null;
-            
+
             selfLinDot = linKernel.DiagonalDotCache;
 
             #region cuda initialization
@@ -359,7 +367,7 @@ namespace KMLib.Kernels.GPU
 
             cuda.SetParameterSize(cuFunc, (uint)offset);
 
-           
+
             #endregion
 
             //get reference to cuda texture for main vector
@@ -369,6 +377,7 @@ namespace KMLib.Kernels.GPU
             //allocate memory for main vector, size of this vector is the same as dimenson, so many 
             //indexes will be zero, but cuda computation is faster
             mainVector = new float[problemElements[0].Count];
+            CopyMainVectorVals(problemElements[0]);
             mainVecPtr = cuda.CopyHostToDevice(mainVector);
 
             //create cuda array and bind to texture
@@ -377,11 +386,21 @@ namespace KMLib.Kernels.GPU
 
             cuLabelsTexRef = cuda.GetModuleTexture(cuModule, cudaLabelsTexRefName);
             labelsPtr = cuda.CopyHostToDevice(Labels);
-            uint align= cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, (uint)(sizeof(float) * Labels.Length));
+            uint align = cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, (uint)(sizeof(float) * Labels.Length));
 
-         
+
         }
 
+        private void CopyMainVectorVals(SparseVector mainVec)
+        {
+            Array.Clear(mainVector, 0, mainVector.Length);
+            for (int j = 0; j < mainVec.mValueCount; j++)
+            {
+                int idx = mainVec.mIndices[j];
+                float val = (float)mainVec.mValues[j];
+                mainVector[idx] = val;
+            }
+        }
 
         #region IDisposable Members
 
@@ -392,9 +411,9 @@ namespace KMLib.Kernels.GPU
                 //free all resources
                 cuda.Free(valsPtr);
                 cuda.Free(idxPtr);
-                cuda.Free(outputPtr);
                 cuda.Free(vecLenghtPtr);
 
+                cuda.Free(outputPtr);
                 cuda.Free(labelsPtr);
                 cuda.DestroyTexture(cuLabelsTexRef);
 

@@ -131,7 +131,7 @@ namespace KMLib.Kernels.GPU
         /// <summary>
         /// index of current main problem element (vector)
         /// </summary>
-        private uint mainVectorIdx=1;
+        private uint mainVectorIdx=0;
        
 
         public override SparseVector[] ProblemElements
@@ -185,20 +185,6 @@ namespace KMLib.Kernels.GPU
             }
             uint align = cuda.SetTextureAddress(cuMainVecTexRef, mainVecPtr, (uint)(sizeof(float) * mainVector.Length));
 
-            //IntPtr hostMem = cuda.HostAllocate((uint)100,(uint) CUMemHostAllocFlags.WriteCombined);
-            //unsafe
-            //{
-            //fixed(float* arr=(float*)hostMem.ToPointer()){
-            //    for (int i = 0; i < 10; i++)
-            //    {
-            //        arr[i] = i+0.0f;
-            //    }
-            //}
-            //}
-            
-            //copy to texture
-           // cuda.CopyHostToArray(cuMainVecArray, mainVector, 0);
-            
 
             //set the last parameter for kernel
             mainVectorIdx = (uint)element1;
@@ -349,6 +335,7 @@ namespace KMLib.Kernels.GPU
             //allocate memory for main vector, size of this vector is the same as dimenson, so many 
             //indexes will be zero, but cuda computation is faster
             mainVector = new float[problemElements[0].Count];
+            CopyMainVectorVals(problemElements[0]);
             mainVecPtr = cuda.CopyHostToDevice(mainVector);
 
             //create cuda array and bind to texture
@@ -372,11 +359,12 @@ namespace KMLib.Kernels.GPU
                 //free all resources
                 cuda.Free(valsPtr);
                 cuda.Free(idxPtr);
+                cuda.Free(vecLenghtPtr);
                 
                 //cuda.Free(outputPtr);
                 //cuda.FreeHost(outputIntPtr);
 
-                cuda.Free(vecLenghtPtr);
+                
 
                 cuda.Free(labelsPtr);
                 cuda.DestroyTexture(cuLabelsTexRef);

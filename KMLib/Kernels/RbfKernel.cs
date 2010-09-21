@@ -91,20 +91,40 @@ namespace KMLib.Kernels
                 throw new IndexOutOfRangeException("element2 out of range");
 
 
-            if (element1 == element2 && (DiagonalDotCacheBuilded))
-                return DiagonalDotCache[element1];
+            float x1Squere = 0f, x2Squere = 0f, dot = 0f, prod = 0f;
 
-
-            float x1Squere = linKernel.Product(element1, element1);
-            float x2Squere = linKernel.Product(element2, element2);
-
-            float dot = linKernel.Product(element1, element2);
-
-            float prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+            if (element1 == element2)
+            {
+                if (DiagonalDotCacheBuilded)
+                    return DiagonalDotCache[element1];
+                else
+                {
+                    //all parts are the same
+                   // x1Squere = x2Squere = dot = linKernel.Product(element1, element1);
+                    //prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+                   // (x1Squere + x2Squere - 2 * dot)==0 this expresion is equal zero
+                    //so we can prod set to 1 beceause exp(0)==1
+                    prod = 1f;
+                }
+            }
+            else
+            {
+                //when element1 and element2 are different we have to compute all parts
+                x1Squere = linKernel.Product(element1, element1);
+                x2Squere = linKernel.Product(element2, element2);
+                dot = linKernel.Product(element1, element2);
+                prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+            }
+            
 
             return prod;
         }
 
+        public override void Init()
+        {
+            linKernel.Init();
+            base.Init();
+        }
 
       
         /// <summary>
