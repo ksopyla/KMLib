@@ -175,7 +175,7 @@ extern "C" __global__ void linearCsrFormatKernelShared(const float * vals,
 //vecPointers -array of pointers(indexes) to idx and vals array to specific vectors
 //selfDot - array of precomputed self linear product
 //results - array of results Linear Kernel
-//num_rows - number of vectors, stored in CSR matrix format, each vector is stored in one row of matrix
+//num_rows -number of vectors, stored in CSR matrix format, each vector is stored in one row of matrix
 //mainVecIndex - main vector index, needed for retriving its label
 //gamma - gamma parameter for RBF 
 extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
@@ -187,12 +187,10 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 									   const int mainVecIndex,
 									   const float gamma)
 {
-	__shared__ float sdata[BLOCK_SIZE + 16];                          // padded to avoid reduction ifs
+	__shared__ float sdata[BLOCK_SIZE + 16];                    // padded to avoid reduction ifs
 	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
-
 	__shared__ float shGamma;
 	__shared__ int shMainVecIdx;
-
 	__shared__ float shMainSelfDot;
 	__shared__ float shLabel;
 	
@@ -203,7 +201,6 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 		shMainSelfDot = selfDot[shMainVecIdx];
 		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
 	}	
-
 	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
 	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
 	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
@@ -215,8 +212,8 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 		// this is considerably faster than the straightforward version
 		if(thread_lane < 2)
 			ptrs[warp_lane][thread_lane] = vecPointers[row + thread_lane];
-		const int row_start = ptrs[warp_lane][0];                   //same as: row_start = vecPointers[row];
-		const int row_end   = ptrs[warp_lane][1];                   //same as: row_end   = vecPointers[row+1];
+		const int row_start = ptrs[warp_lane][0];            //same as: row_start = vecPointers[row];
+		const int row_end   = ptrs[warp_lane][1];            //same as: row_end   = vecPointers[row+1];
 
 		// compute local sum
 		float sum = 0;
@@ -230,8 +227,6 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  4]; __syncthreads();
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  2]; __syncthreads();
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
-	   
-
 
 		// first thread writes warp result
 		if (thread_lane == 0){
