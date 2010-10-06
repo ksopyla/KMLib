@@ -30,9 +30,9 @@ namespace KMLibUsageApp
             ////in a1a problem max index is 123
             //int numberOfFeatures = 123;
 
-            //string trainningFile = dataFolder + "/a9a";
-            //string testFile = dataFolder + "/a9a.t";
-            //int numberOfFeatures = 123;
+            string trainningFile = dataFolder + "/a9a";
+            string testFile = dataFolder + "/a9a.t";
+            int numberOfFeatures = 123;
 
             //string trainningFile = dataFolder + "/w8a";
             //string testFile = dataFolder + "/w8a.t";
@@ -67,9 +67,9 @@ namespace KMLibUsageApp
             //string trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
             //string trainningFile = dataFolder + "/real-sim_med_10K";
-            string trainningFile = dataFolder + "/real-sim";
-            string testFile = dataFolder + "/real-sim.t";
-            int numberOfFeatures = 20958;
+            //string trainningFile = dataFolder + "/real-sim";
+            //string testFile = dataFolder + "/real-sim.t";
+            //int numberOfFeatures = 20958;
 
             //for test
             //string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
@@ -88,13 +88,14 @@ namespace KMLibUsageApp
 
             //ComputeLinearMahalanobisKernel(;)
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);
-            IKernel<SparseVector> kernel = new RbfKernel(0.5f);
-            //IKernel<SparseVector> kernel = new LinearKernel();
-            SVMClassify(train, test, kernel);
+            //IKernel<SparseVector> kernel = new RbfKernel(0.5f);
+            ////IKernel<SparseVector> kernel = new LinearKernel();
+            //SVMClassify(train, test, kernel);
 
-            Console.WriteLine("\n ------------------------------ \n");
+            //Console.WriteLine("\n ------------------------------ \n");
 
             IKernel<SparseVector> kernel2 = new CudaRBFKernel(0.5f);
+            
             //IKernel<SparseVector> kernel2 = new CudaLinearKernel();
             SVMClassify(train, test, kernel2);
             var disKernel = kernel2 as IDisposable;
@@ -268,7 +269,7 @@ namespace KMLibUsageApp
 
             //float[] penaltyC = new[] {0.125f, 0.025f, 0.5f, 1, 2,4,8,128};
 
-            float[] penaltyC = new float[] { 4 };
+            float[] penaltyC = new float[] { 100 };
 
             double acc = 0, bestC = 0;
 
