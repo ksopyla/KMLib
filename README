@@ -1,5 +1,7 @@
-Kernel Machine Library - SVM (Support Vectors Machine) library for .net, main goal is extensibility. It use diferent datatype Vector, Matrix,String etc. and specific kernels 
+
+Kernel Machine Library - SVM (Support Vectors Machine) library for .net, main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF). Lib includes some SVM kernels(linear,RBF) which use NVIDIA CUDA technology for computing products. All vectors are in sparese format so I have to implement Sparse Matrix Vector multiplication and matrix matrix(both are sparse) product.
 
 Library is written in .net 3.5 use 
 - Parallel Extension (june CTP)
 - dnAnalitycs library - form matrix and vector manipulation
+- CUDA 3.0 for CUDA enabled SVM kernels
