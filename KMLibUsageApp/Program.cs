@@ -6,7 +6,7 @@ using dnAnalytics.LinearAlgebra;
 using KMLib;
 using KMLib.Helpers;
 using KMLib.Kernels;
-using KMLib.Kernels.GPU;
+using KMLib.GPU;
 using System.Diagnostics;
 using dnaLA = dnAnalytics.LinearAlgebra;
 

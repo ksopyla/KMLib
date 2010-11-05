@@ -126,5 +126,37 @@ namespace KMLib.Kernels
         }
 
         #endregion
+
+        #region IKernel<T> Members
+
+
+        public float[] Predict(Model<T> model, T[] predictElements)
+        {
+            float[]  sum = new float[predictElements.Length];
+
+            int index = -1;
+            for (int i = 0; i < predictElements.Length; i++)
+            {
+
+
+                for (int k = 0; k < model.SupportElementsIndexes.Length; k++)
+                {
+                    index = model.SupportElementsIndexes[k];
+                    
+                    sum[i] += model.Alpha[index] * Labels[index] *
+                                        Product(problemElements[index], predictElements[i]);
+                }
+
+
+                sum[i] -= model.Rho;
+                sum[i] = sum[i] > 0 ? 1 : -1;
+            }
+
+            
+
+            return sum;
+        }
+
+        #endregion
     }
 }

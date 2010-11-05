@@ -124,6 +124,10 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\KMLib.CUDA\KMLib.GPU.csproj">
+      <Project>{363DCAF3-17AE-4686-93E0-7A8C7B8DAC3B}</Project>
+      <Name>KMLib.GPU</Name>
+    </ProjectReference>
     <ProjectReference Include="..\KMLib\KMLib.csproj">
       <Project>{7CF41CFB-0611-4BDC-95D5-DD15EEF9CD20}</Project>
       <Name>KMLib</Name>
@@ -135,7 +139,7 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)Kernels\GPU\cudaSVMKernels.cubin" "$(TargetDir)" /Y</PostBuildEvent>
+    <PostBuildEvent>xcopy "$(SolutionDir)Libs\cudaSVMKernels.cubin" "$(TargetDir)" /Y</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

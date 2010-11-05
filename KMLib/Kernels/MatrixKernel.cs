@@ -85,5 +85,15 @@ namespace KMLib.Kernels
         }
 
         #endregion
+
+        #region IKernel<Matrix> Members
+
+
+        public float[] Predict(Model<Matrix> model, Matrix[] predictElements)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
     }
 }

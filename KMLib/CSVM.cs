@@ -79,29 +79,22 @@ namespace KMLib
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
         }
 
+        /// <summary>
+        /// Predicts 
+        /// </summary>
+        /// <param name="problemElement"></param>
+        /// <returns></returns>
         public float Predict(TProblemElement problemElement)
         {
             float sum = 0;
-            //sum( apha_i*y_i*K(x_i,problemElement)) + b
-            //sum can by compute only on support vectors
-
-
-            //for (int i = 0; i < problem.Elements.Length; i++)
-            //{
-            //    //todo: alpha array is sparse, try to exploit it
-            //    sum += model.Alpha[i] * problem.Labels[i] * kernel.Product(problem.Elements[i], problemElement);
-            //}
-
 
             int index = -1;
-
 
             for (int k = 0; k < model.SupportElementsIndexes.Length; k++)
             {
                 index = model.SupportElementsIndexes[k];
-
-                //todo: alpha array is sparse, try to exploit it
-                sum += model.Alpha[index] * problem.Labels[index] * kernel.Product(problem.Elements[index], problemElement);
+                sum += model.Alpha[index] * problem.Labels[index] *
+                                    kernel.Product(problem.Elements[index], problemElement);
             }
 
 
@@ -111,6 +104,13 @@ namespace KMLib
 
             return ret;
 
+        }
+
+        public float[] Predict(TProblemElement[] predictElements)
+        {
+            
+            return kernel.Predict(model,predictElements);
+           
         }
 
 
