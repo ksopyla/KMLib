@@ -6,7 +6,7 @@ SVM (Support Vectors Machine) library for .net, main goal is extensibility. You 
 All vectors are in sparese format due to you can train and test bigger data set (many elements and many object features)
 
 ## Requirements
-- .net 4.0 use 
+- .net 4.0 
 - CUDA 3.0 for CUDA enabled SVM kernels
 - dnAnalitycs (dll  included in project)
 - CUDA.net (dll included in project)
