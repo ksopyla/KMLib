@@ -9,6 +9,7 @@ using KMLib.Kernels;
 using KMLib.GPU;
 using System.Diagnostics;
 using dnaLA = dnAnalytics.LinearAlgebra;
+using KMLib.Evaluate;
 
 
 namespace KMLibUsageApp
@@ -85,6 +86,9 @@ namespace KMLibUsageApp
             Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
             Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+
+            EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator();
+
 
             //ComputeLinearMahalanobisKernel(;)
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0, 0.5, train.Elements);

@@ -45,7 +45,5 @@
 
         ParameterSelection<TProblemElement> CreateParameterSelection();
 
-
-        float[] Predict(Model<TProblemElement> model, TProblemElement[] predictElements);
     }
 }

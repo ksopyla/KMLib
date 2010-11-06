@@ -77,6 +77,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Evaluate\EvaluatorBase.cs" />
+    <Compile Include="Evaluate\SequentialEvaluator.cs" />
     <Compile Include="Helpers\Pair.cs" />
     <Compile Include="Helpers\AlphaInfo.cs" />
     <Compile Include="Helpers\StepVariable.cs" />

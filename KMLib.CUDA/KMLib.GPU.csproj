@@ -76,6 +76,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CudaEvaluator.cs" />
+    <Compile Include="CudaHelpers.cs" />
     <Compile Include="CudaLinearKernel.cs" />
     <Compile Include="CudaRBFKernel.cs" />
     <Compile Include="CUDAVectorKernel.cs" />

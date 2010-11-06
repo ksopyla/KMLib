@@ -117,7 +117,7 @@ namespace KMLib.GPU
             float[] vecVals;
             int[] vecIdx;
             int[] vecLenght;
-            TransformToCSRFormat(out vecVals, out vecIdx, out vecLenght);
+           CudaHelpers.TransformToCSRFormat(out vecVals, out vecIdx, out vecLenght,problemElements);
 
 
             selfLinDot = linKernel.DiagonalDotCache;
@@ -150,7 +150,7 @@ namespace KMLib.GPU
             //allocate memory for main vector, size of this vector is the same as dimenson, so many 
             //indexes will be zero, but cuda computation is faster
             mainVector = new float[problemElements[0].Count];
-            CopyMainVectorVals(problemElements[0]);
+            CudaHelpers.FillDenseVector(problemElements[0],mainVector);
 
             SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
 
