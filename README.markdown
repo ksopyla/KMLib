@@ -1,4 +1,8 @@
-﻿# KMLib - Kernel Machine Library #
+﻿= KMLib - Kernel Machine Library =
+
+== test 2 ==
+
+=== test3 ===
 
 ##Description ##
 SVM (Support Vectors Machine) library for .net, main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF). Lib includes some SVM kernels(linear,RBF) which use NVIDIA CUDA technology for computing products. 
