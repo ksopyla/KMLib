@@ -1,8 +1,6 @@
-﻿= KMLib - Kernel Machine Library =
+﻿#KMLib - Kernel Machine Library
 
-== test 2 ==
 
-=== test3 ===
 
 ##Description ##
 SVM (Support Vectors Machine) library for .net, main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF). Lib includes some SVM kernels(linear,RBF) which use NVIDIA CUDA technology for computing products. 
@@ -28,6 +26,11 @@ Look into KMLibUsageApp project for detail.
 	2. Train model
 	3. Predict
 
+Code should look like this:
+
+	Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile("a1a", 123);
+    Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile("a1a.t", 123);
+	
 	// Read dataset into problem class, a1a dataset is available
     // at http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html#a1a
     
