@@ -1,24 +1,23 @@
 ﻿
-#Main Header
-##KMLib - Kernel Machine Library
+#KMLib - Kernel Machine Library
 
-###Description 
+##Description 
 SVM (Support Vectors Machine) library for .net, main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF). Lib includes some SVM kernels(linear,RBF) which use NVIDIA CUDA technology for computing products. 
 
 All vectors are in sparse format due to you can train and test bigger data set (many elements and many object features)
 
 __Author: Krzysztof Sopyła <krzysztofsopyla@gmail.com>__
 
-### Requirements 
+## Requirements 
 - .net 4.0 
 - CUDA 3.0 driver for CUDA enabled SVM kernels
 - dnAnalitycs (dll  included in project)
 - CUDA.net (dll included in project)
 
-### How to use
+## How to use
 Look into KMLibUsageApp project for detail.
 
-#### Simple classification procedure
+### Simple classification procedure
 1. Read dataset into Problem class
 2. Create the kernel
 3. Use validation class witch does
@@ -41,7 +40,7 @@ Code should look like this:
 	//3. Use validation class, last parameter is penalty C in svm solver
 	double tempAcc = Validation.TestValidation(train, test, kernel, 8f);
 
-### Flexibility
+## Flexibility
 There are many ways, you can change the classification procedure. 
 First you can choose witch svm solver CSVM class use, Plat SMO solver, LIBSVM solver, there are also few experimental solver, or you can implement and easily plug in your solver.
 Second you can choose different SVM kernels: Linear, RBF, CudaLinear, CudaRbf or you can implement 
@@ -49,11 +48,11 @@ Second you can choose different SVM kernels: Linear, RBF, CudaLinear, CudaRbf or
 interface and use your custom kernel.
 
 
-### How to extend
+## How to extend
 //todo
 
-### Solution description
+## Solution description
 //todo
 
-### Build procedure
+## Build procedure
 //todo
