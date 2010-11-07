@@ -1,18 +1,17 @@
-﻿##KMLib - Kernel Machine Library
+﻿
 
-
-
+##KMLib - Kernel Machine Library
 
 ###Description 
 SVM (Support Vectors Machine) library for .net, main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF). Lib includes some SVM kernels(linear,RBF) which use NVIDIA CUDA technology for computing products. 
 
-All vectors are in sparese format due to you can train and test bigger data set (many elements and many object features)
+All vectors are in sparse format due to you can train and test bigger data set (many elements and many object features)
 
 __Author: Krzysztof Sopyła <krzysztofsopyla@gmail.com>__
 
 ### Requirements 
 - .net 4.0 
-- CUDA 3.0 for CUDA enabled SVM kernels
+- CUDA 3.0 driver for CUDA enabled SVM kernels
 - dnAnalitycs (dll  included in project)
 - CUDA.net (dll included in project)
 
