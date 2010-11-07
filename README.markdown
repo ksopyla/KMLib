@@ -24,16 +24,17 @@ Look into KMLibUsageApp project for detail.
 	2. Train model
 	3. Predict
 
-	//1.Read dataset into problem class
-	//	a1a dataset is available at http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html#a1a
+	\/\/1.Read dataset into problem class
+	\/\/	a1a dataset is available at http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html#a1a
+	
 	Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile("a1a", 123);
 
     Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile("a1a.t", 123);
 
-	//2. Choose and then create the kernel, RBF kernel with gamma=0.5
+	\/\/2. Choose and then create the kernel, RBF kernel with gamma=0.5
 	IKernel<SparseVector> kernel = new RbfKernel(0.5f);
 	
-	//3. Use validation class, last parameter is penalty C in svm solver
+	\/\/3. Use validation class, last parameter is penalty C in svm solver
 	double tempAcc = Validation.TestValidation(train, test, kernel, 8f);
 
 ### Flexible
