@@ -449,10 +449,10 @@ namespace KMLib
         /// </summary>
         /// <typeparam name="TProblemElement">Problem element</typeparam>
         /// <param name="trainProblem">Train <see cref="Problem{TProblemElement}">Problem</see>  </param>
-        /// <param name="testProblem"></param>
-        /// <param name="kernel"></param>
-        /// <param name="C"></param>
-        /// <returns></returns>
+        /// <param name="testProblem">Problem to test</param>
+        /// <param name="kernel">SVM kernel</param>
+        /// <param name="C">Penalty parameter fo SVM solver</param>
+        /// <returns>Accuracy</returns>
         public static double TestValidation<TProblemElement>(Problem<TProblemElement> trainProblem,
                                                         Problem<TProblemElement> testProblem,
                                                         IKernel<TProblemElement> kernel,
@@ -463,14 +463,14 @@ namespace KMLib
 
             Stopwatch t = Stopwatch.StartNew();
             svm.Init();
-            Console.WriteLine("SVM init time {0}", t.Elapsed);
+            Debug.WriteLine("SVM init time {0}", t.Elapsed);
 
             t.Restart();
             svm.Train();
-            Console.WriteLine("Svm train takes {0}", t.Elapsed);
+            Debug.WriteLine("Svm train takes {0}", t.Elapsed);
             int correct = 0;
             t.Restart();
-            Console.WriteLine("Start Predict");
+            Debug.WriteLine("Start Predict");
             
             for (int i = 0; i < testProblem.ElementsCount; i++)
             {
@@ -482,7 +482,7 @@ namespace KMLib
 
             }
             t.Stop();
-            Console.WriteLine(string.Format("prediction on {0} elements takes {1}",testProblem.ElementsCount,t.Elapsed ));
+            Debug.WriteLine(string.Format("prediction on {0} elements takes {1}",testProblem.ElementsCount,t.Elapsed ));
             return (float)correct / testProblem.ElementsCount;
         }
 

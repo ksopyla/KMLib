@@ -6,6 +6,11 @@ using KMLib.Kernels;
 
 namespace KMLib
 {
+
+    /// <summary>
+    /// Represents base class for different binary clasification SVM solvers
+    /// </summary>
+    /// <typeparam name="TProblemElement"></typeparam>
     public abstract class Solver<TProblemElement>
     {
         public Problem<TProblemElement> problem;
