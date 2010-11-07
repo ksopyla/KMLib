@@ -15,6 +15,11 @@ namespace KMLib.Evaluate
         
         #region IEvaluator<SparseVector> Members
 
+        /// <summary>
+        /// Predicts the class of specified elements.
+        /// </summary>
+        /// <param name="elements">Array with elements to predict.</param>
+        /// <returns>array with predicted class for each element</returns>
         public override float[] Predict(SparseVector[] elements)
         {
             float[] predictions = new float[elements.Length];
@@ -28,6 +33,11 @@ namespace KMLib.Evaluate
             return predictions;
         }
 
+        /// <summary>
+        /// Predicts the specified element.
+        /// </summary>
+        /// <param name="element">The element.</param>
+        /// <returns>predicted class</returns>
         public override float Predict(SparseVector element)
         {
             float sum = 0;

@@ -7,10 +7,19 @@ using KMLib.Helpers;
 
 namespace KMLib.Kernels
 {
+
+
+    /// <summary>
+    /// Represents Linear Kernel for computing linear product between 
+    /// two sparse vectors
+    /// </summary>
     public class LinearKernel: VectorKernel<SparseVector> 
     {
-      
 
+
+        /// <summary>
+        /// Cache for computed products
+        /// </summary>
         private LRUCache<Point2D, float> cache;
         
         /// <summary>
@@ -21,8 +30,11 @@ namespace KMLib.Kernels
         private bool useCache;
 
 
-      
 
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LinearKernel"/> class.
+        /// </summary>
         public LinearKernel() 
         {
             useCache = false;
@@ -37,7 +49,7 @@ namespace KMLib.Kernels
         /// </summary>
         /// <param name="element1"></param>
         /// <param name="element2"></param>
-        /// <returns></returns>
+        /// <returns>linear product between elements</returns>
         public override float Product(SparseVector element1, SparseVector element2)
         {
             return  (float) element1.DotProduct(element2);
@@ -116,9 +128,9 @@ namespace KMLib.Kernels
         /// <summary>
         /// compute linear kernel between two element given by indexes
         /// </summary>
-        /// <param name="element1"></param>
-        /// <param name="element2"></param>
-        /// <returns></returns>
+        /// <param name="element1">index of element in <see cref="ProblemElements"/> array</param>
+        /// <param name="element2">index of element in <see cref="ProblemElements"/> array</param>
+        /// <returns>linear product between elements</returns>
         public override float  Product(int element1, int element2)
         {
             if (element1 >= problemElements.Length)
@@ -168,6 +180,12 @@ namespace KMLib.Kernels
             return prod;
         }
 
+
+        /// <summary>
+        /// Creates the parameter selection class for finding the best parameter for 
+        /// this kernel, it finds only SVM penalty "C" parameter.
+        /// </summary>
+        /// <returns>Instance of parameter selection class</returns>
         public override ParameterSelection<SparseVector> CreateParameterSelection()
         {
             return new LinearParameterSelection();
@@ -175,6 +193,12 @@ namespace KMLib.Kernels
 
         #endregion
 
+        /// <summary>
+        /// Returns a <see cref="System.String"/> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String"/> that represents this instance.
+        /// </returns>
         public override string ToString()
         {
             return "Linear Kernel";

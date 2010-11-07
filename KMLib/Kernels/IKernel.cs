@@ -7,15 +7,24 @@
     public interface IKernel<TProblemElement>
     {
 
+        /// <summary>
+        /// Gets or sets the problem elements.
+        /// </summary>
+        /// <value>The problem elements.</value>
         TProblemElement[] ProblemElements { get; set; }
 
+        /// <summary>
+        /// Gets or sets the labels.
+        /// </summary>
+        /// <value>The labels.</value>
         float[] Labels { get; set; }
+
         /// <summary>
         /// Product of 2 elements, methods of messure similarity
         /// </summary>
-        /// <param name="element1"></param>
-        /// <param name="element2"></param>
-        /// <returns></returns>
+        /// <param name="element1">first element</param>
+        /// <param name="element2">second element</param>
+        /// <returns>Kernel product between two elements </returns>
         float Product(TProblemElement element1,TProblemElement element2);
 
         /// <summary>
@@ -23,11 +32,11 @@
         /// </summary>
         /// <param name="element1"></param>
         /// <param name="element2"></param>
-        /// <returns></returns>
+        /// <returns>Kernel product between tow elements</returns>
         float Product(int element1, int element2);
 
         /// <summary>
-        /// Cache for kenrle products between two the same vectors
+        /// Cache for kernel products between two the same vectors
         /// </summary>
         float[] DiagonalDotCache { get; }
 
@@ -43,6 +52,11 @@
         /// <returns></returns>
         void AllProducts(int element1, float[] results);
 
+        /// <summary>
+        /// Creates the parameter selection class for finding the best parameter for 
+        /// this kernel.
+        /// </summary>
+        /// <returns>Instance of parameter selection class</returns>
         ParameterSelection<TProblemElement> CreateParameterSelection();
 
     }

@@ -4,7 +4,7 @@
 ##Description 
 SVM (Support Vectors Machine) library for .net, main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF). Lib includes some SVM kernels(linear,RBF) which use NVIDIA CUDA technology for computing products. 
 
-All vectors are in sparse format due to you can train and test bigger data set (many elements and many object features)
+All vectors are in sparse format due to you can train and test bigger data set (thousands of elements and up to milions of features)
 
 __Author: Krzysztof Sopyła <krzysztofsopyla@gmail.com>__
 
