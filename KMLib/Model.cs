@@ -13,9 +13,24 @@ namespace KMLib
         /// </summary>
         public TProblemElement[] SupportElements;
         
+        /// <summary>
+        /// computed alpha's value
+        /// </summary>
         public float[] Alpha;
+
+        /// <summary>
+        /// rho == b parameters in svm formulation
+        /// </summary>
         public float Rho;
-        public int[] Labels;
+        
+        /// <summary>
+        /// <see cref="SupportElements"/> labels
+        /// </summary>
+        ///public int[] Labels;
+        
+        /// <summary>
+        /// <see cref=" SupportElements"/> indexes from original problem set
+        /// </summary>
         public int[] SupportElementsIndexes;
 
         public override string ToString()

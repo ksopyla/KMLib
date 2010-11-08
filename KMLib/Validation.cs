@@ -365,18 +365,31 @@ namespace KMLib
             t.Restart();
             Debug.WriteLine("Start Predict");
 
+            //for (int i = 0; i < TestProblem.ElementsCount; i++)
+            //{
+
+            //    float predictedLabel = svm.Predict(TestProblem.Elements[i]);
+
+            //    if (predictedLabel == TestProblem.Labels[i])
+            //        ++correct;
+
+            //}
+            
+
+
+            var predictions = svm.Predict(TestProblem.Elements);
             for (int i = 0; i < TestProblem.ElementsCount; i++)
             {
-
-                float predictedLabel = svm.Predict(TestProblem.Elements[i]);
+                float predictedLabel = predictions[i];
 
                 if (predictedLabel == TestProblem.Labels[i])
                     ++correct;
-
             }
+
+            double accuracy = (float)correct / TestProblem.ElementsCount;
             t.Stop();
             Debug.WriteLine(string.Format("prediction on {0} elements takes {1}", TestProblem.ElementsCount, t.Elapsed));
-            return (float)correct / TestProblem.ElementsCount;
+            return accuracy;
         }
 
 

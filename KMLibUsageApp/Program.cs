@@ -21,6 +21,7 @@ namespace KMLibUsageApp
             if (args.Length < 1)
                 throw new ArgumentException("to liitle arguments");
 
+            Debug.Listeners.Add(new ConsoleTraceListener());
 
             string dataFolder = args[0];// @"D:\UWM\praca naukowa\doktorat\code\KMLib\KMLibUsageApp\Data";
 
@@ -38,13 +39,13 @@ namespace KMLibUsageApp
             Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
-
-
+            float gamma = 0.5f;
+            EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
 
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            IKernel<SparseVector> kernel = new RbfKernel(0.5f);
+            IKernel<SparseVector> kernel = new RbfKernel(gamma);
             //IKernel<SparseVector> kernel = new LinearKernel();
-            SVMClassify(train, test, kernel,4f);
+            SVMClassify(train, test, kernel,evaluator,4f);
 
             
 
@@ -146,7 +147,9 @@ namespace KMLibUsageApp
         private static void SVMClassify<TProbElement>(
             Problem<TProbElement> train,
             Problem<TProbElement> test,
-            IKernel<TProbElement> kernel, float paramC)
+            IKernel<TProbElement> kernel,
+            EvaluatorBase<TProbElement> evaluator,
+            float paramC)
         {
 
 
@@ -157,7 +160,7 @@ namespace KMLibUsageApp
             validation.TrainingProblem = train;
             validation.Kernel = kernel;
             validation.C = paramC;
-            validation.Evaluator = new SequentialEvaluator<TProbElement>();
+            validation.Evaluator = evaluator;
 
             Stopwatch timer = new Stopwatch();
 
