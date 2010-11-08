@@ -20,7 +20,7 @@ Look into KMLibUsageApp project for detail.
 ### Simple classification procedure
 1. Read dataset into Problem class
 2. Create the kernel
-3. Use validation class witch does
+3. Use validation class which does
 	1. Create CSVM object for classification 
 	2. Train model
 	3. Predict
