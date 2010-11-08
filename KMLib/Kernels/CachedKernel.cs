@@ -10,6 +10,13 @@ using System.Diagnostics;
 namespace KMLib.Kernels
 {
 
+    /// <summary>
+    /// Represent Cache for Kernel
+    /// </summary>
+    /// <remarks>
+    /// All SVM solvers use this Cache to get kernel products
+    /// </remarks>
+    /// <typeparam name="TProblemElement">The type of the problem element.</typeparam>
     public class CachedKernel<TProblemElement>
     {
         /// <summary>
@@ -39,16 +46,17 @@ namespace KMLib.Kernels
         private readonly IKernel<TProblemElement> kernel;
 
 
+
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="CachedKernel&lt;TProblemElement&gt;"/> class.
         /// </summary>
-        /// <param name="problem"></param>
-        /// <param name="problemkernel"></param>
-        public CachedKernel(Problem<TProblemElement> problem, IKernel<TProblemElement> problemkernel)
+        /// <param name="problem">The trainning problem.</param>
+        /// <param name="kernel">The initialized kernel.</param>
+        public CachedKernel(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel)
         {
 
             this.problem = problem;
-            kernel = problemkernel;
+            this.kernel = kernel;
 
             y = new sbyte[problem.ElementsCount];
 
@@ -75,11 +83,11 @@ namespace KMLib.Kernels
 
 
         /// <summary>
-        /// Get row from kernel matrix 
+        /// Get i-th row from cache 
         /// </summary>
         /// <param name="i">i-th row</param>
         /// <param name="len">block length</param>
-        /// <returns></returns>
+        /// <returns>array with i-th row kernel products</returns>
         public float[] GetQ(int i, int len)
         {
             float[] data = null;
@@ -130,6 +138,11 @@ namespace KMLib.Kernels
              return data;
         }
 
+
+        /// <summary>
+        /// Get Kernel diagonal
+        /// </summary>
+        /// <returns></returns>
         public float[] GetQD()
         {
             return QD;

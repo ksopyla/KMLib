@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
 using dnAnalytics.LinearAlgebra;
+using KMLib.Evaluate;
 
 namespace KMLib.Kernels
 {
@@ -40,13 +41,13 @@ namespace KMLib.Kernels
 
             double crossValidation = double.MinValue;
             double maxC = double.MinValue;
-            RbfKernel bestKernel = null;
+            float bestGamma = -2f;
             object lockObj = new object();
 
 
             List<SparseVector>[] foldsElements;
             List<float>[] foldsLabels;
-            Validation.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
+            Validation<SparseVector>.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
 
 
             //paralle search for best C and gamma, for each kernel try different C
@@ -57,46 +58,51 @@ namespace KMLib.Kernels
             //Parallel.ForEach(rbfKernels, (rbfKernel) =>
             //{
             Parallel.ForEach(gammaRange,gamma=>{
+
+                Validation<SparseVector> valid = new Validation<SparseVector>();
+                valid.Evaluator = new SequentialEvaluator<SparseVector>();
+                valid.TrainingProblem = problem;
+
+                //but here kernel should be different because 
+                // in CSVM.Init we set the problem to kernel
+                valid.Kernel = new RbfKernel((float) gamma);
+                
                 for (int j = 0; j < rangeC.Count; j++)
                 {
+                    valid.C =(float) rangeC[j];
+
                     //do cross validation
                     Stopwatch timer = Stopwatch.StartNew();
 
-                    //double acc = Validation.CrossValidation(problem, rbfKernel,(float)rangeC[j], NrFolds);
-                    var rbfKernel = new RbfKernel((float) gamma);
-
-                    double acc = Validation.CrossValidateOnFolds(problem.ElementsCount,
-                                                                 foldsElements,
-                                                                 foldsLabels, rbfKernel,
-                                                                 (float)rangeC[j]);
-
+                    double acc = valid.CrossValidateOnFolds(problem.ElementsCount, foldsElements, foldsLabels);
+                    
                     lock (lockObj)
                     {
                         if (acc > crossValidation)
                         {
                             crossValidation = acc;
                             maxC = rangeC[j];
-                            //maxG = rbfKernels[i].Gamma;
-                            bestKernel = rbfKernel;
+                            
+                            bestGamma =(float) gamma;
                         }
                     }
 
                     Debug.WriteLine(
                         string.Format(
                             "CrossValidation time={0},C={1},gamma={2}->{3:0.#####}",
-                            timer.Elapsed, rangeC[j], rbfKernel.Gamma, acc));
+                            timer.Elapsed, rangeC[j], gamma, acc));
 
                 }
 
             });
 
             C = (float)maxC;
-            kernel = bestKernel;
+            kernel = new RbfKernel(bestGamma);
 
 
             Debug.WriteLine("\n");
             Debug.WriteLine("-------------- Grid Search summary ------------");
-            Debug.WriteLine(string.Format("Max accuracy={0} c={1} gamma={2}  ", crossValidation, C, bestKernel.Gamma));
+            Debug.WriteLine(string.Format("Max accuracy={0} c={1} gamma={2}  ", crossValidation, C, bestGamma));
         }
     }
 }

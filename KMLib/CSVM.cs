@@ -19,35 +19,67 @@ namespace KMLib
     public class CSVM<TProblemElement>
     {
 
+        /// <summary>
+        /// 
+        /// </summary>
         private Problem<TProblemElement> problem;
 
+
+        /// <summary>
+        /// Penalty parameter C in SVM
+        /// </summary>
         private float C = 0.5f;
 
-
+        /// <summary>
+        /// Kernel for computing product
+        /// </summary>
         private IKernel<TProblemElement> kernel;
 
+        /// <summary>
+        /// Evaluator for prediction
+        /// </summary>
         private EvaluatorBase<TProblemElement> evaluator;
 
+        /// <summary>
+        /// trained model
+        /// </summary>
         private Model<TProblemElement> model;
 
         /// <summary>
         /// Solver, solves C-SVM optimization problem 
         /// </summary>
         protected Solver<TProblemElement> Solver;
+        private Problem<TProblemElement> trainSubprob;
+        private IKernel<TProblemElement> Kernel;
+        private EvaluatorBase<TProblemElement> Evaluator;
 
-        public CSVM(Problem<TProblemElement> trainProblem, IKernel<TProblemElement> kernel, float C)
+
+
+       
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CSVM&lt;TProblemElement&gt;"/> class.
+        /// </summary>
+        /// <param name="trainProblem">The train problem.</param>
+        /// <param name="kernel">The kernel for computing product.</param>
+        /// <param name="C">Parameter C.</param>
+        /// <param name="evaluator">The evaluator class for prediction.</param>
+        public CSVM(Problem<TProblemElement> trainProblem, IKernel<TProblemElement> kernel, 
+                    float C, EvaluatorBase<TProblemElement> evaluator )
         {
             this.problem = trainProblem;
 
             this.kernel = kernel;
             this.C = C;
-
+            //default evaluator
+            this.evaluator = evaluator;
             //=======================================================================//
             //  solver = new SMOSolver<TProblemElement>(problem, kernel, C);         //
             // solver = new SmoFanSolver<TProblemElement>(trainProblem, kernel, C);  //
             //=======================================================================//
 
         }
+
+        
 
 
         /// <summary>

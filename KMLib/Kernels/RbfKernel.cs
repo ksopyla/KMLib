@@ -9,8 +9,10 @@ using dnAnalytics.LinearAlgebra;
 namespace KMLib.Kernels
 {
     /// <summary>
-    /// Rbf kernel, use Linear kernel to compute normal dot products
+    /// Rbf kernel, compute product 
+    /// K(x,y)  = exp( ||x-y||^2/gamma)
     /// </summary>
+    /// <remarks> use Linear kernel to compute normal dot products</remarks>
     public class RbfKernel: VectorKernel<SparseVector>
     {
         public readonly float Gamma = 0.5f;
@@ -33,18 +35,11 @@ namespace KMLib.Kernels
             }
         }
 
-        //public RbfKernel(float gamma,Vector[] vectors):base(vectors)
-        //{
-        //    Gamma = gamma;
-        //    linKernel = new LinearKernel(vectors);
 
-        //    DiagonalDotCache = new float[vectors.Length];
-        //    for (int i = 0; i < DiagonalDotCache.Length; i++)
-        //    {
-        //        DiagonalDotCache[i] = Product(vectors[i], vectors[i]);
-        //    }
-        //}
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RbfKernel"/> class.
+        /// </summary>
+        /// <param name="gamma">The gamma parameter .</param>
         public RbfKernel(float gamma)
         {
             Gamma = gamma;

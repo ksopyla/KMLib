@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using dnAnalytics.LinearAlgebra;
+using KMLib.Evaluate;
 
 namespace KMLib.Kernels
 {
@@ -27,25 +28,39 @@ namespace KMLib.Kernels
 
             double crossValidation = double.MinValue;
             double maxC = double.MinValue;
-            LinearKernel bestKernel = null;
+
+            //we can set this kernel, because we only looking for one parameter C 
+            LinearKernel bestKernel = new LinearKernel();
             object lockObj = new object();
 
 
             List<SparseVector>[] foldsElements;
             List<float>[] foldsLabels;
-            Validation.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
+            Validation<SparseVector>.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
 
             Parallel.ForEach(rangeC, paramC =>
             {
                 //do cross validation
                     Stopwatch timer = Stopwatch.StartNew();
 
-                    var tmpKernel = new LinearKernel();
+                    Validation<SparseVector> valid = new Validation<SparseVector>();
+                    valid.Evaluator = new SequentialEvaluator<SparseVector>();
+                    valid.TrainingProblem = problem;
 
-                    double acc = Validation.CrossValidateOnFolds(problem.ElementsCount,
-                                                                 foldsElements,
-                                                                 foldsLabels, tmpKernel,
-                                                                 (float)paramC);
+                    //but here kernel should be different because 
+                    // in CSVM.Init we set the problem to kernel
+                    valid.Kernel = new LinearKernel();
+                    valid.C = (float)paramC;
+
+                    double acc = valid.CrossValidateOnFolds(problem.ElementsCount, foldsElements, foldsLabels);
+
+                    //old code
+                    //var tmpKernel = new LinearKernel();
+
+                    //double acc = Validation.CrossValidateOnFolds(problem.ElementsCount,
+                    //                                             foldsElements,
+                    //                                             foldsLabels, tmpKernel,
+                    //                                             (float)paramC);
 
                     lock (lockObj)
                     {
@@ -53,7 +68,7 @@ namespace KMLib.Kernels
                         {
                             crossValidation = acc;
                             maxC = paramC;
-                            bestKernel = tmpKernel;
+                           // bestKernel = tmpKernel;
                         }
                     }
 

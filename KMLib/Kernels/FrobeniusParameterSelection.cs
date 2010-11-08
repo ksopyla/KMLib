@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using dnAnalytics.LinearAlgebra;
+using KMLib.Evaluate;
 
 namespace KMLib.Kernels
 {
@@ -12,7 +13,7 @@ namespace KMLib.Kernels
     /// <summary>
     /// Class for searching best prams for matrix Frobenius kernel
     /// </summary>
-    public class FrobeniusParameterSelection: ParameterSelection<Matrix>
+    public class FrobeniusParameterSelection : ParameterSelection<Matrix>
     {
 
 
@@ -26,25 +27,35 @@ namespace KMLib.Kernels
 
             double crossValidation = double.MinValue;
             double maxC = double.MinValue;
-            FrobeniusKernel bestKernel = null;
+            
             object lockObj = new object();
 
 
             List<Matrix>[] foldsElements;
             List<float>[] foldsLabels;
-            Validation.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
+
+            Validation<Matrix>.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
+
+
+            //we don't have to specify more kernels, because we only searching for C parameter
+            FrobeniusKernel bestKernel  = new FrobeniusKernel();
 
             Parallel.ForEach(rangeC, paramC =>
             {
                 //do cross validation
                 Stopwatch timer = Stopwatch.StartNew();
 
-                var tmpKernel = new FrobeniusKernel();
+                Validation<Matrix> valid = new Validation<Matrix>();
+                valid.Evaluator = new SequentialEvaluator<Matrix>();
+                valid.TrainingProblem = problem;
 
-                double acc = Validation.CrossValidateOnFolds(problem.ElementsCount,
-                                                             foldsElements,
-                                                             foldsLabels, tmpKernel,
-                                                             (float)paramC);
+                //but here kernel should be different because 
+                // in CSVM.Init we set the problem to kernel
+                valid.Kernel = new FrobeniusKernel();
+                valid.C = (float)paramC;
+
+                double acc = valid.CrossValidateOnFolds(problem.ElementsCount, foldsElements, foldsLabels);
+
 
                 lock (lockObj)
                 {
@@ -52,7 +63,7 @@ namespace KMLib.Kernels
                     {
                         crossValidation = acc;
                         maxC = paramC;
-                        bestKernel = tmpKernel;
+                       // bestKernel = tmpKernel;
                     }
                 }
 
