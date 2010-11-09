@@ -107,15 +107,15 @@ namespace KMLibUsageApp
         {
             List<Tuple<string, string, int>> dataSets = new List<Tuple<string, string, int>>(8);
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/a1a.train",
-                dataFolder + "/a1a.test",
-                123));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/a1a.train",
+            //    dataFolder + "/a1a.test",
+            //    123));
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/a9a",
-                dataFolder + "/a9a.t",
-                123));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/a9a",
+            //    dataFolder + "/a9a.t",
+            //    123));
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/w8a",
@@ -126,7 +126,7 @@ namespace KMLibUsageApp
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/news20.binary",
-                dataFolder + "/news20_test.binary",
+                dataFolder + "/news20.binary",
                 1335191));
 
             //string trainningFile = dataFolder + "/real-sim_small_3K";
@@ -134,7 +134,7 @@ namespace KMLibUsageApp
             //string trainningFile = dataFolder + "/real-sim_med_10K";
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/real-sim",
-                dataFolder + "/real-sim.t",
+                dataFolder + "/real-sim",
                 20958));
 
             dataSets.Add(new Tuple<string, string, int>(
@@ -255,7 +255,7 @@ namespace KMLibUsageApp
             //.TestValidation(train, test, kernel, penaltyC[i]);
             timer.Stop();
 
-            Console.WriteLine("Validation on test data best acuuracy = {0} C={1} time={2} ms=", acc, paramC, timer.Elapsed, timer.ElapsedMilliseconds);
+            Console.WriteLine("Validation on test data best acuuracy = {0} C={1} time={2} ms={3}", acc, paramC, timer.Elapsed, timer.ElapsedMilliseconds);
 
         }
 
