@@ -27,6 +27,15 @@ namespace KMLibUsageApp
 
             IList<Tuple<string, string, int>> dataSetsToTest = CreateDataSetList(dataFolder);
 
+            GroupedTestingDataSets(dataSetsToTest);
+
+           // TestOneDataSet(dataFolder);
+
+
+        }
+
+        private static void TestOneDataSet(string dataFolder)
+        {
             string trainningFile;
             string testFile;
             int numberOfFeatures;
@@ -60,14 +69,38 @@ namespace KMLibUsageApp
             //var disKernel = kernel2 as IDisposable;
             //if (disKernel != null)
             //    disKernel.Dispose();
+        }
+
+        private static void GroupedTestingDataSets(IList<Tuple<string, string, int>> dataSetsToTest)
+        {
+            string trainningFile;
+            string testFile;
+            int numberOfFeatures;
 
 
-            //DoCrossValidation(train, kernel);
-            //FindParameterForRbf(train);
+            float gamma = 0.5f;
+            EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
+            IKernel<SparseVector> kernel = new RbfKernel(gamma);
 
+            foreach (var data in dataSetsToTest)
+            {
+                trainningFile = data.Item1;
+                testFile = data.Item2;
+                numberOfFeatures = data.Item3;
 
-            //Console.ReadKey();
+                Console.WriteLine("\n----------------------------------------------\n");
+                Console.WriteLine("DataSets , trainning={1} testing={2} , atr={0}", numberOfFeatures, trainningFile, testFile);
+                Console.WriteLine();
+                
 
+                Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+
+                Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+                
+                SVMClassify(train, test, kernel, evaluator, 4f);
+                Console.WriteLine("***************************\n");
+
+            }
         }
 
         private static IList<Tuple<string, string, int>> CreateDataSetList(string dataFolder)
@@ -75,59 +108,48 @@ namespace KMLibUsageApp
             List<Tuple<string, string, int>> dataSets = new List<Tuple<string, string, int>>(8);
 
             dataSets.Add(new Tuple<string, string, int>(
-                            dataFolder + "/a1a.train",
-                            dataFolder + "/a1a.test",
-                            123));
+                dataFolder + "/a1a.train",
+                dataFolder + "/a1a.test",
+                123));
 
             dataSets.Add(new Tuple<string, string, int>(
-                               dataFolder + "/a9a",
-             dataFolder + "/a9a.t",
-             123));
+                dataFolder + "/a9a",
+                dataFolder + "/a9a.t",
+                123));
 
-            //string trainningFile = dataFolder + "/w8a";
-            //string testFile = dataFolder + "/w8a.t";
-            //int numberOfFeatures = 300;
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/w8a",
+                dataFolder + "/w8a.t",
+                300));
 
-            //string trainningFile = dataFolder + "/colon-cancer.train";
-            //string testFile = dataFolder + "/colon-cancer.train";
-            //int numberOfFeatures = 2000;
 
-            //string trainningFile = dataFolder + "/leu";
-            //string testFile = dataFolder + "/leu.t";
-            //int numberOfFeatures = 7129;
 
-            //string trainningFile = dataFolder + "/duke";
-            //string testFile = dataFolder + "/duke.tr";
-            //int numberOfFeatures = 7129;
-
-            //string trainningFile = dataFolder + "/rcv1_train.binary";
-            ////string trainningFile = dataFolder + "/rcv1_test.binary";
-            //string testFile = dataFolder + "/rcv1_train_test.binary";
-            //int numberOfFeatures = 47236;
-
-            //string trainningFile = dataFolder + "/news20.binary";
-            //string testFile = dataFolder + "/news20_test.binary";
-            //int numberOfFeatures = 1335191;
-
-            //string trainningFile = dataFolder + "/mnist.scale";
-            //string testFile = dataFolder + "/mnist.scale.t";
-            //int numberOfFeatures = 784;
-
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/news20.binary",
+                dataFolder + "/news20_test.binary",
+                1335191));
 
             //string trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
             //string trainningFile = dataFolder + "/real-sim_med_10K";
-            //string trainningFile = dataFolder + "/real-sim";
-            //string testFile = dataFolder + "/real-sim.t";
-            //int numberOfFeatures = 20958;
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/real-sim",
+                dataFolder + "/real-sim.t",
+                20958));
 
-            //for test
-            //string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //string testFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
-            //////string testFile = dataFolder + "/liver-disorders_scale.txt";
-            //int numberOfFeatures = 6;
-            //  string trainningFile = dataFolder + "/australian_scale.txt";
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/mnist.scale",
+                dataFolder + "/mnist.scale.t",
+                784));
+
+
+
+
+            //string testFile = dataFolder + "/rcv1_train_test.binary";
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/rcv1_train.binary",
+                dataFolder + "/rcv1_test.binary",
+                47236));
 
             return dataSets;
         }
