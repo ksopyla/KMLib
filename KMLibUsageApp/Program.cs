@@ -170,7 +170,7 @@ namespace KMLibUsageApp
             //.TestValidation(train, test, kernel, penaltyC[i]);
             timer.Stop();
 
-            Console.WriteLine("Validation on test data best acuuracy = {0} C={1} time={2}", acc, paramC, timer.Elapsed);
+            Console.WriteLine("Validation on test data best acuuracy = {0} C={1} time={2} ms=", acc, paramC, timer.Elapsed,timer.ElapsedMilliseconds);
 
         }
 
