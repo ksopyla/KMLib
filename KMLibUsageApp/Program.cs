@@ -81,15 +81,15 @@ namespace KMLibUsageApp
         {
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.test";
-            //string testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////string testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
 
-            //string trainningFile = dataFolder + "/a9a";
-            //string testFile = dataFolder + "/a9a.t";
-            //int numberOfFeatures = 123;
+            trainningFile = dataFolder + "/a9a";
+            testFile = dataFolder + "/a9a.t";
+            numberOfFeatures = 123;
 
             //string trainningFile = dataFolder + "/w8a";
             //string testFile = dataFolder + "/w8a.t";
