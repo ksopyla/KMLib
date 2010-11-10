@@ -10,20 +10,18 @@ namespace KMLib
 {
 
     /// <summary>
-    /// Contains some static method for data set validation.
+    /// Contains validation procedures for test and trainning data.
     /// </summary>
     public class Validation<TProblemElement>
     {
-        // private int nrFolds = 5;
-        // private float percent = 0.3f;
 
-       public float C { get; set; }
+        public float C { get; set; }
 
-       public IKernel<TProblemElement> Kernel { get; set; }
+        public IKernel<TProblemElement> Kernel { get; set; }
 
-       public Problem<TProblemElement> TrainingProblem { get; set; }
+        public Problem<TProblemElement> TrainingProblem { get; set; }
 
-       public EvaluatorBase<TProblemElement> Evaluator { get; set; }
+        public EvaluatorBase<TProblemElement> Evaluator { get; set; }
 
 
         /// <summary>
@@ -191,7 +189,7 @@ namespace KMLib
         /// <param name="Kernel">The kernel.</param>
         /// <param name="C">Penalty parameter C.</param>
         /// <returns>Accuracy</returns>
-        public  double CrossValidateOnFolds(
+        public double CrossValidateOnFolds(
                                                 int probSize,
                                                 List<TProblemElement>[] foldsElements,
                                                 List<float>[] foldsLabels)
@@ -218,8 +216,8 @@ namespace KMLib
                 //create sub problem based on previous subProblemElements and subProbLabels
                 Problem<TProblemElement> trainSubprob = new Problem<TProblemElement>(subProbElem, subLabels);
 
-                CSVM<TProblemElement> svm = new CSVM<TProblemElement>(trainSubprob, Kernel, C,Evaluator);
-                
+                CSVM<TProblemElement> svm = new CSVM<TProblemElement>(trainSubprob, Kernel, C, Evaluator);
+
                 svm.Init();
                 svm.Train();
 
@@ -251,8 +249,8 @@ namespace KMLib
         /// <param name="subLabels">Out array for sub problem  labels.</param>
         /// <returns>Trainning sub problem elements</returns>
         private static TProblemElement[] CreateSubProblem<TProblemElement>(
-            List<TProblemElement>[] foldsElements, 
-            List<float>[] foldsLabels, IEnumerable<int> trainFoldIndexes, 
+            List<TProblemElement>[] foldsElements,
+            List<float>[] foldsLabels, IEnumerable<int> trainFoldIndexes,
             int subProbSize, out float[] subLabels)
         {
             TProblemElement[] subProbElem = new TProblemElement[subProbSize];
@@ -349,10 +347,10 @@ namespace KMLib
         /// <param name="C">Penalty parameter fo SVM solver</param>
         /// <returns>Accuracy</returns>
         public double TrainAndTestValidation(
-            Problem<TProblemElement> TrainingProblem,  Problem<TProblemElement> TestProblem)
+            Problem<TProblemElement> TrainingProblem, Problem<TProblemElement> TestProblem)
         {
 
-            CSVM<TProblemElement> svm = new CSVM<TProblemElement>(TrainingProblem, Kernel, C,Evaluator);
+            CSVM<TProblemElement> svm = new CSVM<TProblemElement>(TrainingProblem, Kernel, C, Evaluator);
 
             Stopwatch t = Stopwatch.StartNew();
             svm.Init();
@@ -374,7 +372,7 @@ namespace KMLib
             //        ++correct;
 
             //}
-            
+
 
 
             var predictions = svm.Predict(TestProblem.Elements);
@@ -456,162 +454,162 @@ namespace KMLib
         /// <param name="C">penalty param C i C-Svm</param>
         /// <param name="nrFolds">number of folds</param>
         /// <returns>average accuracy</returns>
-     //   [Obsolete]
-    //    public static double CrossValidationOld<TProblemElement>(
-    //                                            Problem<TProblemElement> problem,
-    //                                            IKernel<TProblemElement> kernel, float C, int nrFolds)
-    //    {
-    //        int probSize = problem.ElementsCount;
+        //   [Obsolete]
+        //    public static double CrossValidationOld<TProblemElement>(
+        //                                            Problem<TProblemElement> problem,
+        //                                            IKernel<TProblemElement> kernel, float C, int nrFolds)
+        //    {
+        //        int probSize = problem.ElementsCount;
 
-    //        //array for all folds predictions
-    //        float[] foldPredictions = new float[probSize];
+        //        //array for all folds predictions
+        //        float[] foldPredictions = new float[probSize];
 
-    //        //array which stores computed permutation of problem element indexes
-    //        int[] permutation = new int[probSize];
+        //        //array which stores computed permutation of problem element indexes
+        //        int[] permutation = new int[probSize];
 
-    //        int lastIndexOfFirstClass = GroupSameLabeledElements(problem, permutation);
-
-
-    //        Random rand = new Random();
-    //        //stores information of which indexes are for each fold
-    //        int[] foldStart = new int[nrFolds + 1];
-
-    //        //number of classes
-    //        int nr_class = 2;
-
-    //        //number of elements in each class
-    //        int[] count = { lastIndexOfFirstClass + 1, probSize - 1 - lastIndexOfFirstClass };
-    //        int[] start = { 0, lastIndexOfFirstClass + 1 };
-
-    //        //do permutation in each group class
-    //        for (int c = 0; c < nr_class; c++)
-    //        {
-    //            for (int i = 0; i < count[c]; i++)
-    //            {
-    //                //method for permuation without repetition, in each class
-    //                int randInt = rand.Next(count[c] - i);
-    //                // int j = i + (int)(rand.NextDouble() * (count[c] - i));
-    //                int j = i + randInt;
-    //                int tmp = permutation[start[c] + j];
-    //                permutation[start[c] + j] = permutation[start[c] + i];
-    //                permutation[start[c] + i] = tmp;
-    //            }
-    //        }
+        //        int lastIndexOfFirstClass = GroupSameLabeledElements(problem, permutation);
 
 
-    //        //initialize permutation array
-    //        //for (int i = 0; i < probSize; i++)
-    //        //    permutation[i] = i;
+        //        Random rand = new Random();
+        //        //stores information of which indexes are for each fold
+        //        int[] foldStart = new int[nrFolds + 1];
 
-    //        //sets each fold start index
-    //        SetFoldsStarts(probSize, nrFolds, foldStart);
+        //        //number of classes
+        //        int nr_class = 2;
 
+        //        //number of elements in each class
+        //        int[] count = { lastIndexOfFirstClass + 1, probSize - 1 - lastIndexOfFirstClass };
+        //        int[] start = { 0, lastIndexOfFirstClass + 1 };
 
-    //        //array for equaly distributed indexes into folds
-    //        int[] indexes = new int[probSize];
-    //        for (int c = 0; c < nr_class; c++)
-    //        {
-    //            int begin = -1;
-    //            int end = 0;
-    //            for (int i = 0; i < nrFolds; i++)
-    //            {
-    //                begin = start[c] + i * count[c] / nrFolds;
-
-    //                end = start[c] + (i + 1) * count[c] / nrFolds;
-    //                for (int j = begin; j < end; j++)
-    //                {
-    //                    indexes[foldStart[i]] = permutation[j];
-    //                    foldStart[i]++;
-    //                }
-    //            }
-    //        }
-    //        //above we modify folds starst so we have to set it again
-    //        SetFoldsStarts(probSize, nrFolds, foldStart);
-    //        //for (int i = 0; i <= nrFolds; i++)
-    //        //    foldStart[i] = i * probSize / nrFolds;
+        //        //do permutation in each group class
+        //        for (int c = 0; c < nr_class; c++)
+        //        {
+        //            for (int i = 0; i < count[c]; i++)
+        //            {
+        //                //method for permuation without repetition, in each class
+        //                int randInt = rand.Next(count[c] - i);
+        //                // int j = i + (int)(rand.NextDouble() * (count[c] - i));
+        //                int j = i + randInt;
+        //                int tmp = permutation[start[c] + j];
+        //                permutation[start[c] + j] = permutation[start[c] + i];
+        //                permutation[start[c] + i] = tmp;
+        //            }
+        //        }
 
 
+        //        //initialize permutation array
+        //        //for (int i = 0; i < probSize; i++)
+        //        //    permutation[i] = i;
 
-    //        ////compute permutation, randomly swap pair of indexes
-    //        for (int i = 0; i < probSize; i++)
-    //        {
-    //            //method for permuation without repetition
-    //            int j = i + (int)(rand.NextDouble() * (probSize - i));
-
-    //            //change new index j with current i
-    //            int temp = permutation[i];
-    //            permutation[i] = permutation[j];
-    //            permutation[j] = temp;
-    //        }
+        //        //sets each fold start index
+        //        SetFoldsStarts(probSize, nrFolds, foldStart);
 
 
-    //        //todo: good for paralle computing, think about it later, do validation!
-    //        for (int i = 0; i < nrFolds; i++)
-    //        {
+        //        //array for equaly distributed indexes into folds
+        //        int[] indexes = new int[probSize];
+        //        for (int c = 0; c < nr_class; c++)
+        //        {
+        //            int begin = -1;
+        //            int end = 0;
+        //            for (int i = 0; i < nrFolds; i++)
+        //            {
+        //                begin = start[c] + i * count[c] / nrFolds;
 
-    //            //Problem<TProblemElement> test;
-    //            //Problem<TProblemElement> train;
-    //            //Split(problem, out test, out train);
+        //                end = start[c] + (i + 1) * count[c] / nrFolds;
+        //                for (int j = begin; j < end; j++)
+        //                {
+        //                    indexes[foldStart[i]] = permutation[j];
+        //                    foldStart[i]++;
+        //                }
+        //            }
+        //        }
+        //        //above we modify folds starst so we have to set it again
+        //        SetFoldsStarts(probSize, nrFolds, foldStart);
+        //        //for (int i = 0; i <= nrFolds; i++)
+        //        //    foldStart[i] = i * probSize / nrFolds;
 
-    //            //SVM<TProblemElement> svMachine = new SVM<TProblemElement>(train,kernel,C);
 
-    //            int begin = foldStart[i];
-    //            int end = foldStart[i + 1];
 
-    //            //count number of elements for i-th fold
-    //            int subProbSize = probSize - (end - begin);
+        //        ////compute permutation, randomly swap pair of indexes
+        //        for (int i = 0; i < probSize; i++)
+        //        {
+        //            //method for permuation without repetition
+        //            int j = i + (int)(rand.NextDouble() * (probSize - i));
 
-    //            //array of sub problem elements (comes form permutation)
-    //            TProblemElement[] subProbElem = new TProblemElement[subProbSize];
-    //            float[] subLabels = new float[subProbSize];
+        //            //change new index j with current i
+        //            int temp = permutation[i];
+        //            permutation[i] = permutation[j];
+        //            permutation[j] = temp;
+        //        }
 
-    //            int k = 0;
-    //            //to subProblem add elements from [0,begin) and [end,probSize)
-    //            //elements from [begin,end) are used for testing
-    //            for (int j = 0; j < begin; j++)
-    //            {
-    //                subProbElem[k] = problem.Elements[indexes[j]];
-    //                subLabels[k] = problem.Labels[indexes[j]];
-    //                ++k;
-    //            }
-    //            for (int j = end; j < probSize; j++)
-    //            {
-    //                subProbElem[k] = problem.Elements[indexes[j]];
-    //                subLabels[k] = problem.Labels[indexes[j]];
-    //                ++k;
-    //            }
-    //            //create sub problem based on previous subProblemElements and subProbLabels
-    //            Problem<TProblemElement> trainSubprob = new Problem<TProblemElement>(subProbElem, subLabels);
-    //            kernel.ProblemElements = subProbElem;
-    //            CSVM<TProblemElement> svm = new CSVM<TProblemElement>(trainSubprob, kernel, C);
 
-    //            svm.Init();
-    //            svm.Train();
+        //        //todo: good for paralle computing, think about it later, do validation!
+        //        for (int i = 0; i < nrFolds; i++)
+        //        {
 
-    //            for (int j = begin; j < end; j++)
-    //            {
-    //                //target[perm[j]] = svm_predict(submodel, prob.X[perm[j]]);
+        //            //Problem<TProblemElement> test;
+        //            //Problem<TProblemElement> train;
+        //            //Split(problem, out test, out train);
 
-    //                foldPredictions[indexes[j]] = svm.Predict(problem.Elements[indexes[j]]);
-    //            }
-    //        }
+        //            //SVM<TProblemElement> svMachine = new SVM<TProblemElement>(train,kernel,C);
 
-    //        int correct = 0;
-    //        for (int i = 0; i < probSize; i++)
-    //        {
-    //            if (foldPredictions[i] > -1 && foldPredictions[i] < 1)
-    //                Debug.WriteLine("foldPredictions[{0}] has strange value={1}", i, foldPredictions[i]);
+        //            int begin = foldStart[i];
+        //            int end = foldStart[i + 1];
 
-    //            if (foldPredictions[i] == problem.Labels[i])
-    //            {
-    //                ++correct;
-    //            }
-    //        }
+        //            //count number of elements for i-th fold
+        //            int subProbSize = probSize - (end - begin);
 
-    //        //todo: accuracy count for cross validation
-    //        return (float)correct / probSize;
+        //            //array of sub problem elements (comes form permutation)
+        //            TProblemElement[] subProbElem = new TProblemElement[subProbSize];
+        //            float[] subLabels = new float[subProbSize];
 
-    //    }
+        //            int k = 0;
+        //            //to subProblem add elements from [0,begin) and [end,probSize)
+        //            //elements from [begin,end) are used for testing
+        //            for (int j = 0; j < begin; j++)
+        //            {
+        //                subProbElem[k] = problem.Elements[indexes[j]];
+        //                subLabels[k] = problem.Labels[indexes[j]];
+        //                ++k;
+        //            }
+        //            for (int j = end; j < probSize; j++)
+        //            {
+        //                subProbElem[k] = problem.Elements[indexes[j]];
+        //                subLabels[k] = problem.Labels[indexes[j]];
+        //                ++k;
+        //            }
+        //            //create sub problem based on previous subProblemElements and subProbLabels
+        //            Problem<TProblemElement> trainSubprob = new Problem<TProblemElement>(subProbElem, subLabels);
+        //            kernel.ProblemElements = subProbElem;
+        //            CSVM<TProblemElement> svm = new CSVM<TProblemElement>(trainSubprob, kernel, C);
+
+        //            svm.Init();
+        //            svm.Train();
+
+        //            for (int j = begin; j < end; j++)
+        //            {
+        //                //target[perm[j]] = svm_predict(submodel, prob.X[perm[j]]);
+
+        //                foldPredictions[indexes[j]] = svm.Predict(problem.Elements[indexes[j]]);
+        //            }
+        //        }
+
+        //        int correct = 0;
+        //        for (int i = 0; i < probSize; i++)
+        //        {
+        //            if (foldPredictions[i] > -1 && foldPredictions[i] < 1)
+        //                Debug.WriteLine("foldPredictions[{0}] has strange value={1}", i, foldPredictions[i]);
+
+        //            if (foldPredictions[i] == problem.Labels[i])
+        //            {
+        //                ++correct;
+        //            }
+        //        }
+
+        //        //todo: accuracy count for cross validation
+        //        return (float)correct / probSize;
+
+        //    }
 
 
     }
