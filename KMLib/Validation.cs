@@ -17,10 +17,22 @@ namespace KMLib
 
         public float C { get; set; }
 
+        /// <summary>
+        /// Gets or sets the kernel.
+        /// </summary>
+        /// <value>The kernel.</value>
         public IKernel<TProblemElement> Kernel { get; set; }
 
+        /// <summary>
+        /// Gets or sets the training problem.
+        /// </summary>
+        /// <value>The training problem.</value>
         public Problem<TProblemElement> TrainingProblem { get; set; }
 
+        /// <summary>
+        /// Gets or sets the evaluator.
+        /// </summary>
+        /// <value>The evaluator.</value>
         public EvaluatorBase<TProblemElement> Evaluator { get; set; }
 
 
@@ -30,6 +42,12 @@ namespace KMLib
         public Validation() { }
 
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Validation&lt;TProblemElement&gt;"/> class.
+        /// </summary>
+        /// <param name="kernel">The kernel.</param>
+        /// <param name="trainningProblem">The trainning problem.</param>
+        /// <param name="evaluator">The evaluator.</param>
         public Validation(IKernel<TProblemElement> kernel,
                             Problem<TProblemElement> trainningProblem,
                             EvaluatorBase<TProblemElement> evaluator)
