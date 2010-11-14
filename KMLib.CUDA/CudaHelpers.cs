@@ -80,7 +80,96 @@ namespace KMLib.GPU
             vecValsL = null;
         }
 
+        /// <summary>
+        ///  sets the values from one row of matrix, 
+        ///  matrix is in sparse matrix in CSR format
+        /// </summary>
+        /// <param name="matVals">matrx values</param>
+        /// <param name="matIdx">matrix indices</param>
+        /// <param name="matRowLenght">matrix rows lenght</param>
+        /// <param name="index">row index</param>
+        ///<param name="bufferPtr">pointer to float dense vector</param>
+        unsafe public static void InitBuffer(float[] matVals, int[] matIdx, int[] matRowLenght, int index, IntPtr bufferPtr)
+        {
 
-       
+            unsafe
+            {
+
+                float* vecPtr = (float*)bufferPtr.ToPointer();
+
+                for (int j = matRowLenght[index]; j < matRowLenght[index + 1]; j++)
+                {
+                    int idx = matIdx[j];
+                    float val = matVals[j];
+                    vecPtr[idx] = val;
+
+
+                }
+
+            }
+
+        }
+
+        /// <summary>
+        ///  sets the value for one matrix row, 
+        ///  matrix is in sparse matrix in CSR format
+        /// </summary>
+        /// <param name="matVals">matrx values</param>
+        /// <param name="matIdx">matrix indices</param>
+        /// <param name="matRowLenght">matrix rows lenght</param>
+        /// <param name="index">row index</param>
+        ///<param name="bufferPtr">pointer to float dense vector</param>
+        unsafe public static void SetBufferIdx(int[] matIdx, int[] matRowLenght, int index, IntPtr bufferPtr, float value)
+        {
+            if (index < 0)
+                return;
+            unsafe
+            {
+
+                float* vecPtr = (float*)bufferPtr.ToPointer();
+
+                for (int j = matRowLenght[index]; j < matRowLenght[index + 1]; j++)
+                {
+                    int idx = matIdx[j];
+                    vecPtr[idx] = value;
+                }
+
+            }
+        }
+
+
+        internal static void InitBuffer(SparseVector sparseVector, IntPtr bufferPtr)
+        {
+            unsafe
+            {
+
+                float* vecPtr = (float*)bufferPtr.ToPointer();
+
+                for (int j = 0; j < sparseVector.mValueCount; j++)
+                {
+                    int idx = sparseVector.mIndices[j];
+                    float val = (float)sparseVector.mValues[j];
+                    vecPtr[idx] = val;
+
+
+                }
+
+            }
+        }
+
+        internal static void SetBufferIdx(SparseVector sparseVector, IntPtr bufferPtr, float value)
+        {
+            unsafe
+            {
+
+                float* vecPtr = (float*)bufferPtr.ToPointer();
+                for (int j = 0; j < sparseVector.mValueCount; j++)
+                {
+                    int idx = sparseVector.mIndices[j];
+                    vecPtr[idx] = value;
+                }
+
+            }
+        }
     }
 }

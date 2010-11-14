@@ -107,15 +107,15 @@ namespace KMLibUsageApp
         {
             List<Tuple<string, string, int>> dataSets = new List<Tuple<string, string, int>>(8);
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/a1a.train",
-            //    dataFolder + "/a1a.test",
-            //    123));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/a1a.train",
+                dataFolder + "/a1a.test",
+                123));
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/a9a",
-            //    dataFolder + "/a9a.t",
-            //    123));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/a9a",
+                dataFolder + "/a9a.t",
+                123));
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/w8a",
@@ -146,10 +146,10 @@ namespace KMLibUsageApp
 
 
             //string testFile = dataFolder + "/rcv1_train_test.binary";
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/rcv1_train.binary",
-                dataFolder + "/rcv1_test.binary",
-                47236));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/rcv1_train.binary",
+            //    dataFolder + "/rcv1_test.binary",
+            //    47236));
 
             return dataSets;
         }

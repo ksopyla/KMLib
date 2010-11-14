@@ -76,10 +76,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CudaEvaluator.cs" />
+    <Compile Include="CudaLinearEvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
     <Compile Include="CudaLinearKernel.cs" />
     <Compile Include="CudaRBFKernel.cs" />
+    <Compile Include="CudaVectorEvaluator.cs" />
     <Compile Include="CUDAVectorKernel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

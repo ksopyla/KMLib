@@ -88,23 +88,23 @@ namespace KMLib.Evaluate
         /// </summary>
         /// <param name="element">The element.</param>
         /// <returns>predicted class</returns>
-        public override float Predict(TProblemElement element)
-        {
-            float sum = 0;
+        //public override float Predict(TProblemElement element)
+        //{
+        //    float sum = 0;
 
-            int index = -1;
+        //    int index = -1;
 
-            for (int k = 0; k < TrainedModel.SupportElementsIndexes.Length; k++)
-            {
-                index = TrainedModel.SupportElementsIndexes[k];
-                sum += TrainedModel.Alpha[index] * TrainningProblem.Labels[index] *
-                                    Kernel.Product(TrainningProblem.Elements[index], element);
-            }
+        //    for (int k = 0; k < TrainedModel.SupportElementsIndexes.Length; k++)
+        //    {
+        //        index = TrainedModel.SupportElementsIndexes[k];
+        //        sum += TrainedModel.Alpha[index] * TrainningProblem.Labels[index] *
+        //                            Kernel.Product(TrainningProblem.Elements[index], element);
+        //    }
 
-            sum -= TrainedModel.Rho;
+        //    sum -= TrainedModel.Rho;
 
-            float ret = sum > 0 ? 1 : -1;
-            return ret;
-        }
+        //    float ret = sum > 0 ? 1 : -1;
+        //    return ret;
+        //}
     }
 }

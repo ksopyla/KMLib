@@ -41,7 +41,33 @@ namespace KMLib.Evaluate
         /// </summary>
         /// <param name="element">The element to predict.</param>
         /// <returns></returns>
-        public abstract float Predict(TProblemElement element);
+        //public abstract float Predict(TProblemElement element);
+
+
+
+        /// <summary>
+        ///  Predicts the class of specified element.
+        /// </summary>
+        /// <param name="element">The element to predict.</param>
+        /// <returns>predicted class</returns>
+        public  float Predict(TProblemElement element)
+        {
+            float sum = 0;
+
+            int index = -1;
+
+            for (int k = 0; k < TrainedModel.SupportElementsIndexes.Length; k++)
+            {
+                index = TrainedModel.SupportElementsIndexes[k];
+                sum += TrainedModel.Alpha[index] * TrainningProblem.Labels[index] *
+                                    Kernel.Product(TrainningProblem.Elements[index], element);
+            }
+
+            sum -= TrainedModel.Rho;
+
+            float ret = sum > 0 ? 1 : -1;
+            return ret;
+        }
 
     }
 }

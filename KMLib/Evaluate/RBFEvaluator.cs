@@ -7,6 +7,11 @@ using KMLib.Kernels;
 
 namespace KMLib.Evaluate
 {
+
+    /// <summary>
+    /// Rerpesents evaluator for RBF kernel, use some optimization
+    /// is faster for RBF than <see cref="SequentialEvalutor"/>
+    /// </summary>
     public class RBFEvaluator : EvaluatorBase<SparseVector>
     {
         LinearKernel linKernel;
@@ -18,7 +23,13 @@ namespace KMLib.Evaluate
             this.gamma = gamma;
 
         }
-
+       
+        /// <summary>
+        /// Predicts the specified elements.
+        /// </summary>
+        /// <remarks>Use some optimization for RBF kernel</remarks>
+        /// <param name="elements">The elements.</param>
+        /// <returns>array of predicted labels</returns>
         public override float[] Predict(SparseVector[] elements)
         {
 
@@ -57,9 +68,6 @@ namespace KMLib.Evaluate
 
         }
 
-        public override float Predict(SparseVector element)
-        {
-            throw new NotImplementedException();
-        }
+       
     }
 }
