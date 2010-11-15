@@ -91,6 +91,7 @@ namespace KMLib
             kernel.Labels = problem.Labels;
             kernel.Init();
 
+            
             //solver = new ParallelSMOSolver<TProblemElement>(problem, kernel, C);
             //solver = new ModSMOSolver<TProblemElement>(problem, kernel, C);
             //solver = new SMOSolver<TProblemElement>(problem, kernel, C); 
@@ -149,7 +150,7 @@ namespace KMLib
 
         public float[] Predict(TProblemElement[] predictElements)
         {
-            
+            evaluator.Init();
             return evaluator.Predict(predictElements);
            
         }

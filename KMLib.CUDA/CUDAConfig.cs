@@ -9,7 +9,7 @@ namespace KMLib.GPU
     {
 
         /// <summary>
-        /// The size of block in x-axis
+        /// The size of block in x-axis, default value 128
         /// </summary>
         /// <remarks>It is also used for one dimensional cuda block</remarks>
        public const int XBlockSize = 128;

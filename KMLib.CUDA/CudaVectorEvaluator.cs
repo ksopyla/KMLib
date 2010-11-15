@@ -81,7 +81,7 @@ namespace KMLib.GPU
         /// </summary>
         protected int blockSizeX=CUDAConfig.XBlockSize;
 
-        protected int blockSizeY=-1;
+        protected int blockSizeY=1;
 
         /// <summary>
         /// array of 2 buffers for concurent data transfer
@@ -170,8 +170,9 @@ namespace KMLib.GPU
 
         #endregion
 
-        public void Init()
+        public override void Init()
         {
+            
 
             cuda = new CUDA(0, true);
             cuModule = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, cudaModuleName));
@@ -216,6 +217,8 @@ namespace KMLib.GPU
 
             labelsPtr = cuda.CopyHostToDevice(svLabels);
             alphasPtr = cuda.CopyHostToDevice(svAlphas);
+
+            IsInitialized = true;
 
         }
         

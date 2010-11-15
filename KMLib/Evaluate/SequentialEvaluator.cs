@@ -63,7 +63,11 @@ namespace KMLib.Evaluate
 
         //#endregion
 
-
+        public override void Init()
+        {
+            //we don't have to initialized anything
+            IsInitialized = true;
+        }
         /// <summary>
         /// Predicts the class of specified elements.
         /// </summary>
@@ -72,6 +76,10 @@ namespace KMLib.Evaluate
         /// <returns>array with predicted class for each element</returns>
         public override float[] Predict(TProblemElement[] elements)
         {
+
+            if (!IsInitialized)
+                throw new ApplicationException("Evaluator is not initialized. Call init method");
+
             float[] predictions = new float[elements.Length];
 
             Parallel.For(0, elements.Length, i =>

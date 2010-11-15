@@ -16,6 +16,7 @@ namespace KMLibUsageApp
 {
     internal class Program
     {
+        private static float C = 4f;
         private static void Main(string[] args)
         {
             if (args.Length < 1)
@@ -27,10 +28,11 @@ namespace KMLibUsageApp
 
             IList<Tuple<string, string, int>> dataSetsToTest = CreateDataSetList(dataFolder);
 
-            GroupedTestingDataSets(dataSetsToTest);
+          // GroupedTestingDataSets(dataSetsToTest);
+            
+            TestOneDataSet(dataFolder);
 
-           // TestOneDataSet(dataFolder);
-
+            TestOneDataSetWithCuda(dataFolder);
 
         }
 
@@ -50,25 +52,42 @@ namespace KMLibUsageApp
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             float gamma = 0.5f;
-            EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
+            //EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
+            EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
 
+           // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            IKernel<SparseVector> kernel = new RbfKernel(gamma);
-            //IKernel<SparseVector> kernel = new LinearKernel();
-            SVMClassify(train, test, kernel, evaluator, 4f);
+            //IKernel<SparseVector> kernel = new RbfKernel(gamma);
+            IKernel<SparseVector> kernel = new LinearKernel();
+            SVMClassify(train, test, kernel, evaluator,C);
+
+        }
 
 
+        private static void TestOneDataSetWithCuda(string dataFolder)
+        {
+            string trainningFile;
+            string testFile;
+            int numberOfFeatures;
+            ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
 
-            /*
-             * Cuda enabled kernels
-            */
-            //IKernel<SparseVector> kernel2 = new CudaRBFKernel(0.5f);
-            ////IKernel<SparseVector> kernel2 = new CudaLinearKernel();
+            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
+            Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
+            Console.WriteLine();
+            Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
-            //SVMClassify(train, test, kernel2, 2f);
-            //var disKernel = kernel2 as IDisposable;
-            //if (disKernel != null)
-            //    disKernel.Dispose();
+            Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+
+            
+            
+            EvaluatorBase<SparseVector> evaluator = new CudaLinearEvaluator();
+         
+            IKernel<SparseVector> kernel2 = new CudaLinearKernel();
+
+            SVMClassify(train, test, kernel2,evaluator, C);
+            var disKernel = kernel2 as IDisposable;
+            if (disKernel != null)
+                disKernel.Dispose();
         }
 
         private static void GroupedTestingDataSets(IList<Tuple<string, string, int>> dataSetsToTest)
@@ -97,7 +116,7 @@ namespace KMLibUsageApp
 
                 Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
                 
-                SVMClassify(train, test, kernel, evaluator, 4f);
+                SVMClassify(train, test, kernel, evaluator, C);
                 Console.WriteLine("***************************\n");
 
             }
@@ -166,15 +185,15 @@ namespace KMLibUsageApp
         {
 
 
-            //trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            ////string testFile = dataFolder + "/a1a.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
-
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
+            trainningFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.test";
+            //string testFile = dataFolder + "/a1a.train";
+            //in a1a problem max index is 123
             numberOfFeatures = 123;
+
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            //numberOfFeatures = 123;
 
             //string trainningFile = dataFolder + "/w8a";
             //string testFile = dataFolder + "/w8a.t";

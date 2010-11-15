@@ -11,7 +11,7 @@ texture<float,1,cudaReadModeElementType> labelsTexRef;
 //in SVM prediction, its stores one dense support vector
 texture<float,1,cudaReadModeElementType> svTexRef;
 
-#define BLOCK_SIZE 256
+#define BLOCK_SIZE 128
 
 #define WARP_SIZE 32
 

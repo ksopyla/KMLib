@@ -23,6 +23,15 @@ namespace KMLib.Evaluate
             this.gamma = gamma;
 
         }
+
+        public override void Init()
+        {
+            linKernel.ProblemElements = TrainedModel.SupportElements;
+
+            linKernel.Init();
+
+            IsInitialized = true;
+        }
        
         /// <summary>
         /// Predicts the specified elements.
@@ -32,10 +41,8 @@ namespace KMLib.Evaluate
         /// <returns>array of predicted labels</returns>
         public override float[] Predict(SparseVector[] elements)
         {
-
-            linKernel.ProblemElements = TrainedModel.SupportElements;
-
-            linKernel.Init();
+            if (!IsInitialized)
+                throw new ApplicationException("Evaluator is not initialized. Call init method");
 
             float[] predictions = new float[elements.Length];
 

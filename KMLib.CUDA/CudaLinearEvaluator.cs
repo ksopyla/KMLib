@@ -28,6 +28,9 @@ namespace KMLib.GPU
         /// <returns></returns>
         public override float[] Predict(SparseVector[] elements)
         {
+            if (!IsInitialized)
+                throw new ApplicationException("Evaluator is not initialized. Call init method");
+
 
             //tranfsorm elements to matrix in CSR format
             // elements values

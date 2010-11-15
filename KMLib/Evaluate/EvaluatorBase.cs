@@ -16,6 +16,7 @@ namespace KMLib.Evaluate
     /// <typeparam name="TProblemElement">The type of the problem element.</typeparam>
     public abstract class EvaluatorBase<TProblemElement>
     {
+        protected bool IsInitialized = false;
         /// <summary>
         /// Trained model
         /// </summary>
@@ -36,6 +37,7 @@ namespace KMLib.Evaluate
         /// <returns></returns>
         public abstract float[] Predict(TProblemElement[] elements);
 
+        public abstract void Init();
         /// <summary>
         /// Predicts the class of specified element.
         /// </summary>
