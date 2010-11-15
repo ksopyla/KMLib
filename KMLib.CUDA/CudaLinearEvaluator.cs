@@ -6,6 +6,7 @@ using dnAnalytics.LinearAlgebra;
 using KMLib.Evaluate;
 using GASS.CUDA;
 using GASS.CUDA.Types;
+using System.Runtime.InteropServices;
 
 namespace KMLib.GPU
 {
@@ -15,6 +16,7 @@ namespace KMLib.GPU
     /// </summary>
     public class CudaLinearEvaluator : CudaVectorEvaluator
     {
+       
 
 
 
@@ -26,9 +28,8 @@ namespace KMLib.GPU
         /// <returns></returns>
         public override float[] Predict(SparseVector[] elements)
         {
-            throw new NotImplementedException();
 
-
+            //tranfsorm elements to matrix in CSR format
             // elements values
             float[] vecVals;
             //elements indexes
@@ -49,6 +50,45 @@ namespace KMLib.GPU
 
 
             //todo: Set the cuda kernel paramerters
+            #region set cuda parameters
+            uint Rows =(uint) elements.Length - 1;
+            uint Cols = (uint)TrainedModel.SupportElements.Length - 1;
+
+
+            cuda.SetFunctionBlockShape(cuFunc, blockSizeX, blockSizeY, 1);
+
+            int offset = 0;
+            //set elements param
+            cuda.SetParameter(cuFunc, offset, valsPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFunc, offset, idxPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFunc, offset, vecLenghtPtr.Pointer);
+            offset += IntPtr.Size;
+
+            //set labels param
+            cuda.SetParameter(cuFunc, offset, labelsPtr.Pointer);
+            offset += IntPtr.Size;
+            //set alphas param
+            cuda.SetParameter(cuFunc, offset, alphasPtr.Pointer);
+            offset += IntPtr.Size;
+            //set output (reslut) param
+            cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
+            offset += IntPtr.Size;
+            //set number of elements param
+            cuda.SetParameter(cuFunc, offset, (uint)Rows);
+            offset += sizeof(int);
+            //set number of support vectors param
+            cuda.SetParameter(cuFunc, offset, (uint)Cols);
+            offset += sizeof(int);
+            //set support vector index param
+            int colIndexParamOffset = offset;
+            cuda.SetParameter(cuFunc, offset, (uint)0);
+            offset += sizeof(int);
+            cuda.SetParameterSize(cuFunc, (uint)offset);
+            #endregion
+
+            int gridDimX = (int)Math.Ceiling((Rows + 0.0) / (blockSizeX));
 
 
             for (int k = 0; k < TrainedModel.SupportElements.Length; k++)
@@ -65,7 +105,6 @@ namespace KMLib.GPU
                 //launch kernl    
                 cuda.LaunchAsync(cuFunc, gridDimX, 1, stream);
 
-
                 if (k > 0)
                 {
                     //clear the previous host buffer
@@ -73,7 +112,14 @@ namespace KMLib.GPU
                 }
 
             }
+            //wait for all computation
+            cuda.SynchronizeContext();
 
+            float[] result = new float[elements.Length];
+            //copy result
+            Marshal.Copy(outputIntPtr, result, 0,elements.Length);
+
+            return result;
         }
 
 

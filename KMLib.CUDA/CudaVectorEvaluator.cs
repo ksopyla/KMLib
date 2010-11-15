@@ -7,6 +7,7 @@ using KMLib.Evaluate;
 using GASS.CUDA.Types;
 using GASS.CUDA;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace KMLib.GPU
 {
@@ -15,7 +16,7 @@ namespace KMLib.GPU
     /// base class for all cuda enabled evaluators
     /// </summary>
     /// <remarks>It sores nesessary data for cuda initialization</remarks>
-    public class CudaVectorEvaluator : EvaluatorBase<SparseVector>
+    public abstract class CudaVectorEvaluator : EvaluatorBase<SparseVector>
     {
 
         #region cuda names
@@ -76,9 +77,11 @@ namespace KMLib.GPU
         protected uint svIndex = 0;
 
         /// <summary>
-        /// size of cuda grid in X-axis
+        /// size of cuda block in X-axis
         /// </summary>
-        protected int gridDimX = 128;
+        protected int blockSizeX=128;
+
+        protected int blockSizeY;
 
         /// <summary>
         /// array of 2 buffers for concurent data transfer
@@ -151,6 +154,10 @@ namespace KMLib.GPU
         /// </summary>
         protected CUdeviceptr labelsPtr;
 
+        /// <summary>
+        /// cuda pointer to support vector non zero alpha coeficients
+        /// </summary>
+        protected CUdeviceptr alphasPtr;
 
         /// <summary>
         /// stream for async data transfer and computation
@@ -181,6 +188,31 @@ namespace KMLib.GPU
             cuSVTexRef = cuda.GetModuleTexture(cuModule, "svTexRef");
             cuda.SetTextureFlags(cuSVTexRef, 0);
             cuda.SetTextureAddress(cuSVTexRef, mainVecPtr, memSvSize);
+
+            //todo: copy labels and alphas
+
+            float[] svLabels = new float[TrainedModel.SupportElements.Length];
+            float[] svAlphas = new float[TrainedModel.SupportElements.Length];
+
+
+            Parallel.For(0,TrainedModel.SupportElementsIndexes.Length, 
+            i=>{
+                int idx = TrainedModel.SupportElementsIndexes[i];
+                svLabels[i] = TrainningProblem.Labels[idx];
+                svAlphas[i] = TrainedModel.Alpha[idx];
+                    
+            });
+            
+            //for (int i = 0; i < TrainedModel.SupportElementsIndexes.Length; i++)
+            //{
+            //    int idx = TrainedModel.SupportElementsIndexes[i];
+            //    svLabels[i]= TrainningProblem.Labels[idx];
+            //    svAlphas[i] = TrainedModel.Alpha[idx];
+
+            //}
+
+            labelsPtr = cuda.CopyHostToDevice(svLabels);
+            alphasPtr = cuda.CopyHostToDevice(svAlphas);
 
         }
         

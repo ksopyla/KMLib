@@ -254,11 +254,15 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 
 //summary: cuda kernel for evaluation, predicts new unseen elements using linear SVM kernel,
 // first elements matrix is in sparse CSR format, second (support vectors) matrix B is 
-// in column major order (each kolumn is in dense format, in texture cache)
+// in column major order (each kolumn is in dense format, in 'svTexRef' texture cache)
+// you have to Launch this kernel as many times as support vectors, each time
+// copy new support vector into texture cache
 //params:
 //AVals - values for first matrix
 //AIdx - indexes for first matrix
 //APtrs - pointers to next vector
+//svLabels - support vector labels
+//svAlphas - support vector alphas coef 
 //result - result matrix
 //ARows - number of rows in first matrix
 //BCols - number of cols in second matrix
@@ -266,6 +270,8 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 extern "C" __global__ void linearCSREvaluatorDenseVector(const float * AVals,
 									   const int * AIdx, 
 									   const int * APtrs, 
+									   const float * svLabels,
+									   const float * svAlphas,
 									   float * result,
 									   const int ARows,
 									   const int BCols,
@@ -291,7 +297,7 @@ extern "C" __global__ void linearCSREvaluatorDenseVector(const float * AVals,
 		// compute local sum
 		float sum = 0;
 		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
-			sum += AVals[jj] * tex1Dfetch(vectorTexRef,AIdx[jj]);
+			sum += AVals[jj] * tex1Dfetch(svTexRef,AIdx[jj]);
 
 		// reduce local sums to row sum (ASSUME: warpsize 32)
 		sdata[threadIdx.x] = sum;
@@ -306,8 +312,11 @@ extern "C" __global__ void linearCSREvaluatorDenseVector(const float * AVals,
 		// first thread writes warp result
 		if (thread_lane == 0)
 		{
+			//remeber that we use result memory for stroing partial result
+			//so the size of array is the same as number of elements
+			 result[row]+=sdata[threadIdx.x]*svLabels[ColumnIndex]*svAlphas[ColumnIndex];
 			//row major order
-			result[row*BCols+ColumnIndex]= sdata[threadIdx.x];
+			//result[row*BCols+ColumnIndex]= sdata[threadIdx.x];
 			//column major order
 			//result[ColumnIndex*ARows+row]= sdata[threadIdx.x];
 		}

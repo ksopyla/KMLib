@@ -14,7 +14,7 @@ namespace KMLib
         public TProblemElement[] SupportElements;
         
         /// <summary>
-        /// computed alpha's value
+        /// computed alpha's value for all trainning elements, these with alpha is non zero is support element
         /// </summary>
         public float[] Alpha;
 
