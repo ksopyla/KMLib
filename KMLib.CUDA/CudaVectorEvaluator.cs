@@ -79,9 +79,9 @@ namespace KMLib.GPU
         /// <summary>
         /// size of cuda block in X-axis
         /// </summary>
-        protected int blockSizeX=128;
+        protected int blockSizeX=CUDAConfig.XBlockSize;
 
-        protected int blockSizeY;
+        protected int blockSizeY=-1;
 
         /// <summary>
         /// array of 2 buffers for concurent data transfer
@@ -97,7 +97,10 @@ namespace KMLib.GPU
         /// average vector lenght, its only a heuristic
         /// </summary>
         protected int avgVectorLenght = 50;
-        protected int threadsPerBlock = 256;
+     
+        /// <summary>
+        /// how many will be blocks for grid
+        /// </summary>
         protected int blocksPerGrid = -1;
 
         #region cuda types

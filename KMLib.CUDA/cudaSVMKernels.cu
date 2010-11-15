@@ -7,6 +7,9 @@ texture<float,1,cudaReadModeElementType> mainVectorTexRef;
 texture<float,1,cudaReadModeElementType> labelsTexRef;
 
 
+//texture for vector, which is used for evaluation procedure
+//in SVM prediction, its stores one dense support vector
+texture<float,1,cudaReadModeElementType> svTexRef;
 
 #define BLOCK_SIZE 256
 

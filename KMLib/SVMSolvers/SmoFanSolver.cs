@@ -37,7 +37,7 @@ namespace KMLib.Helpers
             public float rho;
             public float upper_bound_p;
             public float upper_bound_n;
-            public float r;	// for Solver_NU
+           // public float r;	// for Solver_NU
         }
 
         #region variables from LibSVM

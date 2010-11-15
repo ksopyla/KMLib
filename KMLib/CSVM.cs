@@ -49,9 +49,9 @@ namespace KMLib
         /// Solver, solves C-SVM optimization problem 
         /// </summary>
         protected Solver<TProblemElement> Solver;
-        private Problem<TProblemElement> trainSubprob;
-        private IKernel<TProblemElement> Kernel;
-        private EvaluatorBase<TProblemElement> Evaluator;
+       // private Problem<TProblemElement> trainSubprob;
+      //  private IKernel<TProblemElement> Kernel;
+       // private EvaluatorBase<TProblemElement> Evaluator;
 
 
 

@@ -414,13 +414,13 @@ namespace KMLib.Helpers
             //    -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
 
             float GMax = -INF;
-            float GNMax = -INF;
+           // float GNMax = -INF;
 
             float GMax2 = -INF;
             int GMax_idx = -1;
             int GMin_idx = -1;
-            float obj_diff_Min = INF;
-            float obj_diff_NMin = INF;
+            //float obj_diff_Min = INF;
+            //float obj_diff_NMin = INF;
 
 
 

@@ -72,7 +72,12 @@ namespace KMLib.GPU
         /// average vector lenght, its only a heuristic
         /// </summary>
         protected int avgVectorLenght = 50;
-        protected int threadsPerBlock = 256;
+        
+        protected int threadsPerBlock = CUDAConfig.XBlockSize;
+        
+        /// <summary>
+        /// indicates how many blocks pre grid we create for cuda kernel launch
+        /// </summary>
         protected int blocksPerGrid = -1;
 
         #region cuda types

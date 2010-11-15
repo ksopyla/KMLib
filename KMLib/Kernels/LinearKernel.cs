@@ -20,14 +20,14 @@ namespace KMLib.Kernels
         /// <summary>
         /// Cache for computed products
         /// </summary>
-        private LRUCache<Point2D, float> cache;
+       // private LRUCache<Point2D, float> cache;
         
         /// <summary>
         /// decide if we use cache, for easy kernles and sparse vectors
         /// cache is slower than computing Product, but when vectors are dense and big, cache may improve
         /// computation
         /// </summary>
-        private bool useCache;
+       // private bool useCache;
 
 
 
@@ -37,7 +37,7 @@ namespace KMLib.Kernels
         /// </summary>
         public LinearKernel() 
         {
-            useCache = false;
+           // useCache = false;
         }
 
 
@@ -143,11 +143,14 @@ namespace KMLib.Kernels
             if (element1 == element2 && (DiagonalDotCacheBuilded))
                 return DiagonalDotCache[element1];
 
+            return this.Product(problemElements[element1], problemElements[element2]);
+ /*
             if (!useCache)
             {
                 return this.Product(problemElements[element1], problemElements[element2]);
             }
 
+           
             Point2D indexes;
 
             int x=element1, y=element2;
@@ -176,8 +179,9 @@ namespace KMLib.Kernels
                 //Console.WriteLine("{0}-{1}={2}", x, y, prod);
                
             }
-           
-            return prod;
+           return prod;
+           */
+            
         }
 
 

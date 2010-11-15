@@ -131,8 +131,8 @@ namespace KMLib
         /// <param name="nrFolds">Number of folds (number of parts).</param>
         /// <param name="foldsElements">Array of folds, each list contains elements which belonds to fold .</param>
         /// <param name="foldsLabels">Arrat of fodls, each list contains elements labels.</param>
-        public static void MakeFoldsSplit<TProblemElement>(Problem<TProblemElement> Problem,
-            int nrFolds, out List<TProblemElement>[] foldsElements,
+        public static void MakeFoldsSplit<TElement>(Problem<TElement> Problem,
+            int nrFolds, out List<TElement>[] foldsElements,
             out List<float>[] foldsLabels)
         {
             int probSize = Problem.ElementsCount;
@@ -169,12 +169,12 @@ namespace KMLib
                 }
             }
 
-            foldsElements = new List<TProblemElement>[nrFolds];
+            foldsElements = new List<TElement>[nrFolds];
             foldsLabels = new List<float>[nrFolds];
 
             for (int i = 0; i < nrFolds; i++)
             {
-                foldsElements[i] = new List<TProblemElement>(1 + probSize / nrFolds);
+                foldsElements[i] = new List<TElement>(1 + probSize / nrFolds);
                 foldsLabels[i] = new List<float>(1 + probSize / nrFolds);
             }
 
@@ -266,14 +266,14 @@ namespace KMLib
         /// <param name="subProbSize">Size of the original problem</param>
         /// <param name="subLabels">Out array for sub problem  labels.</param>
         /// <returns>Trainning sub problem elements</returns>
-        private static TProblemElement[] CreateSubProblem<TProblemElement>(
-            List<TProblemElement>[] foldsElements,
+        private static TElement[] CreateSubProblem<TElement>(
+            List<TElement>[] foldsElements,
             List<float>[] foldsLabels, IEnumerable<int> trainFoldIndexes,
             int subProbSize, out float[] subLabels)
         {
-            TProblemElement[] subProbElem = new TProblemElement[subProbSize];
+            TElement[] subProbElem = new TElement[subProbSize];
 
-            List<TProblemElement> groupElements = new List<TProblemElement>(subProbSize);
+            List<TElement> groupElements = new List<TElement>(subProbSize);
             List<float> groupLabels = new List<float>(subProbSize);
             foreach (var trainFoldIndex in trainFoldIndexes)
             {

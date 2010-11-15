@@ -91,11 +91,11 @@ namespace KMLib.Kernels
         public float[] GetQ(int i, int len)
         {
             float[] data = null;
-            int start = 0, j;
+            int start = 0;
 
 
             //data = new float[problem.ElementsCount];
-            //for (j = start; j < len; j++)
+            //for (int j = start; j < len; j++)
             //    data[j] = (y[i] * y[j] * kernel.Product(i, j));
 
             //with cache

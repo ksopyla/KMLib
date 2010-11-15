@@ -215,7 +215,7 @@ namespace KMLib.Helpers
             // SMO algorithm
             int numChange = 0;
             int examineAll = 1;
-            int kktViolatiors = 0;
+            //int kktViolatiors = 0;
             int cores = System.Environment.ProcessorCount;
 
             float E1 = float.MinValue;
@@ -368,14 +368,14 @@ namespace KMLib.Helpers
 
             Debug.WriteLine("Main iteration=" + mainIter + " subIteration=" + subIter);
             Console.WriteLine("Main iteration=" + mainIter + " subIteration=" + subIter);
-            Console.WriteLine("SV="+model.SupportElementsIndexes.Length);
+            Console.WriteLine("SV=" + model.SupportElementsIndexes.Length);
 
             return model;
         }
 
         private void UpdateAlpha(AlphaInfo[] newAlphas)
         {
-            float yi, oldAlpha, newAlpha;
+            // float yi, oldAlpha, newAlpha;
 
             for (int i = 0; i < newAlphas.Length; i++)
             {
@@ -474,8 +474,8 @@ namespace KMLib.Helpers
                 }
 
             });
-            
-            
+
+
             #endregion
             return newAlphas;
         }
@@ -495,17 +495,17 @@ namespace KMLib.Helpers
 
             AlphaInfo[] modAlphas = new AlphaInfo[size];
 
-            
-            a1= WeightedEtaMerge(st1, newAlphas, modAlphas);
+
+            a1 = WeightedEtaMerge(st1, newAlphas, modAlphas);
             //a1 = WeightedSmallEtaMerge(st1, newAlphas, modAlphas);
             //a1 = AvgMerge(st1, newAlphas, modAlphas);
             //a1 = WeightedDistMerge(st1, newAlphas, modAlphas);
 
-           if (a1 < 0)
+            if (a1 < 0)
             {
                 for (int i = 1; i < size; i++)
                 {
-                    modAlphas[i].Alpha += newAlphas[i-1].Si * a1;
+                    modAlphas[i].Alpha += newAlphas[i - 1].Si * a1;
                 }
 
                 //a2 += s * a1;
@@ -517,7 +517,7 @@ namespace KMLib.Helpers
 
                 for (int i = 1; i < size; i++)
                 {
-                    modAlphas[i].Alpha += newAlphas[i-1].Si * t;
+                    modAlphas[i].Alpha += newAlphas[i - 1].Si * t;
                 }
 
                 //a2 += s * t;
@@ -526,16 +526,17 @@ namespace KMLib.Helpers
 
             // modAlphas.AddFirst(new Pair<int, float>(index1, a1));
 
-           modAlphas[0].Alpha = a1;
+            modAlphas[0].Alpha = a1;
 
-            float b1 = 0, b2 = 0, bnew = 0;
+            //float b1 = 0, b2 = 0;
+            float bnew = 0;
 
             if (a1 > 0 && a1 < C)
             {
                 // bnew = b + E1 + y1 * (a1 - alph1) * k11 + y2 * (a2 - alph2) * k12;
 
                 bnew = b + E1 + y1 * (a1 - alpha1) * k11;
-                int j = 0;
+                // int j = 0;
                 for (int i = 1; i < size; i++)
                 {
                     var item = modAlphas[i];
@@ -546,7 +547,7 @@ namespace KMLib.Helpers
 
                     float oldAl = alpha[ind];
 
-                    bnew += item.Y * (al2 - oldAl) * newAlphas[i-1].Product;
+                    bnew += item.Y * (al2 - oldAl) * newAlphas[i - 1].Product;
 
                 }
             }
@@ -555,13 +556,13 @@ namespace KMLib.Helpers
                 for (int i = 1; i < size; i++)
                 {
                     var item = modAlphas[i];
-                    float prodI1 = newAlphas[i-1].Product;
+                    float prodI1 = newAlphas[i - 1].Product;
 
                     if (item.Alpha > 0 && item.Alpha < C)
                     {
                         int mIndex = item.Index;
 
-                        bnew =item.Error+ b + y1 * (a1 - alpha1) * prodI1;
+                        bnew = item.Error + b + y1 * (a1 - alpha1) * prodI1;
                         for (int j = 1; j < modAlphas.Length; j++)
                         {
                             var st = modAlphas[j];
@@ -612,7 +613,7 @@ namespace KMLib.Helpers
         /// <param name="modAlphas">new merged alpha</param>
         /// <param name="weighSum"></param>
         /// <returns>average value for a1</returns>
-        private float WeightedEtaMerge(AlphaInfo st1, List<StepPairVariable> newAlphas,AlphaInfo[] modAlphas)
+        private float WeightedEtaMerge(AlphaInfo st1, List<StepPairVariable> newAlphas, AlphaInfo[] modAlphas)
         {
             int size = modAlphas.Length;
             float weighSum = 0;
@@ -651,9 +652,9 @@ namespace KMLib.Helpers
             {
                 var secAlpha = newAlphas[k - 1].Second;
                 modAlphas[k] = new AlphaInfo(secAlpha.Index, 0, secAlpha.Y, secAlpha.Error, secAlpha.Product);
-                weighSum += 1.0f/ newAlphas[k - 1].Eta;
+                weighSum += 1.0f / newAlphas[k - 1].Eta;
 
-                weights[k] = Math.Abs(1.0f/newAlphas[k - 1].Eta);
+                weights[k] = Math.Abs(1.0f / newAlphas[k - 1].Eta);
             }
 
             weighSum = Math.Abs(weighSum);
@@ -672,7 +673,7 @@ namespace KMLib.Helpers
 
             float[] weights = new float[size];
 
-            float weight = 1.0f/ newAlphas.Count;
+            float weight = 1.0f / newAlphas.Count;
 
             for (int k = 1; k < size; k++)
             {
@@ -714,20 +715,20 @@ namespace KMLib.Helpers
             {
                 var secAlpha = newAlphas[k - 1].Second;
                 modAlphas[k] = new AlphaInfo(secAlpha.Index, 0, secAlpha.Y, secAlpha.Error, secAlpha.Product);
-                
 
 
-                var it = newAlphas[k-1];
-                
+
+                var it = newAlphas[k - 1];
+
                 //we compute change in distance for two alphas
-                float sq1= it.First.Alpha-alpha[it.First.Index];
-                sq1*=sq1;
-                float sq2= it.Second.Alpha-alpha[it.Second.Index];
-                sq2*=sq2;
+                float sq1 = it.First.Alpha - alpha[it.First.Index];
+                sq1 *= sq1;
+                float sq2 = it.Second.Alpha - alpha[it.Second.Index];
+                sq2 *= sq2;
                 weights[k] = sq1 + sq2;
 
                 weighSum += weights[k];
-                
+
             }
 
             weighSum = Math.Abs(weighSum);
@@ -770,7 +771,7 @@ namespace KMLib.Helpers
             return a1;
         }
 
-        
+
 
         private bool KKTViolator(float error, float yi, float alpha)
         {
@@ -958,7 +959,7 @@ namespace KMLib.Helpers
 
             }
 
-           // return groupedIndexes;
+            // return groupedIndexes;
 
             foreach (var item in groupedIndexes)
             {
