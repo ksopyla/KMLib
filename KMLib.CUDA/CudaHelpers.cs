@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using dnAnalytics.LinearAlgebra;
+using System.Diagnostics;
 
 namespace KMLib.GPU
 {
@@ -46,6 +47,7 @@ namespace KMLib.GPU
             //arrays for values, indexes and lenght
 
             int vecStartIdx = 0;
+           // Stopwatch timer = Stopwatch.StartNew();
             for (int i = 0; i < problemElements.Length; i++)
             {
                 var vec = problemElements[i];
@@ -56,7 +58,10 @@ namespace KMLib.GPU
                 //after conversion we have to remove zeros from the end
 
                 //coping and converting from double to float using Linq
+                //var converted = vec.mValues.Take(vec.mValueCount).Select(x => Convert.ToSingle(x));
                 var converted = vec.mValues.Select(x => Convert.ToSingle(x)).Take(vec.mValueCount);
+                //Array.ConstrainedCopy(vec.mValues, 0, vecVals, 0, vec.mValueCount);
+
                 vecValsL.AddRange(converted);
 
                 vecIdxL.AddRange(vec.mIndices.Take(vec.mValueCount));
@@ -65,6 +70,8 @@ namespace KMLib.GPU
                 vecLenghtL.Add(vecStartIdx);
                 vecStartIdx += vec.mValueCount;
             }
+          //  timer.Stop();
+
 
             //for last index
             vecLenghtL.Add(vecStartIdx);

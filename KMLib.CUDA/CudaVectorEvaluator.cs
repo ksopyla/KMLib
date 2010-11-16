@@ -25,6 +25,10 @@ namespace KMLib.GPU
         /// </summary>
         protected const string cudaModuleName = "cudaSVMKernels.cubin";
 
+        /// <summary>
+        /// cuda function name for computing prediction
+        /// </summary>
+        protected string cudaSignKernelName = "setSignForPrediction";
 
         /// <summary>
         /// cuda texture name for main vector
@@ -70,7 +74,7 @@ namespace KMLib.GPU
         /// <summary>
         /// last parameter offset in cuda function kernel for changing <see cref="svIndex"/> 
         /// </summary>
-        protected int lastParameterOffset;
+        protected int lastParameterOffset=-1;
         /// <summary>
         /// index of current support element (vector)
         /// </summary>
@@ -91,12 +95,12 @@ namespace KMLib.GPU
         /// <summary>
         /// dense support vector float buffer size
         /// </summary>
-        protected uint memSvSize;
+        protected uint memSvSize=0;
 
         /// <summary>
         /// average vector lenght, its only a heuristic
         /// </summary>
-        protected int avgVectorLenght = 50;
+       // protected int avgVectorLenght = 50;
      
         /// <summary>
         /// how many will be blocks for grid
@@ -117,9 +121,11 @@ namespace KMLib.GPU
         protected CUmodule cuModule;
 
         /// <summary>
-        /// cuda kernel function
+        /// cuda kernel function for computing evaluation values
         /// </summary>
         protected CUfunction cuFunc;
+
+        protected CUfunction cuFuncSign;
 
 
         /// <summary>
@@ -167,6 +173,7 @@ namespace KMLib.GPU
         /// </summary>
         protected CUstream stream;
         
+        
 
         #endregion
 
@@ -177,6 +184,8 @@ namespace KMLib.GPU
             cuda = new CUDA(0, true);
             cuModule = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, cudaModuleName));
             cuFunc = cuda.GetModuleFunction(cudaEvaluatorKernelName);
+
+            cuFuncSign = cuda.GetModuleFunction(cudaSignKernelName);
 
             svVector = new float[TrainningProblem.Elements[0].Count];
 

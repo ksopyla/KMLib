@@ -378,8 +378,10 @@ namespace KMLib
             svm.Train();
             Debug.WriteLine("Svm train takes {0}", t.Elapsed);
             int correct = 0;
-            t.Restart();
+
             Debug.WriteLine("Start Predict");
+            t.Restart();
+           
 
             //for (int i = 0; i < TestProblem.ElementsCount; i++)
             //{
@@ -394,6 +396,7 @@ namespace KMLib
 
 
             var predictions = svm.Predict(TestProblem.Elements);
+            t.Stop();
             for (int i = 0; i < TestProblem.ElementsCount; i++)
             {
                 float predictedLabel = predictions[i];
@@ -403,7 +406,7 @@ namespace KMLib
             }
 
             double accuracy = (float)correct / TestProblem.ElementsCount;
-            t.Stop();
+          
             Debug.WriteLine(string.Format("prediction on {0} elements takes {1}", TestProblem.ElementsCount, t.Elapsed));
             return accuracy;
         }

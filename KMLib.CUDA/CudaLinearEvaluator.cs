@@ -16,7 +16,8 @@ namespace KMLib.GPU
     /// </summary>
     public class CudaLinearEvaluator : CudaVectorEvaluator
     {
-       
+        private float  rho;
+
 
 
 
@@ -54,8 +55,8 @@ namespace KMLib.GPU
 
             //todo: Set the cuda kernel paramerters
             #region set cuda parameters
-            uint Rows =(uint) elements.Length - 1;
-            uint Cols = (uint)TrainedModel.SupportElements.Length - 1;
+            uint Rows = (uint)elements.Length;
+            uint Cols = (uint)TrainedModel.SupportElements.Length;
 
 
             cuda.SetFunctionBlockShape(cuFunc, blockSizeX, blockSizeY, 1);
@@ -85,7 +86,7 @@ namespace KMLib.GPU
             cuda.SetParameter(cuFunc, offset, (uint)Cols);
             offset += sizeof(int);
             //set support vector index param
-            int colIndexParamOffset = offset;
+            lastParameterOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)0);
             offset += sizeof(int);
             cuda.SetParameterSize(cuFunc, (uint)offset);
@@ -96,14 +97,14 @@ namespace KMLib.GPU
 
             for (int k = 0; k < TrainedModel.SupportElements.Length; k++)
             {
-
                 //set the buffer values from k-th support vector
                 CudaHelpers.InitBuffer(TrainedModel.SupportElements[k], svVecIntPtrs[k % 2]);
 
                 cuda.SynchronizeStream(stream);
                 //copy asynchronously from buffer to devece
                 cuda.CopyHostToDeviceAsync(mainVecPtr, svVecIntPtrs[k % 2], memSvSize, stream);
-                //set the last parameter in kernel (column index)    
+                //set the last parameter in kernel (column index)   
+                // colIndexParamOffset
                 cuda.SetParameter(cuFunc, lastParameterOffset, (uint)k);
                 //launch kernl    
                 cuda.LaunchAsync(cuFunc, gridDimX, 1, stream);
@@ -115,12 +116,45 @@ namespace KMLib.GPU
                 }
 
             }
+
+            //CUdeviceptr symbolAdr;
+            //CUDARuntime.cudaGetSymbolAddress(ref symbolAdr,"RHO");
+            rho = TrainedModel.Rho;
+            //IntPtr symbolVal = new IntPtr(&rho);
+            //CUDARuntime.cudaMemcpyToSymbol("RHO", symbolVal, 1, 1, cudaMemcpyKind.cudaMemcpyHostToDevice);
+
+            cuda.SetFunctionBlockShape(cuFuncSign, blockSizeX, blockSizeY, 1);
+            int signFuncOffset = 0;
+            //set array param
+            cuda.SetParameter(cuFuncSign, signFuncOffset, outputPtr.Pointer);
+            signFuncOffset += IntPtr.Size;
+            //set size 
+            cuda.SetParameter(cuFuncSign, signFuncOffset, Rows);
+            signFuncOffset += sizeof(int);
+
+            cuda.SetParameter(cuFuncSign, signFuncOffset, rho);
+            signFuncOffset += sizeof(float);
+
+            cuda.SetParameterSize(cuFuncSign, (uint)signFuncOffset);
+
+
+            //gridDimX is valid for this function
+            cuda.LaunchAsync(cuFuncSign, gridDimX, 1, stream);
+
+
+
+
+
             //wait for all computation
             cuda.SynchronizeContext();
 
+            //todo: call second cuda kernel which set the value "-1" or "+1" based on result
+
+
+
             float[] result = new float[elements.Length];
             //copy result
-            Marshal.Copy(outputIntPtr, result, 0,elements.Length);
+            Marshal.Copy(outputIntPtr, result, 0, elements.Length);
 
             return result;
         }

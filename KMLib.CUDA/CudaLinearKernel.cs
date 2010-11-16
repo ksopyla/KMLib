@@ -151,9 +151,9 @@ namespace KMLib.GPU
             {
                 //free all resources
                 cuda.Free(valsPtr);
-                cuda.Free(idxPtr);
+              
                 cuda.Free(vecLenghtPtr);
-                
+                cuda.Free(idxPtr);
                 //cuda.Free(outputPtr);
                 //cuda.FreeHost(outputIntPtr);
 
