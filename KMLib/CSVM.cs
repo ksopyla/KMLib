@@ -169,7 +169,12 @@ namespace KMLib
              
             
             evaluator.Init();
+            Stopwatch t = Stopwatch.StartNew();
             float[] predictions =  evaluator.Predict(predictElements);
+
+            //toremove: only for tests
+            Console.WriteLine("prediction takes {0} ms", t.ElapsedMilliseconds);
+
             //todo: Free evaluator memories
 
             var disposeEvaluator = evaluator as IDisposable;
