@@ -372,11 +372,14 @@ namespace KMLib
 
             Stopwatch t = Stopwatch.StartNew();
             svm.Init();
-            Debug.WriteLine("SVM init time {0}", t.Elapsed);
+            
+            //todo: change in in production code
+            Console.WriteLine("SVM init time {0}", t.Elapsed);
+           // Debug.WriteLine("SVM init time {0}", t.Elapsed);
 
             t.Restart();
             svm.Train();
-            Debug.WriteLine("Svm train takes {0}", t.Elapsed);
+            Console.WriteLine("Svm train takes {0}", t.Elapsed);
             int correct = 0;
 
             Debug.WriteLine("Start Predict");
@@ -407,7 +410,7 @@ namespace KMLib
 
             double accuracy = (float)correct / TestProblem.ElementsCount;
           
-            Debug.WriteLine(string.Format("prediction on {0} elements takes {1}", TestProblem.ElementsCount, t.Elapsed));
+            Console.WriteLine(string.Format("init, dispose and prediction on {0} elements takes {1}", TestProblem.ElementsCount, t.Elapsed));
             return accuracy;
         }
 
