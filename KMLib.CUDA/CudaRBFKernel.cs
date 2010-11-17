@@ -18,11 +18,7 @@ namespace KMLib.GPU
     /// </summary>
     public class CudaRBFKernel : CUDAVectorKernel, IDisposable
     {
-       
-        //const string cudaKernelName = "rbfCsrFormatKernel";
-       
-        const string cudaSelfDotTexRefName = "selfDotTexRef";
-
+     
         /// <summary>
         /// Array for self dot product 
         /// </summary>
@@ -211,17 +207,28 @@ namespace KMLib.GPU
             {
                 //free all resources
                 cuda.Free(valsPtr);
+                valsPtr.Pointer = 0;
                 cuda.Free(idxPtr);
+                idxPtr.Pointer = 0;
                 cuda.Free(vecLenghtPtr);
+                vecLenghtPtr.Pointer = 0;
+
+                cuda.Free(selfLinDotPtr);
+                selfLinDotPtr.Pointer = 0;
+               cudaSelfDotTexRefName
 
                 cuda.Free(outputPtr);
+                outputPtr.Pointer = 0;
                 cuda.Free(labelsPtr);
+                labelsPtr.Pointer = 0;
                 cuda.DestroyTexture(cuLabelsTexRef);
 
                 cuda.Free(mainVecPtr);
+                mainVecPtr.Pointer = 0;
 
                 cuda.DestroyTexture(cuMainVecTexRef);
 
+                cuda.UnloadModule(cuModule);
                 cuda.Dispose();
                 cuda = null;
             }
