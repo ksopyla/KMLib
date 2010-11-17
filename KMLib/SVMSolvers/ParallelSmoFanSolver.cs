@@ -78,11 +78,12 @@ namespace KMLib.Helpers
         public ParallelSmoFanSolver(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
             : base(problem, kernel, C)
         {
-
+            //todo: add checking if kernel is initialized
+            
             //remeber that we have variable kernel in base class
             Q = new CachedKernel<TProblemElement>(problem, kernel);
 
-
+            //get diagonal cache, kernel should compute that
             QD = Q.GetQD();
 
             //Shrinking = false;
@@ -99,6 +100,9 @@ namespace KMLib.Helpers
         /// <returns>Model</returns>
         public override Model<TProblemElement> ComputeModel()
         {
+            
+          
+
             int problemSize = problem.ElementsCount;
             float[] Minus_ones = new float[problemSize];
             sbyte[] y = new sbyte[problemSize];

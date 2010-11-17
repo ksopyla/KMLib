@@ -16,7 +16,13 @@ namespace KMLib.Kernels
     {
 
         protected bool DiagonalDotCacheBuilded = false;
-        protected bool Initilized = false;
+        
+        //public bool IsInitilized = false;
+        public bool IsInitialized
+        {
+            get;
+            protected set;
+        }
 
         public float[] Labels
         {
@@ -84,14 +90,14 @@ namespace KMLib.Kernels
         /// <returns></returns>
         public virtual void AllProducts(int element1, float[] results)
         {
-            if (!Initilized)
+            if (!IsInitialized)
             {
                 throw new ApplicationException("Kernel not initialized");
             }
             
             
             if (results == null)
-                throw new ApplicationException("result array should not be null");
+                throw new ArgumentNullException("result array should not be null");
             //for (int j = 0; j < results.Length; j++)
             //    results[j] = (Labels[element1] * Labels[j] * Product(element1, j));
 
@@ -122,7 +128,7 @@ namespace KMLib.Kernels
         {
             ComputeDiagonalDotCache();
 
-            Initilized = true;
+            IsInitialized = true;
         }
 
         #endregion
@@ -158,5 +164,8 @@ namespace KMLib.Kernels
         }
 
         #endregion
+
+
+       
     }
 }

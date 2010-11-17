@@ -68,7 +68,7 @@ namespace KMLib.Evaluate
                     sum += TrainedModel.Alpha[index] * TrainningProblem.Labels[index] * rbfVal;
                 }
                 sum -= TrainedModel.Rho;
-                predictions[i] = sum > 0 ? 1 : -1;
+                predictions[i] = sum < 0 ? -1 : 1;
             }
 
             return predictions;

@@ -14,13 +14,9 @@ namespace KMLib.GPU
     /// <summary>
     /// Represents evaluation class which use CUDA, 
     /// </summary>
-    public class CudaLinearEvaluator : CudaVectorEvaluator
+    public class CudaLinearEvaluator : CudaVectorEvaluator, IDisposable
     {
         private float  rho;
-
-
-
-
 
         /// <summary>
         /// Predicts the specified elements.
@@ -160,5 +156,50 @@ namespace KMLib.GPU
         }
 
 
+
+        public void Dispose()
+        {
+            if (cuda != null)
+            {
+
+                //free all resources
+                cuda.Free(valsPtr);
+                valsPtr.Pointer = 0;
+                 
+                cuda.Free(idxPtr);
+                idxPtr.Pointer = 0;
+                
+                cuda.Free(vecLenghtPtr);
+                vecLenghtPtr.Pointer = 0;
+               
+                
+                cuda.Free(outputPtr);
+                outputPtr.Pointer = 0;
+                //cuda.FreeHost(outputIntPtr);
+
+                cuda.Free(mainVecPtr);
+                mainVecPtr.Pointer = 0;
+                cuda.DestroyTexture(cuSVTexRef);
+
+                cuda.Free(labelsPtr);
+                labelsPtr.Pointer = 0;
+                if (cuLabelsTexRef.Pointer.ToInt32()  != 0)
+                    cuda.DestroyTexture(cuLabelsTexRef);
+
+
+                cuda.Free(alphasPtr);
+
+                cuda.DestroyStream(stream);
+
+                //Marshal.FreeHGlobal(svVecIntPtrs[0]);
+                //Marshal.FreeHGlobal(svVecIntPtrs[1]);
+                
+                cuda.UnloadModule(cuModule);
+
+                cuda.Dispose();
+                cuda = null;
+                IsInitialized = false;
+            }
+        }
     }
 }

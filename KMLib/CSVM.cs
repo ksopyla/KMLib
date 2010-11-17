@@ -87,21 +87,26 @@ namespace KMLib
         /// </summary>
         public void Init()
         {
-            kernel.ProblemElements = problem.Elements;
-            kernel.Labels = problem.Labels;
-            kernel.Init();
+            //kernel.ProblemElements = problem.Elements;
+            //kernel.Labels = problem.Labels;
+            //kernel.Init();
 
             
             //solver = new ParallelSMOSolver<TProblemElement>(problem, kernel, C);
             //solver = new ModSMOSolver<TProblemElement>(problem, kernel, C);
             //solver = new SMOSolver<TProblemElement>(problem, kernel, C); 
 
-            Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+           // Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
            // Solver = new SmoFanSolver<TProblemElement>(problem, kernel, C);
         }
 
         public void Train()
         {
+
+            kernel.ProblemElements = problem.Elements;
+            kernel.Labels = problem.Labels;
+            kernel.Init();
+            Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             if (kernel.ProblemElements == null)
                 throw new ArgumentNullException("Not initialized, should call Init method");
            
@@ -114,9 +119,14 @@ namespace KMLib
             model = Solver.ComputeModel();
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
 
+            var disKernel = kernel as IDisposable;
+            if (disKernel != null)
+                disKernel.Dispose();
+
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
             evaluator.TrainningProblem = problem;
+          
         }
 
         /// <summary>
@@ -126,7 +136,7 @@ namespace KMLib
         /// <returns></returns>
         public float Predict(TProblemElement problemElement)
         {
-
+            
             return evaluator.Predict(problemElement);
             //float sum = 0;
 
@@ -150,8 +160,24 @@ namespace KMLib
 
         public float[] Predict(TProblemElement[] predictElements)
         {
+            //evaluator.Kernel = kernel;
+            if (model == null)
+                throw new ApplicationException("Model not computed, call train method or read model from file");
+
+            if (problem == null)
+                throw new ApplicationException("Train problem not set");
+             
+            
             evaluator.Init();
-            return evaluator.Predict(predictElements);
+            float[] predictions =  evaluator.Predict(predictElements);
+            //todo: Free evaluator memories
+
+            var disposeEvaluator = evaluator as IDisposable;
+            if (disposeEvaluator != null)
+                disposeEvaluator.Dispose();
+
+
+            return predictions;
            
         }
 

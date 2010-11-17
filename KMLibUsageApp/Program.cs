@@ -30,7 +30,7 @@ namespace KMLibUsageApp
 
           // GroupedTestingDataSets(dataSetsToTest);
             
-            TestOneDataSet(dataFolder);
+           // TestOneDataSet(dataFolder);
 
             TestOneDataSetWithCuda(dataFolder);
 
@@ -85,9 +85,11 @@ namespace KMLibUsageApp
             IKernel<SparseVector> kernel2 = new CudaLinearKernel();
 
             SVMClassify(train, test, kernel2,evaluator, C);
-            var disKernel = kernel2 as IDisposable;
-            if (disKernel != null)
-                disKernel.Dispose();
+
+
+           // SVMClassify(train, test, kernel2, evaluator, C);
+
+            
         }
 
         private static void GroupedTestingDataSets(IList<Tuple<string, string, int>> dataSetsToTest)

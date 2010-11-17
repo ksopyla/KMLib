@@ -95,5 +95,11 @@ namespace KMLib.Kernels
         }
 
         #endregion
+
+
+        public bool IsInitialized
+        {
+            get { throw new NotImplementedException(); }
+        }
     }
 }

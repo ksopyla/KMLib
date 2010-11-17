@@ -40,6 +40,8 @@
         /// </summary>
         float[] DiagonalDotCache { get; }
 
+
+         bool IsInitialized { get;  }
         /// <summary>
         /// Kernel initialization
         /// </summary>

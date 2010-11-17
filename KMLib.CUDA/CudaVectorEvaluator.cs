@@ -125,6 +125,9 @@ namespace KMLib.GPU
         /// </summary>
         protected CUfunction cuFunc;
 
+        /// <summary>
+        /// cuda kernel function for computing final prediction
+        /// </summary>
         protected CUfunction cuFuncSign;
 
 
@@ -151,6 +154,10 @@ namespace KMLib.GPU
         /// </summary>
         protected CUtexref cuSVTexRef;
 
+
+        /// <summary>
+        /// cuda mainVector pointer to device memory (it stores dense support vector)
+        /// </summary>
         protected CUdeviceptr mainVecPtr;
 
         /// <summary>

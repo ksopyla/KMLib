@@ -48,7 +48,13 @@ namespace KMLib.GPU
 
         public override void Init()
         {
+            //it's not necessary to init linear kernel its used only for computing element product
+            //linKernel.ProblemElements = problemElements;
+            //linKernel.Labels = Labels;
+            //linKernel.Init();
+
             base.Init();
+           
 
             float[] vecVals;
             int[] vecIdx;
@@ -149,25 +155,35 @@ namespace KMLib.GPU
         {
             if (cuda != null)
             {
+                
                 //free all resources
-                cuda.Free(valsPtr);
+               
               
                 cuda.Free(vecLenghtPtr);
+                vecLenghtPtr.Pointer = 0;
                 cuda.Free(idxPtr);
-                //cuda.Free(outputPtr);
+                idxPtr.Pointer = 0;
+                cuda.Free(valsPtr);
+                valsPtr.Pointer = 0;
+                
+                
+                cuda.Free(outputPtr);
                 //cuda.FreeHost(outputIntPtr);
 
                 
 
                 cuda.Free(labelsPtr);
+                labelsPtr.Pointer = 0;
                 cuda.DestroyTexture(cuLabelsTexRef);
 
                 cuda.Free(mainVecPtr);
-
+                mainVecPtr.Pointer = 0;
                 cuda.DestroyTexture(cuMainVecTexRef);
 
+                cuda.UnloadModule(cuModule);
                 cuda.Dispose();
                 cuda = null;
+                IsInitialized = false;
             }
         }
 

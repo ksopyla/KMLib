@@ -68,6 +68,8 @@ namespace KMLib.Evaluate
             sum -= TrainedModel.Rho;
 
            float ret = sum < 0 ? -1 : 1;
+
+
             return ret;
         }
 

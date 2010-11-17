@@ -139,6 +139,8 @@ namespace KMLib.Kernels
             if (element2 >= problemElements.Length)
                 throw new IndexOutOfRangeException("element2 out of range");
 
+            if (problemElements == null)
+                throw new ApplicationException("Problem elements are null");
 
             if (element1 == element2 && (DiagonalDotCacheBuilded))
                 return DiagonalDotCache[element1];

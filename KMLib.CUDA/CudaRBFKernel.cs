@@ -110,6 +110,8 @@ namespace KMLib.GPU
 
         public override void Init()
         {
+            linKernel.ProblemElements = problemElements;
+            linKernel.Labels = Labels;
             linKernel.Init();
            
             base.Init();
