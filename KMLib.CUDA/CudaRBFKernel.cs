@@ -215,7 +215,7 @@ namespace KMLib.GPU
 
                 cuda.Free(selfLinDotPtr);
                 selfLinDotPtr.Pointer = 0;
-               cudaSelfDotTexRefName
+               
 
                 cuda.Free(outputPtr);
                 outputPtr.Pointer = 0;

@@ -30,7 +30,7 @@ namespace KMLibUsageApp
 
           // GroupedTestingDataSets(dataSetsToTest);
             
-           // TestOneDataSet(dataFolder);
+            TestOneDataSet(dataFolder);
 
             TestOneDataSetWithCuda(dataFolder);
 
