@@ -28,7 +28,7 @@ namespace KMLibUsageApp
 
             IList<Tuple<string, string, int>> dataSetsToTest = CreateDataSetList(dataFolder);
 
-          GroupedTestingDataSets(dataSetsToTest);
+            GroupedTestingDataSets(dataSetsToTest);
             
             //TestOneDataSet(dataFolder);
 
@@ -135,7 +135,8 @@ namespace KMLibUsageApp
         private static IList<Tuple<string, string, int>> CreateDataSetList(string dataFolder)
         {
             List<Tuple<string, string, int>> dataSets = new List<Tuple<string, string, int>>(8);
-            /*
+            
+            
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/a1a.train",
                 dataFolder + "/a1a.test",
@@ -165,12 +166,12 @@ namespace KMLibUsageApp
                 dataFolder + "/real-sim",
                 dataFolder + "/real-sim",
                 20958));
-            */
+            
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/mnist.scale",
                 dataFolder + "/mnist.scale.t",
                 784));
-
+            
 
 
 
@@ -196,8 +197,8 @@ namespace KMLibUsageApp
 
 
             trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            testFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.test";
+            //testFile = dataFolder + "/a1a.train";
             //in a1a problem max index is 123
             numberOfFeatures = 123;
 

@@ -180,7 +180,7 @@ namespace KMLib.Helpers
 
                         partBegin = oneLine.IndexOf(vecPartsSeparator[0]);
                         //from begining to first space is label
-                        labels.Add(float.Parse(oneLine.Substring(0, partBegin)));
+                        labels.Add(float.Parse(oneLine.Substring(0, partBegin), CultureInfo.InvariantCulture));
 
                         index = 0;
 
@@ -192,7 +192,7 @@ namespace KMLib.Helpers
 
                             indexSeparatorPosition = oneLine.IndexOf(idxValSeparator[0], partBegin);
                             index = int.Parse(oneLine.Substring(partBegin + 1, indexSeparatorPosition - (partBegin+1)));
-                            value = float.Parse(oneLine.Substring(indexSeparatorPosition + 1, partEnd - (indexSeparatorPosition+1)));
+                            value = float.Parse(oneLine.Substring(indexSeparatorPosition + 1, partEnd - (indexSeparatorPosition + 1)), CultureInfo.InvariantCulture);
 
 
                             vec.Add(new KeyValuePair<int, double>(index, value));
