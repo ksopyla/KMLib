@@ -8,7 +8,15 @@ namespace KMLib.Helpers
     internal class Vector
     {
 
+        /// <summary>
+        /// Max index
+        /// </summary>
         public int Dim;
+
+        /// <summary>
+        /// number of non zero positions
+        /// </summary>
+        public int Count;
 
         public int[] Indices;
 
@@ -36,6 +44,62 @@ namespace KMLib.Helpers
                 k++;
             }
 
+
+        }
+
+
+        /// <summary>
+        /// compute vector dot product
+        /// </summary>
+        /// <param name="otherVector"></param>
+        /// <returns></returns>
+        public float DotProduct(Vector otherVector)
+        {
+           
+            if (otherVector == null)
+            {
+                throw new ArgumentNullException("otherVector");
+            }
+
+            if (otherVector.Dim != Dim)
+            {
+                throw new ArgumentException("different dimensions", "otherVector");
+            }
+
+            float result = 0;
+            
+
+            if (Count < 1)
+                return 0.0f;
+
+            if (otherVector.Count < 1)
+                return 0.0f;
+
+            int i1 = 0;
+            int i2 = 0;
+
+            while (i1 < this.Count && i2 < otherVector.Count)
+            {
+                int index1 = Indices[i1];
+                int index2 = otherVector.Indices[i2];
+
+                if (index1 == index2)
+                {
+                    float mul = Values[i1] * otherVector.Values[i2];
+                    result += mul;
+                    i1++; i2++;
+                }
+                else if (index1 < index2)
+                {
+                    i1++;
+                }
+                else
+                {
+                    i2++;
+                }
+            }
+
+            return result;
 
         }
     }

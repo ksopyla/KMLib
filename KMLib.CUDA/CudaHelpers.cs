@@ -13,6 +13,12 @@ namespace KMLib.GPU
     /// </summary>
     public class CudaHelpers
     {
+
+        /// <summary>
+        /// create dense vector based on sparese vector <see cref="mainVec"/>
+        /// </summary>
+        /// <param name="mainVec"></param>
+        /// <param name="fillVector"></param>
         public static void FillDenseVector(SparseVector mainVec,float[] fillVector)
         {
             Array.Clear(fillVector, 0, fillVector.Length);
@@ -25,7 +31,7 @@ namespace KMLib.GPU
         }
 
         /// <summary>
-        /// Convert sparse vectors into
+        /// Convert sparse vectors into CSR fromat (three array one for values, one for indexes and one for vector pointers)
         /// </summary>
         /// <param name="vecVals"></param>
         /// <param name="vecIdx"></param>
@@ -164,6 +170,12 @@ namespace KMLib.GPU
             }
         }
 
+        /// <summary>
+        /// set the value on position which are the same as sparse vector indexes
+        /// </summary>
+        /// <param name="sparseVector"></param>
+        /// <param name="bufferPtr"></param>
+        /// <param name="value"></param>
         internal static void SetBufferIdx(SparseVector sparseVector, IntPtr bufferPtr, float value)
         {
             unsafe

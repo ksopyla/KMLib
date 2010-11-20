@@ -76,9 +76,14 @@ namespace KMLibUsageApp
             Console.WriteLine();
             Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
-            Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
-
             
+
+            var trainSumArr = train.Elements.Sum(x => x.mIndices.Length);
+            var trainSum = train.Elements.Sum(x => x.mValueCount);
+
+            Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+            var testSumArr = test.Elements.Sum(x => x.mIndices.Length);
+            var testSum = test.Elements.Sum(x => x.mValueCount);
             
             EvaluatorBase<SparseVector> evaluator = new CudaLinearEvaluator();
          
@@ -191,8 +196,8 @@ namespace KMLibUsageApp
 
 
             trainningFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.test";
-            //string testFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            testFile = dataFolder + "/a1a.train";
             //in a1a problem max index is 123
             numberOfFeatures = 123;
 
@@ -200,9 +205,9 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/a9a.t";
             //numberOfFeatures = 123;
 
-            //string trainningFile = dataFolder + "/w8a";
-            //string testFile = dataFolder + "/w8a.t";
-            //int numberOfFeatures = 300;
+             //trainningFile = dataFolder + "/w8a";
+             //testFile = dataFolder + "/w8a.t";
+             //numberOfFeatures = 300;
 
             //string trainningFile = dataFolder + "/colon-cancer.train";
             //string testFile = dataFolder + "/colon-cancer.train";
@@ -216,18 +221,18 @@ namespace KMLibUsageApp
             //string testFile = dataFolder + "/duke.tr";
             //int numberOfFeatures = 7129;
 
-            //string trainningFile = dataFolder + "/rcv1_train.binary";
-            ////string trainningFile = dataFolder + "/rcv1_test.binary";
-            //string testFile = dataFolder + "/rcv1_train_test.binary";
-            //int numberOfFeatures = 47236;
+            //trainningFile = dataFolder + "/rcv1_train.binary";
+            //testFile = dataFolder + "/rcv1_test.binary";
+            ////string testFile = dataFolder + "/rcv1_train_test.binary";
+            //numberOfFeatures = 47236;
 
-            //string trainningFile = dataFolder + "/news20.binary";
-            //string testFile = dataFolder + "/news20_test.binary";
-            //int numberOfFeatures = 1335191;
+            //trainningFile = dataFolder + "/news20.binary";
+            // testFile = dataFolder + "/news20.binary";
+            // numberOfFeatures = 1335191;
 
-            //string trainningFile = dataFolder + "/mnist.scale";
-            //string testFile = dataFolder + "/mnist.scale.t";
-            //int numberOfFeatures = 784;
+            //trainningFile = dataFolder + "/mnist.scale";
+            //testFile = dataFolder + "/mnist.scale.t";
+            //numberOfFeatures = 784;
 
 
             //string trainningFile = dataFolder + "/real-sim_small_3K";

@@ -73,7 +73,9 @@ namespace KMLib.Helpers
         /// </summary>
         private CachedKernel<TProblemElement> Q;
         private int problemSize;
+        private OrderablePartitioner<Tuple<int, int>> partition;
 
+        object lockObj = new object();
 
         public ParallelSmoFanSolver(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
             : base(problem, kernel, C)
@@ -91,6 +93,10 @@ namespace KMLib.Helpers
             Cp = C;
             Cn = C;
             problemSize = problem.ElementsCount;
+
+            int rangeSize =(int) Math.Ceiling( (problemSize+0.0)/ Environment.ProcessorCount);
+            partition= Partitioner.Create( 0, problemSize,rangeSize);
+            
         }
 
 
@@ -329,13 +335,15 @@ namespace KMLib.Helpers
                 float delta_alpha_i = alpha[i] - old_alpha_i;
                 float delta_alpha_j = alpha[j] - old_alpha_j;
 
+                
+
                 //for (int k = 0; k < active_size; k++)
                 //{
                 //    G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
                 //}
 
-
-                var partition = Partitioner.Create(0, active_size);
+                
+                //var partition = Partitioner.Create(0, active_size);
 
                 Parallel.ForEach(partition, (range) =>
                 {
@@ -346,6 +354,9 @@ namespace KMLib.Helpers
                     }
 
                 });
+
+              //  Parallel.ForEach(partition, UpdateGradient);
+
 
 
                 // update alpha_status and G_bar
@@ -407,6 +418,16 @@ namespace KMLib.Helpers
             // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
 
+        //public void UpdateGradient(Tuple<int, int> range)
+        //{
+        //    int rangeEnd = range.Item2;
+        //    for (int k = range.Item1; k < rangeEnd; k++)
+        //    {
+        //        G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
+        //    }
+
+        //}
+
 
         // return 1 if already optimal, return 0 otherwise
         int select_working_set(int[] working_set, int pairsCount)
@@ -432,14 +453,14 @@ namespace KMLib.Helpers
             #region find max i
 
             Pair<int, float> maxPair = new Pair<int, float>(-1, -INF);
+            //todo: move it up to class field, in this solver active_size is constant
+           // var rangePart = Partitioner.Create(0, active_size);
 
-            var rangePart = Partitioner.Create(0, active_size);
 
 
-
-            object lockObj = new object();
-
-            Parallel.ForEach(rangePart, () => new Pair<int, float>(-1, -INF),
+            //object lockObj = new object();
+            //todo: to many Pair allocation, use partitioner
+            Parallel.ForEach(partition, () => new Pair<int, float>(-1, -INF),
               (range, loopState, localMax) =>
               {
                   int endRange = range.Item2;
@@ -524,12 +545,12 @@ namespace KMLib.Helpers
             if (i != -1) // null Q_i not accessed: GMax=-INF if i=-1
                 Q_i = Q.GetQ(i, active_size);
 
-
+            //todo: sorted N values, for this solver we need only one value, not "pairsCount" which is equal number of cores
             //find min
             SortedNVal minIdx = new SortedNVal(pairsCount, SortedNVal.SortMode.Asc);
 
 
-            GMax2 = FindMinObjParallel(GMax, rangePart, i, Q_i, minIdx);
+            GMax2 = FindMinObjParallel(GMax, partition, i, Q_i, minIdx);
             //GMax2 = FindMinObjParallel2(GMax, i, Q_i, minIdx);
             //GMax2 = FindMinObjSeq(GMax, GMax2, i, Q_i, minIdx);
 
@@ -642,10 +663,13 @@ namespace KMLib.Helpers
         private float FindMinObjParallel(float GMax, OrderablePartitioner<Tuple<int, int>> rangePart, int i, float[] Q_i, SortedNVal minIdx)
         {
 
-            object lockObj = new object();
+            
             float GMax2Tmp = -INF;
 
-            //
+            
+            
+
+            //todo: to many allocation, use range partitioner
             Parallel.ForEach(rangePart, () => new Pair<float, Pair<int, float>>(-INF, new Pair<int, float>(-1, INF)),
                (range, loopState, maxMinPair) =>
                {
@@ -713,7 +737,7 @@ namespace KMLib.Helpers
                    {
                        if (GMax2Tmp < maxMinPair.First)
                            GMax2Tmp = maxMinPair.First;
-
+                       //todo: in this solver we use only one value and index, 
                        minIdx.Add(maxMinPair.Second.First, maxMinPair.Second.Second);
                    }
                }
@@ -727,7 +751,7 @@ namespace KMLib.Helpers
         private float FindMinObjParallel2(float GMax, int i, float[] Q_i, SortedNVal minIdx)
         {
 
-            object lockObj = new object();
+           // object lockObj = new object();
             float GMax2Tmp = -INF;
 
             //
@@ -873,5 +897,7 @@ namespace KMLib.Helpers
 
 
 
+
+       
     }
 }

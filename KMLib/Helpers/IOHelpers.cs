@@ -102,30 +102,44 @@ namespace KMLib.Helpers
         /// <returns></returns>
         public static Problem<dnaLA.SparseVector> ReadDNAVectorsFromFile(string fileName,int numberOfFeatures) 
         {
-
-
+            //initial list capacity 8KB, its heuristic
+            int listCapacity = 1 << 13;
+            
             //list of labels
-            List<float> labels = new List<float>();
-
-
-
+            List<float> labels = new List<float>(listCapacity);
 
             //list of array, each array symbolize vector
-            List<KeyValuePair<int, double>[]> vectors = new List<KeyValuePair<int, double>[]>();
+            List<KeyValuePair<int, double>[]> vectors = new List<KeyValuePair<int, double>[]>(listCapacity);
             //new List<List<KeyValuePair<int, double>>>();
 
+            //vector parts (index and value) separator
+            char[] vecPartsSeparator = new char[]{' '};
+            //separator between index and value in one part
+            char[] idxValSeparator = new char[] { ':' };
             int max_index = 0;
+
+            List<KeyValuePair<int, double>> vec = new List<KeyValuePair<int, double>>(32);
 
             using (FileStream fileStream = File.OpenRead(fileName))
             {
                 using (StreamReader input = new StreamReader(fileStream))
                 {
-
                     
 
+                    //todo: string split function to many memory allocation, http://msdn.microsoft.com/en-us/library/b873y76a.aspx
                     while (input.Peek() > -1)
                     {
-                        string[] parts = input.ReadLine().Trim().Split(new []{" "},StringSplitOptions.RemoveEmptyEntries);
+                        int indexSeparatorPosition = -1;
+                        string inputLine = input.ReadLine().Trim();
+
+                        int index = 0;
+
+                        float value=0;
+                        
+                        
+                        
+                       /*
+                        string[] parts =inputLine.Split(vecPartsSeparator,StringSplitOptions.RemoveEmptyEntries);
 
                         //label
                         labels.Add(float.Parse(parts[0],CultureInfo.InvariantCulture));
@@ -134,25 +148,61 @@ namespace KMLib.Helpers
                         int m = parts.Length - 1;
 
                         //list of index and value for one vector
-                        List<KeyValuePair<int, double>> vec = new List<KeyValuePair<int, double>>();
-
-
-                        int index = 0;
-                        float value;
+                        List<KeyValuePair<int, double>> vec = new List<KeyValuePair<int, double>>(m);
+                        
+                       
                         //extract index and value
                         for (int j = 0; j < m; j++)
                         {
 
-                            string[] nodeParts = parts[j + 1].Split(':');
-                            index = int.Parse(nodeParts[0]);
-                            value = float.Parse(nodeParts[1], System.Globalization.CultureInfo.InvariantCulture);
+                            //string[] nodeParts = parts[j + 1].Split(idxValSeparator);
+                            //index = int.Parse(nodeParts[0]);
+                            //value = float.Parse(nodeParts[1], System.Globalization.CultureInfo.InvariantCulture);
+                            
+                            //it is more memory eficcient than above version with split
+                            indexSeparatorPosition = parts[j + 1].IndexOf(idxValSeparator[0]);
+                            index = int.Parse(parts[j+1].Substring(0,indexSeparatorPosition) );
+                            value = float.Parse(parts[j+1].Substring(indexSeparatorPosition+1));
 
                             vec.Add(new KeyValuePair<int, double>(index, value));
                             // v[index] = value;
 
                         }
+                        */
 
-                        if (m > 0)
+
+                        //add one space to the end of line, needed for parsing
+                        string oneLine = new StringBuilder(inputLine).Append(" ").ToString();
+
+                       
+                        
+                        int partBegin = -1, partEnd = -1;
+
+                        partBegin = oneLine.IndexOf(vecPartsSeparator[0]);
+                        //from begining to first space is label
+                        labels.Add(float.Parse(oneLine.Substring(0, partBegin)));
+
+                        index = 0;
+
+                        value=0;
+                        partEnd = oneLine.IndexOf(vecPartsSeparator[0], partBegin + 1);
+
+                        while (partEnd > 0)
+                        {
+
+                            indexSeparatorPosition = oneLine.IndexOf(idxValSeparator[0], partBegin);
+                            index = int.Parse(oneLine.Substring(partBegin + 1, indexSeparatorPosition - (partBegin+1)));
+                            value = float.Parse(oneLine.Substring(indexSeparatorPosition + 1, partEnd - (indexSeparatorPosition+1)));
+
+
+                            vec.Add(new KeyValuePair<int, double>(index, value));
+                            partBegin = partEnd;
+                            partEnd = oneLine.IndexOf(vecPartsSeparator[0], partBegin + 1);
+
+                        }
+
+
+                        if (vec.Count> 0)
                         {
                             max_index = Math.Max(max_index, index);
                         }
@@ -164,6 +214,9 @@ namespace KMLib.Helpers
 
 
                         vectors.Add(vec.ToArray());
+
+                        //clear vector parts
+                        vec.Clear();
                     }//end while
                 }
             }
