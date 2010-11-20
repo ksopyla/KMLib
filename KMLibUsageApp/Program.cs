@@ -28,11 +28,11 @@ namespace KMLibUsageApp
 
             IList<Tuple<string, string, int>> dataSetsToTest = CreateDataSetList(dataFolder);
 
-          // GroupedTestingDataSets(dataSetsToTest);
+          GroupedTestingDataSets(dataSetsToTest);
             
-            TestOneDataSet(dataFolder);
+            //TestOneDataSet(dataFolder);
 
-            TestOneDataSetWithCuda(dataFolder);
+            //TestOneDataSetWithCuda(dataFolder);
 
         }
 
@@ -100,8 +100,11 @@ namespace KMLibUsageApp
 
 
             float gamma = 0.5f;
-            EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
-            IKernel<SparseVector> kernel = new RbfKernel(gamma);
+            //EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
+            //IKernel<SparseVector> kernel = new RbfKernel(gamma);
+
+            EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+            IKernel<SparseVector> kernel = new LinearKernel();
 
             foreach (var data in dataSetsToTest)
             {
@@ -127,7 +130,7 @@ namespace KMLibUsageApp
         private static IList<Tuple<string, string, int>> CreateDataSetList(string dataFolder)
         {
             List<Tuple<string, string, int>> dataSets = new List<Tuple<string, string, int>>(8);
-
+            /*
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/a1a.train",
                 dataFolder + "/a1a.test",
@@ -157,7 +160,7 @@ namespace KMLibUsageApp
                 dataFolder + "/real-sim",
                 dataFolder + "/real-sim",
                 20958));
-
+            */
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/mnist.scale",
                 dataFolder + "/mnist.scale.t",
