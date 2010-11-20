@@ -5,6 +5,9 @@ using System.Text;
 
 namespace KMLib.Helpers
 {
+    /// <summary>
+    /// represents N sorted value in specific order (ascending, descending)
+    /// </summary>
     public class SortedNVal
     {
         public enum SortMode
@@ -19,6 +22,9 @@ namespace KMLib.Helpers
 
         public int Count { get { return sortedList.Count; } }
 
+        /// <summary>
+        /// maximal stored items
+        /// </summary>
         int nSize;
         float Min = float.MaxValue;
 
@@ -47,7 +53,7 @@ namespace KMLib.Helpers
 
         public bool Add(int index, float value)
         {
-
+            //todo: change the way it stores only one or two elements
             if (mode == SortMode.Asc)
             {
                 return AddAsc(new KeyValuePair<int, float>(index, value));
