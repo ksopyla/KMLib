@@ -21,12 +21,40 @@ namespace KMLib.SVMSolvers
     /// 0 <= alpha_i <= Cn for y_i = -1
     /// solution will be put in \alpha, objective value will be put in obj
     /// </summary>
-    /// 
+    /// <remarks>class use different thread utilization than <see cref="ParallelSmoFanSolver"/>
+    /// it use ThreadPool, should be more efficeint than previous.
+    /// Less memory allocation.
+    /// </remarks>
     /// <typeparam name="TProblemElement">Problem elements</typeparam>
-    public class ParallelSmoFanSolver<TProblemElement> : Solver<TProblemElement>
+    public class ParallelSmoFanSolver2<TProblemElement> : Solver<TProblemElement>
     {
 
-       
+         /// <summary>
+        /// Data passed to separete thread
+        /// </summary>
+        internal class SVMThreadData
+        {
+           
+
+            public ManualResetEvent ResetEvent { get; set; }
+
+            public Pair<int, float> Pair { get; set; }
+
+            /// <summary>
+            /// labels
+            /// </summary>
+            public sbyte[] Y { get; set; }
+
+            /// <summary>
+            /// gradient
+            /// </summary>
+            public float[] G { get; set; }
+
+            /// <summary>
+            /// Array range for processing
+            /// </summary>
+            public Tuple<int, int> Range { get; set; }
+        }
 
         /// <summary>
         /// Internal helper class, whitch store computed solution
@@ -80,7 +108,40 @@ namespace KMLib.SVMSolvers
 
         object lockObj = new object();
 
-        public ParallelSmoFanSolver(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
+        #region thread objects
+        /// <summary>
+        /// for waiting on threads
+        /// </summary>
+        ManualResetEvent[] resetEvents;
+
+        /// <summary>
+        /// for finding max index "i" in svm solver
+        /// </summary>
+        Pair<int, float>[] maxPairs;
+
+        /// <summary>
+        /// number of threads equal number of processors
+        /// </summary>
+        int numberOfThreads;
+
+        /// <summary>
+        /// Data for finding max Pair
+        /// </summary>
+        SVMThreadData[] maxPairThreadsData;
+        /// <summary>
+        /// wait callback for finding maxPairs
+        /// </summary>
+        WaitCallback[] maxPairsWaitCallbacks;
+
+
+        /// <summary>
+        /// size of each problem chunk
+        /// </summary>
+        int rangeSize;
+
+        #endregion
+
+        public ParallelSmoFanSolver2(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
             : base(problem, kernel, C)
         {
             //todo: add checking if kernel is initialized
@@ -97,8 +158,37 @@ namespace KMLib.SVMSolvers
             Cn = C;
             problemSize = problem.ElementsCount;
 
-            int rangeSize =(int) Math.Ceiling( (problemSize+0.0)/ Environment.ProcessorCount);
+            numberOfThreads = Environment.ProcessorCount;
+
+            rangeSize =(int) Math.Ceiling( (problemSize+0.0)/ numberOfThreads);
             partition= Partitioner.Create( 0, problemSize,rangeSize);
+
+            maxPairsWaitCallbacks = new WaitCallback[numberOfThreads];
+            maxPairThreadsData = new SVMThreadData[numberOfThreads];
+            maxPairs = new Pair<int, float>[numberOfThreads];
+            resetEvents = new ManualResetEvent[numberOfThreads];
+
+            int startRange = 0;
+            int endRange = startRange + rangeSize;
+            for (int i = 0; i < numberOfThreads; i++)
+            {
+                resetEvents[i] = new ManualResetEvent(false);
+                maxPairs[i] = new Pair<int, float>(-1, float.NegativeInfinity);
+                //todo: add some properties
+                maxPairThreadsData[i] = new SVMThreadData() { ResetEvent= resetEvents[i], 
+                                                              Pair= maxPairs[i],
+                                                              Range=new Tuple<int,int>(startRange,endRange)
+                };
+
+                maxPairsWaitCallbacks[i] = new WaitCallback(this.FindMaxPairInThread);
+
+                //change the range
+                startRange = endRange;
+                int rangeSum = endRange + rangeSize;
+                endRange = rangeSum < problemSize ? rangeSum : problemSize;
+
+
+            }
             
         }
 
@@ -177,6 +267,9 @@ namespace KMLib.SVMSolvers
             //this.Cp = Cp;
             //this.Cn = Cn;
 
+
+
+
             this.unshrink = false;
 
 
@@ -220,6 +313,15 @@ namespace KMLib.SVMSolvers
                     }
             }
             #endregion
+
+            #region init data needef for thread processing
+            for (int i = 0; i < numberOfThreads; i++)
+            {
+                maxPairThreadsData[i].Y = y;
+                maxPairThreadsData[i].G = G;
+            }
+            #endregion
+
             // optimization step
             int iter = 0;
             //int counter = Math.Min(problemSize, 1000) + 1;
@@ -455,60 +557,9 @@ namespace KMLib.SVMSolvers
 
             #region find max i
 
-            Pair<int, float> maxPair = new Pair<int, float>(-1, -INF);
-            //todo: move it up to class field, in this solver active_size is constant
-           // var rangePart = Partitioner.Create(0, active_size);
-
-
-
-            //object lockObj = new object();
-            //todo: to many Pair allocation, use partitioner
-            Parallel.ForEach(partition, () => new Pair<int, float>(-1, -INF),
-              (range, loopState, localMax) =>
-              {
-                  int endRange = range.Item2;
-                  for (int t = range.Item1; t < endRange; t++)
-                  {
-
-                      if (y[t] == +1)
-                      {
-                          if (!is_upper_bound(t))
-                          {
-                              if (-G[t] > localMax.Second) //wcześniej było większe lub równe
-                              {
-                                  localMax.First = t;
-                                  localMax.Second = -G[t];
-                              }
-                          }
-                      }
-                      else
-                      {
-                          if (!is_lower_bound(t))
-                          {
-                              if (G[t] > localMax.Second) //wcześniej było >=
-                              {
-
-                                  localMax.First = t;
-                                  localMax.Second = G[t];
-                              }
-                          }
-                      }
-
-
-                  }
-                  return localMax;
-              },
-              (localMax) =>
-              {
-                  lock (lockObj)
-                  {
-                      if (localMax.Second > maxPair.Second)
-                      {
-                          maxPair = localMax;
-                      }
-                  }
-              }
-          );
+            Pair<int, float> maxPair = FindMaxPair();
+            
+           // var maxPair2 =FindMaxPairParallel(maxPair);
 
             GMax = maxPair.Second;
             GMax_idx = maxPair.First;
@@ -572,6 +623,8 @@ namespace KMLib.SVMSolvers
             working_set[1] = GMin_idx;
             return 0;
         }
+
+       
 
         private float FindMinObjSeq(float GMax, float GMax2, int i, float[] Q_i, SortedNVal minIdx)
         {
@@ -899,8 +952,129 @@ namespace KMLib.SVMSolvers
         }
 
 
+        private Pair<int,float> FindMaxPair()
+        {
+            
+            for (int i = 0; i < numberOfThreads; i++)
+            {
+                maxPairThreadsData[i].ResetEvent.Reset();
+                maxPairThreadsData[i].Pair.First = -1;
+                maxPairThreadsData[i].Pair.Second = float.NegativeInfinity;
 
 
+                ThreadPool.QueueUserWorkItem(maxPairsWaitCallbacks[i], maxPairThreadsData[i]);
+            }
+
+            WaitHandle.WaitAll(resetEvents);
+
+            Pair<int, float> maxPair = new Pair<int, float>(-1, float.NegativeInfinity);
+            foreach (var item in maxPairs)
+            {
+                if (maxPair.Second < item.Second)
+                {
+                    maxPair.First = item.First;
+                    maxPair.Second = item.Second;
+                }
+            }
+            return maxPair;
+        }
+
+
+        /// <summary>
+        /// finds max 'i' in svm solver, its called in separate thread 
+        /// and find it in specific range of array
+        /// </summary>
+        /// <param name="threadData"></param>
+        private void FindMaxPairInThread(object threadData)
+        {
+            SVMThreadData data =(SVMThreadData) threadData;
+            Pair<int, float> localMax = data.Pair;
+           
+            for (int t = data.Range.Item1; t < data.Range.Item2; t++)
+            {
+
+                if (y[t] == +1)
+                {
+                    if (!is_upper_bound(t))
+                    {
+                        if (-G[t] > localMax.Second) //wcześniej było większe lub równe
+                        {
+                            localMax.First = t;
+                            localMax.Second = -G[t];
+                        }
+                    }
+                }
+                else
+                {
+                    if (!is_lower_bound(t))
+                    {
+                        if (G[t] > localMax.Second) //wcześniej było >=
+                        {
+
+                            localMax.First = t;
+                            localMax.Second = G[t];
+                        }
+                    }
+                }
+
+
+            }
+            //signal for thread that computation complete
+            data.ResetEvent.Set();
+        }
+
+
+
+        private Pair<int, float> FindMaxPairParallel(Pair<int, float> maxPair)
+        {
+            Parallel.ForEach(partition, () => new Pair<int, float>(-1, -INF),
+              (range, loopState, localMax) =>
+              {
+                  int endRange = range.Item2;
+                  for (int t = range.Item1; t < endRange; t++)
+                  {
+
+                      if (y[t] == +1)
+                      {
+                          if (!is_upper_bound(t))
+                          {
+                              if (-G[t] > localMax.Second) //wcześniej było większe lub równe
+                              {
+                                  localMax.First = t;
+                                  localMax.Second = -G[t];
+                              }
+                          }
+                      }
+                      else
+                      {
+                          if (!is_lower_bound(t))
+                          {
+                              if (G[t] > localMax.Second) //wcześniej było >=
+                              {
+
+                                  localMax.First = t;
+                                  localMax.Second = G[t];
+                              }
+                          }
+                      }
+
+
+                  }
+                  return localMax;
+              },
+              (localMax) =>
+              {
+                  lock (lockObj)
+                  {
+                      if (localMax.Second > maxPair.Second)
+                      {
+                          maxPair = localMax;
+                      }
+                  }
+              }
+          );
+            return maxPair;
+        }
        
     }
 }

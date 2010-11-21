@@ -107,7 +107,9 @@ namespace KMLib
             kernel.ProblemElements = problem.Elements;
             kernel.Labels = problem.Labels;
             kernel.Init();
-            Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+            //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+           
+            Solver = new ParallelSmoFanSolver2<TProblemElement>(problem, kernel, C);
             if (kernel.ProblemElements == null)
                 throw new ArgumentNullException("Not initialized, should call Init method");
            
