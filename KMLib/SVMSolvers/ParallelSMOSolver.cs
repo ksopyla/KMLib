@@ -8,7 +8,7 @@ using System.Collections.Concurrent;
 using KMLib.Helpers;
 using System.Diagnostics;
 
-namespace KMLib.Helpers
+namespace KMLib.SVMSolvers
 {
     /// <summary>
     /// Modified version of J. Plat SMO solver for SVM, 

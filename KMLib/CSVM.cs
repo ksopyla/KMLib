@@ -6,6 +6,7 @@ using KMLib.Kernels;
 using KMLib.Helpers;
 using System.Diagnostics;
 using KMLib.Evaluate;
+using KMLib.SVMSolvers;
 
 namespace KMLib
 {

@@ -8,7 +8,7 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
 
-namespace KMLib.Helpers
+namespace KMLib.SVMSolvers
 {
     /// <summary>
     ///  An SMO algorithm in Fan et al., JMLR 6(2005), p. 1889--1918, implementation based on 

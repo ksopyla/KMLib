@@ -120,7 +120,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SVMSolvers\SMOSolver.cs" />
-    <Compile Include="Solver.cs" />
+    <Compile Include="SVMSolvers\Solver.cs" />
     <Compile Include="CSVM.cs" />
   </ItemGroup>
   <ItemGroup>
