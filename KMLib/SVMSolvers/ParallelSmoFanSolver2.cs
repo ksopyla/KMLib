@@ -29,26 +29,53 @@ namespace KMLib.SVMSolvers
     public class ParallelSmoFanSolver2<TProblemElement> : Solver<TProblemElement>
     {
 
-         /// <summary>
-        /// Data passed to separete thread
+        /// <summary>
+        /// Data passed to separete thread, for finding Max index 'i'
         /// </summary>
-        internal class SVMThreadData
+        internal class MaxFindingThreadData
         {
-           
+
 
             public ManualResetEvent ResetEvent { get; set; }
 
             public Pair<int, float> Pair { get; set; }
 
-            /// <summary>
-            /// labels
-            /// </summary>
-            public sbyte[] Y { get; set; }
+            ///// <summary>
+            ///// labels
+            ///// </summary>
+            //public sbyte[] Y { get; set; }
+
+            ///// <summary>
+            ///// gradient
+            ///// </summary>
+            //public float[] G { get; set; }
 
             /// <summary>
-            /// gradient
+            /// Array range for processing
             /// </summary>
-            public float[] G { get; set; }
+            public Tuple<int, int> Range { get; set; }
+        }
+
+        /// <summary>
+        /// Data passed to separete thread, for finding min index 'j'
+        /// </summary>
+        internal class MinFindingThreadData
+        {
+
+
+            public ManualResetEvent ResetEvent { get; set; }
+
+            /// <summary>
+            /// min pair, min value and index
+            /// </summary>
+            public Pair<int, float> Pair { get; set; }
+
+            public float GMax;
+
+            public int GMaxIdx;
+
+            public float[] Q_i;
+            public float GMax2 = float.NegativeInfinity;
 
             /// <summary>
             /// Array range for processing
@@ -120,6 +147,11 @@ namespace KMLib.SVMSolvers
         Pair<int, float>[] maxPairs;
 
         /// <summary>
+        /// for finding min index "j" in svm solver
+        /// </summary
+        Pair<int, float>[] minPairs;
+
+        /// <summary>
         /// number of threads equal number of processors
         /// </summary>
         int numberOfThreads;
@@ -127,13 +159,20 @@ namespace KMLib.SVMSolvers
         /// <summary>
         /// Data for finding max Pair
         /// </summary>
-        SVMThreadData[] maxPairThreadsData;
+        MaxFindingThreadData[] maxPairThreadsData;
         /// <summary>
         /// wait callback for finding maxPairs
         /// </summary>
         WaitCallback[] maxPairsWaitCallbacks;
 
-
+        /// <summary>
+        /// Data for finding min Pair
+        /// </summary>
+        MinFindingThreadData[] minPairThreadsData;
+        /// <summary>
+        /// wait callback for finding maxPairs
+        /// </summary>
+        WaitCallback[] minPairsWaitCallbacks;
         /// <summary>
         /// size of each problem chunk
         /// </summary>
@@ -145,7 +184,7 @@ namespace KMLib.SVMSolvers
             : base(problem, kernel, C)
         {
             //todo: add checking if kernel is initialized
-            
+
             //remeber that we have variable kernel in base class
             Q = new CachedKernel<TProblemElement>(problem, kernel);
 
@@ -160,13 +199,18 @@ namespace KMLib.SVMSolvers
 
             numberOfThreads = Environment.ProcessorCount;
 
-            rangeSize =(int) Math.Ceiling( (problemSize+0.0)/ numberOfThreads);
-            partition= Partitioner.Create( 0, problemSize,rangeSize);
-
-            maxPairsWaitCallbacks = new WaitCallback[numberOfThreads];
-            maxPairThreadsData = new SVMThreadData[numberOfThreads];
-            maxPairs = new Pair<int, float>[numberOfThreads];
+            rangeSize = (int)Math.Ceiling((problemSize + 0.0) / numberOfThreads);
+            partition = Partitioner.Create(0, problemSize, rangeSize);
             resetEvents = new ManualResetEvent[numberOfThreads];
+            //max data structures
+            maxPairsWaitCallbacks = new WaitCallback[numberOfThreads];
+            maxPairThreadsData = new MaxFindingThreadData[numberOfThreads];
+            maxPairs = new Pair<int, float>[numberOfThreads];
+
+            //min data structures
+            minPairsWaitCallbacks = new WaitCallback[numberOfThreads];
+            minPairThreadsData = new MinFindingThreadData[numberOfThreads];
+            minPairs = new Pair<int, float>[numberOfThreads];
 
             int startRange = 0;
             int endRange = startRange + rangeSize;
@@ -174,13 +218,26 @@ namespace KMLib.SVMSolvers
             {
                 resetEvents[i] = new ManualResetEvent(false);
                 maxPairs[i] = new Pair<int, float>(-1, float.NegativeInfinity);
-                //todo: add some properties
-                maxPairThreadsData[i] = new SVMThreadData() { ResetEvent= resetEvents[i], 
-                                                              Pair= maxPairs[i],
-                                                              Range=new Tuple<int,int>(startRange,endRange)
+
+                maxPairThreadsData[i] = new MaxFindingThreadData()
+                {
+                    ResetEvent = resetEvents[i],
+                    Pair = maxPairs[i],
+                    Range = new Tuple<int, int>(startRange, endRange)
                 };
 
                 maxPairsWaitCallbacks[i] = new WaitCallback(this.FindMaxPairInThread);
+
+                minPairs[i] = new Pair<int, float>(-1, float.PositiveInfinity);
+                minPairThreadsData[i] = new MinFindingThreadData()
+                {
+                    ResetEvent = resetEvents[i],
+                    Pair = minPairs[i],
+                    Range = new Tuple<int, int>(startRange, endRange)
+                };
+
+                minPairsWaitCallbacks[i] = new WaitCallback(this.FindMinPairInThread);
+
 
                 //change the range
                 startRange = endRange;
@@ -189,7 +246,7 @@ namespace KMLib.SVMSolvers
 
 
             }
-            
+
         }
 
 
@@ -199,8 +256,8 @@ namespace KMLib.SVMSolvers
         /// <returns>Model</returns>
         public override Model<TProblemElement> ComputeModel()
         {
-            
-          
+
+
 
             int problemSize = problem.ElementsCount;
             float[] Minus_ones = new float[problemSize];
@@ -315,11 +372,11 @@ namespace KMLib.SVMSolvers
             #endregion
 
             #region init data needef for thread processing
-            for (int i = 0; i < numberOfThreads; i++)
-            {
-                maxPairThreadsData[i].Y = y;
-                maxPairThreadsData[i].G = G;
-            }
+            //for (int i = 0; i < numberOfThreads; i++)
+            //{
+            //    maxPairThreadsData[i].Y = y;
+            //    maxPairThreadsData[i].G = G;
+            //}
             #endregion
 
             // optimization step
@@ -440,14 +497,14 @@ namespace KMLib.SVMSolvers
                 float delta_alpha_i = alpha[i] - old_alpha_i;
                 float delta_alpha_j = alpha[j] - old_alpha_j;
 
-                
+
 
                 //for (int k = 0; k < active_size; k++)
                 //{
                 //    G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
                 //}
 
-                
+
                 //var partition = Partitioner.Create(0, active_size);
 
                 Parallel.ForEach(partition, (range) =>
@@ -460,7 +517,7 @@ namespace KMLib.SVMSolvers
 
                 });
 
-              //  Parallel.ForEach(partition, UpdateGradient);
+                //  Parallel.ForEach(partition, UpdateGradient);
 
 
 
@@ -544,7 +601,7 @@ namespace KMLib.SVMSolvers
             //    -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
 
             float GMax = -INF;
-           // float GNMax = -INF;
+            // float GNMax = -INF;
 
             float GMax2 = -INF;
             int GMax_idx = -1;
@@ -558,39 +615,12 @@ namespace KMLib.SVMSolvers
             #region find max i
 
             Pair<int, float> maxPair = FindMaxPair();
-            
-           // var maxPair2 =FindMaxPairParallel(maxPair);
+
+            //Pair<int, float> maxPair = new Pair<int, float>(-1, float.NegativeInfinity);
+            //maxPair = FindMaxPairParallel(maxPair);
 
             GMax = maxPair.Second;
             GMax_idx = maxPair.First;
-
-            #region original sequential find max
-            //for (int t = 0; t < active_size; t++)
-            //{
-            //    if (y[t] == +1)
-            //    {
-            //        if (!is_upper_bound(t))
-            //        {
-            //            if (-G[t] > GMax) //wcześniej było większe lub równe
-            //            {
-            //                GMax = -G[t];
-            //                GMax_idx = t;
-            //            }
-            //        }
-            //    }
-            //    else
-            //    {
-            //        if (!is_lower_bound(t))
-            //        {
-            //            if (G[t] > GMax) //wcześniej było >=
-            //            {
-            //                GMax = G[t];
-            //                GMax_idx = t;
-            //            }
-            //        }
-            //    }
-            //}
-            #endregion
 
             #endregion
 
@@ -599,131 +629,46 @@ namespace KMLib.SVMSolvers
             if (i != -1) // null Q_i not accessed: GMax=-INF if i=-1
                 Q_i = Q.GetQ(i, active_size);
 
-            //todo: sorted N values, for this solver we need only one value, not "pairsCount" which is equal number of cores
+
+
             //find min
-            SortedNVal minIdx = new SortedNVal(pairsCount, SortedNVal.SortMode.Asc);
+            Pair<int, float> minPair;
+            GMax2 = FindMinPair(out minPair, i, GMax, Q_i);
+            GMin_idx = minPair.First;
 
-
-            GMax2 = FindMinObjParallel(GMax, partition, i, Q_i, minIdx);
-            //GMax2 = FindMinObjParallel2(GMax, i, Q_i, minIdx);
-            //GMax2 = FindMinObjSeq(GMax, GMax2, i, Q_i, minIdx);
-
+            //todo:old code, remove it 
+            //SortedNVal minIdx = new SortedNVal(pairsCount, SortedNVal.SortMode.Asc);
+            //GMax2 = FindMinObjParallel(GMax, partition, i, Q_i, minIdx);
+            ////GMax2 = FindMinObjParallel2(GMax, i, Q_i, minIdx);
+            ////GMax2 = FindMinObjSeq(GMax, GMax2, i, Q_i, minIdx);
+            //if (minIdx.Count > 0)
+            //    GMin_idx = minIdx.ToArray()[0].Key;
+            //else
+            //{
+            //    GMin_idx = -1;
+            //}
 
 
             if (GMax + GMax2 < EPS)
                 return 1;
 
-            if (minIdx.Count > 0)
-                GMin_idx = minIdx.ToArray()[0].Key;
-            else
-            {
-                GMin_idx = -1;
-            }
             working_set[0] = GMax_idx;
             working_set[1] = GMin_idx;
             return 0;
         }
 
+
+
        
-
-        private float FindMinObjSeq(float GMax, float GMax2, int i, float[] Q_i, SortedNVal minIdx)
-        {
-            for (int j = 0; j < active_size; j++)
-            {
-                if (y[j] == +1)
-                {
-                    if (!is_lower_bound(j))
-                    {
-                        float grad_diff = GMax + G[j];
-                        if (G[j] >= GMax2)
-                            GMax2 = G[j];
-                        if (grad_diff > 0)
-                        {
-                            float obj_diff;
-                            float quad_coef = (float)(Q_i[i] + QD[j] - 2.0 * y[i] * Q_i[j]);
-                            if (quad_coef > 0)
-                                obj_diff = -(grad_diff * grad_diff) / quad_coef;
-                            else
-                                obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
-
-
-                            minIdx.Add(j, obj_diff);
-
-                            //if (obj_diff < obj_diff_Min) //previous "<="
-                            //{
-                            //    GMin_idx = j;
-                            //    obj_diff_Min = obj_diff;
-
-                            //    // minSecIdx.Add(new KeyValuePair<int, float>(j, obj_diff_Min));
-
-                            //}
-                            //else if (obj_diff_Min < obj_diff_NMin)
-                            //{
-                            //  //  minSecIdx.Add(new KeyValuePair<int, float>(j, obj_diff));
-
-                            //}
-                            //else continue;
-                        }
-                        //else continue;
-                    }
-                    //else continue;
-                }
-                else
-                {
-                    if (!is_upper_bound(j))
-                    {
-                        float grad_diff = GMax - G[j];
-                        if (-G[j] >= GMax2)
-                            GMax2 = -G[j];
-                        if (grad_diff > 0)
-                        {
-                            float obj_diff;
-                            float quad_coef = (float)(Q_i[i] + QD[j] + 2.0 * y[i] * Q_i[j]);
-                            if (quad_coef > 0)
-                                obj_diff = -(grad_diff * grad_diff) / quad_coef;
-                            else
-                                obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
-
-                            minIdx.Add(j, obj_diff);
-                            //if (obj_diff < obj_diff_Min)
-                            //{
-                            //    GMin_idx = j;
-                            //    obj_diff_Min = obj_diff;
-                            //    //minSecIdx.Add(new KeyValuePair<int, float>(j, obj_diff_Min));
-                            //}
-                            //else if (obj_diff < obj_diff_NMin)
-                            //{
-                            //    minSecIdx.Add(new KeyValuePair<int, float>(j, obj_diff));
-
-                            //}
-                            //else continue;
-                        }
-                        //else continue;
-                    }
-                    //else continue;
-                }
-
-                //if (minSecIdx.Count > pairsCount)
-                //{
-                //    var minPair = minSecIdx.Min;
-                //    minSecIdx.Remove(minPair);
-
-
-                //    obj_diff_NMin = minPair.Value;
-                //}
-
-            }
-            return GMax2;
-        }
 
         private float FindMinObjParallel(float GMax, OrderablePartitioner<Tuple<int, int>> rangePart, int i, float[] Q_i, SortedNVal minIdx)
         {
 
-            
+
             float GMax2Tmp = -INF;
 
-            
-            
+
+
 
             //todo: to many allocation, use range partitioner
             Parallel.ForEach(rangePart, () => new Pair<float, Pair<int, float>>(-INF, new Pair<int, float>(-1, INF)),
@@ -803,88 +748,7 @@ namespace KMLib.SVMSolvers
 
 
 
-        //todo: remove it later, not efective
-        private float FindMinObjParallel2(float GMax, int i, float[] Q_i, SortedNVal minIdx)
-        {
-
-           // object lockObj = new object();
-            float GMax2Tmp = -INF;
-
-            //
-            Parallel.For(0, active_size, () => new Pair<float, Pair<int, float>>(-INF, new Pair<int, float>(-1, INF)),
-               (j, loopState, maxMinPair) =>
-               {
-                   if (y[j] == +1)
-                   {
-                       if (!is_lower_bound(j))
-                       {
-                           float grad_diff = GMax + G[j];
-                           if (G[j] >= maxMinPair.First)
-                               maxMinPair.First = G[j];
-
-
-                           if (grad_diff > 0)
-                           {
-                               float obj_diff;
-                               float quad_coef = (float)(Q_i[i] + QD[j] - 2.0 * y[i] * Q_i[j]);
-                               if (quad_coef > 0)
-                                   obj_diff = -(grad_diff * grad_diff) / quad_coef;
-                               else
-                                   obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
-
-                               if (obj_diff < maxMinPair.Second.Second)
-                               {
-                                   maxMinPair.Second.First = j;
-                                   maxMinPair.Second.Second = obj_diff;
-                               }
-                           }
-                       }
-                   }
-                   else
-                   {
-                       if (!is_upper_bound(j))
-                       {
-                           float grad_diff = GMax - G[j];
-                           if (-G[j] >= maxMinPair.First)
-                               maxMinPair.First = -G[j];
-
-                           if (grad_diff > 0)
-                           {
-                               float obj_diff;
-                               float quad_coef = (float)(Q_i[i] + QD[j] + 2.0 * y[i] * Q_i[j]);
-                               if (quad_coef > 0)
-                                   obj_diff = -(grad_diff * grad_diff) / quad_coef;
-                               else
-                                   obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
-
-                               if (obj_diff < maxMinPair.Second.Second)
-                               {
-                                   maxMinPair.Second.First = j;
-                                   maxMinPair.Second.Second = obj_diff;
-                               }
-                           }
-                       }
-                   }
-
-                   //if (maxMinPair.Second.First == -1)
-                   //    return null;
-                   return maxMinPair;
-               },
-               (maxMinPair) =>
-               {
-                   if (maxMinPair != null && maxMinPair.Second.First!=-1)
-                       lock (lockObj)
-                       {
-                           if (GMax2Tmp < maxMinPair.First)
-                               GMax2Tmp = maxMinPair.First;
-
-                           minIdx.Add(maxMinPair.Second.First, maxMinPair.Second.Second);
-                       }
-               }
-           );
-            return GMax2Tmp;
-        }
-
+       
         private float get_C(int i)
         {
             return (y[i] > 0) ? Cp : Cn;
@@ -907,10 +771,6 @@ namespace KMLib.SVMSolvers
         protected bool is_lower_bound(int i) { return alpha_status[i] == LOWER_BOUND; }
 
         private bool is_free(int i) { return alpha_status[i] == FREE; }
-
-
-
-
 
 
         float calculate_rho()
@@ -951,10 +811,13 @@ namespace KMLib.SVMSolvers
             return r;
         }
 
-
-        private Pair<int,float> FindMaxPair()
+        /// <summary>
+        /// finds Max index 'i' in svm solver
+        /// </summary>
+        /// <returns></returns>
+        private Pair<int, float> FindMaxPair()
         {
-            
+
             for (int i = 0; i < numberOfThreads; i++)
             {
                 maxPairThreadsData[i].ResetEvent.Reset();
@@ -979,6 +842,53 @@ namespace KMLib.SVMSolvers
             return maxPair;
         }
 
+        /// <summary>
+        /// find min index 'j'
+        /// </summary>
+        /// <param name="minPair"></param>
+        /// <param name="GMaxIdx"></param>
+        /// <param name="GMax"></param>
+        /// <param name="Q_i"></param>
+        /// <returns></returns>
+        private float FindMinPair(out Pair<int, float> minPair, int GMaxIdx,float GMax,float[] Q_i)
+        {
+
+            for (int i = 0; i < numberOfThreads; i++)
+            {
+                minPairThreadsData[i].ResetEvent.Reset();
+                minPairThreadsData[i].Pair.First = -1;
+                minPairThreadsData[i].Pair.Second = float.PositiveInfinity;
+                minPairThreadsData[i].GMaxIdx = GMaxIdx;
+                minPairThreadsData[i].GMax = GMax;
+                minPairThreadsData[i].Q_i = Q_i;
+
+
+                ThreadPool.QueueUserWorkItem(minPairsWaitCallbacks[i], minPairThreadsData[i]);
+            }
+
+            WaitHandle.WaitAll(resetEvents);
+
+            //find min pair
+            minPair = new Pair<int, float>(-1, float.PositiveInfinity);
+
+            foreach (var item in minPairs)
+            {
+                if (minPair.Second > item.Second)
+                {
+                    minPair.First = item.First;
+                    minPair.Second = item.Second;
+                }
+            }
+
+            //find GMax2
+            float GMax2 = float.NegativeInfinity;
+            for (int i = 0; i < numberOfThreads; i++)
+            {
+                if (GMax2 < minPairThreadsData[i].GMax2)
+                    GMax2 = minPairThreadsData[i].GMax2;
+            }
+            return GMax2;
+        }
 
         /// <summary>
         /// finds max 'i' in svm solver, its called in separate thread 
@@ -987,9 +897,9 @@ namespace KMLib.SVMSolvers
         /// <param name="threadData"></param>
         private void FindMaxPairInThread(object threadData)
         {
-            SVMThreadData data =(SVMThreadData) threadData;
+            MaxFindingThreadData data = (MaxFindingThreadData)threadData;
             Pair<int, float> localMax = data.Pair;
-           
+
             for (int t = data.Range.Item1; t < data.Range.Item2; t++)
             {
 
@@ -1024,7 +934,90 @@ namespace KMLib.SVMSolvers
         }
 
 
+        /// <summary>
+        /// finds min 'j' in svm solver, its called in separate thread 
+        /// and find it in specific range of array
+        /// </summary>
+        /// <param name="threadData"></param>
+        private void FindMinPairInThread(object threadData)
+        {
+            MinFindingThreadData data = (MinFindingThreadData)threadData;
+            Pair<int, float> localMaxMin = data.Pair;
 
+           
+            float GMax2 = float.NegativeInfinity;
+
+            int i = data.GMaxIdx;
+            float obj_diff = 0;
+            float quad_coef = 0;
+            float grad_diff = 0;
+            for (int j = data.Range.Item1; j < data.Range.Item2; j++)
+            {
+                if (y[j] == +1)
+                {
+                    if (!is_lower_bound(j))
+                    {
+                        grad_diff = data.GMax + G[j];
+                        //save max value
+                        if (G[j] >= GMax2)
+                            GMax2 = G[j];
+
+
+
+                        if (grad_diff > 0)
+                        {
+
+                            quad_coef = (float)(data.Q_i[i] + QD[j] - 2.0 * y[i] * data.Q_i[j]);
+                            if (quad_coef > 0)
+                                obj_diff = -(grad_diff * grad_diff) / quad_coef;
+                            else
+                                obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
+
+                            if (obj_diff < localMaxMin.Second)
+                            {
+                                localMaxMin.First = j;
+
+                                localMaxMin.Second = obj_diff;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (!is_upper_bound(j))
+                    {
+                        grad_diff = data.GMax - G[j];
+                        //save -max
+                        if (-G[j] >= GMax2)
+                            GMax2 = -G[j];
+
+                        if (grad_diff > 0)
+                        {
+
+                            quad_coef = (float)(data.Q_i[i] + QD[j] + 2.0 * y[i] * data.Q_i[j]);
+                            if (quad_coef > 0)
+                                obj_diff = -(grad_diff * grad_diff) / quad_coef;
+                            else
+                                obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
+
+                            if (obj_diff < localMaxMin.Second)
+                            {
+                                localMaxMin.First = j;
+                                localMaxMin.Second = obj_diff;
+                            }
+                        }
+                    }
+                }
+            }
+
+            data.GMax2 = GMax2;
+
+            //signal for thread that computation complete
+            data.ResetEvent.Set();
+        }
+
+
+        //todo:old code remove it
         private Pair<int, float> FindMaxPairParallel(Pair<int, float> maxPair)
         {
             Parallel.ForEach(partition, () => new Pair<int, float>(-1, -INF),
@@ -1075,6 +1068,6 @@ namespace KMLib.SVMSolvers
           );
             return maxPair;
         }
-       
+
     }
 }
