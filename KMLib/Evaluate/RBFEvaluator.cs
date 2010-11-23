@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using dnAnalytics.LinearAlgebra;
 using KMLib.Kernels;
+using System.Threading.Tasks;
 
 namespace KMLib.Evaluate
 {
@@ -47,29 +48,33 @@ namespace KMLib.Evaluate
             float[] predictions = new float[elements.Length];
 
 
-            for (int i = 0; i < elements.Length; i++)
-            {
-                float x1Squere = linKernel.Product(elements[i], elements[i]);
-                float sum = 0;
-
-                int index = -1;
-
-                for (int k = 0; k < TrainedModel.SupportElementsIndexes.Length; k++)
+            Parallel.For(0, elements.Length,
+                i =>
                 {
-                    //support vector squere
-                    float x2Squere = linKernel.DiagonalDotCache[k];
 
-                    float dot = linKernel.Product(elements[i], TrainedModel.SupportElements[k]);
+                    //for (int i = 0; i < elements.Length; i++)
+                    //{
+                    float x1Squere = linKernel.Product(elements[i], elements[i]);
+                    float sum = 0;
 
-                    float rbfVal = (float)Math.Exp(-gamma * (x1Squere + x2Squere - 2 * dot));
+                    int index = -1;
+
+                    for (int k = 0; k < TrainedModel.SupportElementsIndexes.Length; k++)
+                    {
+                        //support vector squere
+                        float x2Squere = linKernel.DiagonalDotCache[k];
+
+                        float dot = linKernel.Product(elements[i], TrainedModel.SupportElements[k]);
+
+                        float rbfVal = (float)Math.Exp(-gamma * (x1Squere + x2Squere - 2 * dot));
 
 
-                    index = TrainedModel.SupportElementsIndexes[k];
-                    sum += TrainedModel.Alpha[index] * TrainningProblem.Labels[index] * rbfVal;
-                }
-                sum -= TrainedModel.Rho;
-                predictions[i] = sum < 0 ? -1 : 1;
-            }
+                        index = TrainedModel.SupportElementsIndexes[k];
+                        sum += TrainedModel.Alpha[index] * TrainningProblem.Labels[index] * rbfVal;
+                    }
+                    sum -= TrainedModel.Rho;
+                    predictions[i] = sum < 0 ? -1 : 1;
+                });
 
             return predictions;
 
