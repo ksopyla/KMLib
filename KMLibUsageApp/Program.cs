@@ -28,9 +28,9 @@ namespace KMLibUsageApp
 
             IList<Tuple<string, string, int>> dataSetsToTest = CreateDataSetList(dataFolder);
 
-           // GroupedTestingDataSets(dataSetsToTest);
+            GroupedTestingDataSets(dataSetsToTest);
             
-            TestOneDataSet(dataFolder);
+            //TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
