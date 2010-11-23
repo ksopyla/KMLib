@@ -30,7 +30,7 @@ namespace KMLibUsageApp
 
            // GroupedTestingDataSets(dataSetsToTest);
             
-            TestOneDataSet(dataFolder);
+            //TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -196,15 +196,15 @@ namespace KMLibUsageApp
         {
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
-
-            //trainningFile = dataFolder + "/a9a";
-            //testFile = dataFolder + "/a9a.t";
+            //trainningFile = dataFolder + "/a1a.train";
+            ////testFile = dataFolder + "/a1a.test";
+            //testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
             //numberOfFeatures = 123;
+
+            trainningFile = dataFolder + "/a9a";
+            testFile = dataFolder + "/a9a.t";
+            numberOfFeatures = 123;
 
              //trainningFile = dataFolder + "/w8a";
              //testFile = dataFolder + "/w8a.t";
