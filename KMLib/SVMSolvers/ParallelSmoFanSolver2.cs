@@ -580,16 +580,7 @@ namespace KMLib.SVMSolvers
             // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
 
-        //public void UpdateGradient(Tuple<int, int> range)
-        //{
-        //    int rangeEnd = range.Item2;
-        //    for (int k = range.Item1; k < rangeEnd; k++)
-        //    {
-        //        G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
-        //    }
-
-        //}
-
+        
 
         // return 1 if already optimal, return 0 otherwise
         int select_working_set(int[] working_set, int pairsCount)
