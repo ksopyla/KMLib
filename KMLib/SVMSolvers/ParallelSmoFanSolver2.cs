@@ -608,17 +608,12 @@ namespace KMLib.SVMSolvers
             int GMin_idx = -1;
             //float obj_diff_Min = INF;
             //float obj_diff_NMin = INF;
-
-
-
-
+            
             #region find max i
 
             Pair<int, float> maxPair = FindMaxPair();
 
-            //Pair<int, float> maxPair = new Pair<int, float>(-1, float.NegativeInfinity);
-            //maxPair = FindMaxPairParallel(maxPair);
-
+            
             GMax = maxPair.Second;
             GMax_idx = maxPair.First;
 
@@ -636,19 +631,6 @@ namespace KMLib.SVMSolvers
             GMax2 = FindMinPair(out minPair, i, GMax, Q_i);
             GMin_idx = minPair.First;
 
-            //todo:old code, remove it 
-            //SortedNVal minIdx = new SortedNVal(pairsCount, SortedNVal.SortMode.Asc);
-            //GMax2 = FindMinObjParallel(GMax, partition, i, Q_i, minIdx);
-            ////GMax2 = FindMinObjParallel2(GMax, i, Q_i, minIdx);
-            ////GMax2 = FindMinObjSeq(GMax, GMax2, i, Q_i, minIdx);
-            //if (minIdx.Count > 0)
-            //    GMin_idx = minIdx.ToArray()[0].Key;
-            //else
-            //{
-            //    GMin_idx = -1;
-            //}
-
-
             if (GMax + GMax2 < EPS)
                 return 1;
 
@@ -661,94 +643,7 @@ namespace KMLib.SVMSolvers
 
        
 
-        private float FindMinObjParallel(float GMax, OrderablePartitioner<Tuple<int, int>> rangePart, int i, float[] Q_i, SortedNVal minIdx)
-        {
-
-
-            float GMax2Tmp = -INF;
-
-
-
-
-            //todo: to many allocation, use range partitioner
-            Parallel.ForEach(rangePart, () => new Pair<float, Pair<int, float>>(-INF, new Pair<int, float>(-1, INF)),
-               (range, loopState, maxMinPair) =>
-               {
-                   int endRange = range.Item2;
-                   for (int j = range.Item1; j < endRange; j++)
-                   {
-                       if (y[j] == +1)
-                       {
-                           if (!is_lower_bound(j))
-                           {
-                               float grad_diff = GMax + G[j];
-                               if (G[j] >= maxMinPair.First)
-                                   maxMinPair.First = G[j];
-
-
-
-                               if (grad_diff > 0)
-                               {
-                                   float obj_diff;
-                                   float quad_coef = (float)(Q_i[i] + QD[j] - 2.0 * y[i] * Q_i[j]);
-                                   if (quad_coef > 0)
-                                       obj_diff = -(grad_diff * grad_diff) / quad_coef;
-                                   else
-                                       obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
-
-                                   if (obj_diff < maxMinPair.Second.Second)
-                                   {
-                                       maxMinPair.Second.First = j;
-                                       maxMinPair.Second.Second = obj_diff;
-                                   }
-                               }
-                           }
-                       }
-                       else
-                       {
-                           if (!is_upper_bound(j))
-                           {
-                               float grad_diff = GMax - G[j];
-                               if (-G[j] >= maxMinPair.First)
-                                   maxMinPair.First = -G[j];
-
-                               if (grad_diff > 0)
-                               {
-                                   float obj_diff;
-                                   float quad_coef = (float)(Q_i[i] + QD[j] + 2.0 * y[i] * Q_i[j]);
-                                   if (quad_coef > 0)
-                                       obj_diff = -(grad_diff * grad_diff) / quad_coef;
-                                   else
-                                       obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
-
-                                   if (obj_diff < maxMinPair.Second.Second)
-                                   {
-                                       maxMinPair.Second.First = j;
-                                       maxMinPair.Second.Second = obj_diff;
-                                   }
-                               }
-                           }
-                       }
-                   }
-                   return maxMinPair;
-               },
-               (maxMinPair) =>
-               {
-                   lock (lockObj)
-                   {
-                       if (GMax2Tmp < maxMinPair.First)
-                           GMax2Tmp = maxMinPair.First;
-                       //todo: in this solver we use only one value and index, 
-                       minIdx.Add(maxMinPair.Second.First, maxMinPair.Second.Second);
-                   }
-               }
-           );
-            return GMax2Tmp;
-        }
-
-
-
-       
+             
         private float get_C(int i)
         {
             return (y[i] > 0) ? Cp : Cn;
@@ -1017,57 +912,7 @@ namespace KMLib.SVMSolvers
         }
 
 
-        //todo:old code remove it
-        private Pair<int, float> FindMaxPairParallel(Pair<int, float> maxPair)
-        {
-            Parallel.ForEach(partition, () => new Pair<int, float>(-1, -INF),
-              (range, loopState, localMax) =>
-              {
-                  int endRange = range.Item2;
-                  for (int t = range.Item1; t < endRange; t++)
-                  {
-
-                      if (y[t] == +1)
-                      {
-                          if (!is_upper_bound(t))
-                          {
-                              if (-G[t] > localMax.Second) //wcześniej było większe lub równe
-                              {
-                                  localMax.First = t;
-                                  localMax.Second = -G[t];
-                              }
-                          }
-                      }
-                      else
-                      {
-                          if (!is_lower_bound(t))
-                          {
-                              if (G[t] > localMax.Second) //wcześniej było >=
-                              {
-
-                                  localMax.First = t;
-                                  localMax.Second = G[t];
-                              }
-                          }
-                      }
-
-
-                  }
-                  return localMax;
-              },
-              (localMax) =>
-              {
-                  lock (lockObj)
-                  {
-                      if (localMax.Second > maxPair.Second)
-                      {
-                          maxPair = localMax;
-                      }
-                  }
-              }
-          );
-            return maxPair;
-        }
+        
 
     }
 }
