@@ -128,10 +128,13 @@ namespace KMLib
             var disKernel = kernel as IDisposable;
             if (disKernel != null)
                 disKernel.Dispose();
+            
+            kernel.ProblemElements = null;
+            kernel.Labels = null;
 
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
-            evaluator.TrainningProblem = problem;
+            //evaluator.TrainningProblem = problem;
           
         }
 

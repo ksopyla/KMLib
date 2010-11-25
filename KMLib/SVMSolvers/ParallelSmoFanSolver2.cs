@@ -286,20 +286,22 @@ namespace KMLib.SVMSolvers
             model.Rho = si.rho;
 
 
-            List<TProblemElement> supportElements = new List<TProblemElement>();
+            List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
             List<int> suporrtIndexes = new List<int>(alpha.Length);
+            List<float> supportLabels = new List<float>(alpha.Length);
             for (int j = 0; j < alphaResult.Length; j++)
             {
                 if (Math.Abs(alphaResult[j]) > 0)
                 {
                     supportElements.Add(problem.Elements[j]);
                     suporrtIndexes.Add(j);
+                    supportLabels.Add(problem.Labels[j]);
                 }
 
             }
             model.SupportElements = supportElements.ToArray();
             model.SupportElementsIndexes = suporrtIndexes.ToArray();
-
+            model.Labels = supportLabels.ToArray();
             return model;
         }
 

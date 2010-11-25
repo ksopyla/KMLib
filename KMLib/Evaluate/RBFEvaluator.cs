@@ -70,7 +70,7 @@ namespace KMLib.Evaluate
 
 
                         index = TrainedModel.SupportElementsIndexes[k];
-                        sum += TrainedModel.Alpha[index] * TrainningProblem.Labels[index] * rbfVal;
+                        sum += TrainedModel.Alpha[index] * TrainedModel.Labels[k] * rbfVal;
                     }
                     sum -= TrainedModel.Rho;
                     predictions[i] = sum < 0 ? -1 : 1;
