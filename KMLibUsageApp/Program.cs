@@ -106,8 +106,8 @@ namespace KMLibUsageApp
 
 
             float gamma = 0.5f;
-            EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
-            IKernel<SparseVector> kernel = new RbfKernel(gamma);
+            //EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
+            //IKernel<SparseVector> kernel = new RbfKernel(gamma);
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             //IKernel<SparseVector> kernel = new LinearKernel();
