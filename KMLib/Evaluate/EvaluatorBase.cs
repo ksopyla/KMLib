@@ -26,7 +26,7 @@ namespace KMLib.Evaluate
         /// Gets or sets the trainning problem.
         /// </summary>
         /// <value>The trainning problem.</value>
-        public Problem<TProblemElement> TrainningProblem { get; set; }
+       // public Problem<TProblemElement> TrainningProblem { get; set; }
 
         public IKernel<TProblemElement> Kernel { get; set; }
 
@@ -61,8 +61,9 @@ namespace KMLib.Evaluate
             for (int k = 0; k < TrainedModel.SupportElementsIndexes.Length; k++)
             {
                 index = TrainedModel.SupportElementsIndexes[k];
-                sum += TrainedModel.Alpha[index] * TrainningProblem.Labels[index] *
-                                    Kernel.Product(TrainningProblem.Elements[index], element);
+                sum += TrainedModel.Alpha[index] * TrainedModel.Labels[k] *
+                                    Kernel.Product(TrainedModel.SupportElements[k], element);
+                // Kernel.Product(TrainningProblem.Elements[index], element);
             }
 
             sum -= TrainedModel.Rho;

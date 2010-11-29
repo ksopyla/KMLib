@@ -194,10 +194,11 @@ namespace KMLib.GPU
 
             cuFuncSign = cuda.GetModuleFunction(cudaSignKernelName);
 
-            svVector = new float[TrainningProblem.Elements[0].Count];
+            //reserved memory based on dimension of support vector
+            svVector = new float[TrainedModel.SupportElements[0].Count];
 
              stream = cuda.CreateStream();
-            memSvSize = (uint)(TrainningProblem.Elements[0].Count * sizeof(float));
+             memSvSize = (uint)(TrainedModel.SupportElements[0].Count * sizeof(float));
             
 
             //allocates memory for buffers
@@ -218,7 +219,9 @@ namespace KMLib.GPU
             Parallel.For(0,TrainedModel.SupportElementsIndexes.Length, 
             i=>{
                 int idx = TrainedModel.SupportElementsIndexes[i];
-                svLabels[i] = TrainningProblem.Labels[idx];
+
+                svLabels[i] = TrainedModel.Labels[i];
+                //svLabels[i] = TrainningProblem.Labels[idx];
                 svAlphas[i] = TrainedModel.Alpha[idx];
                     
             });

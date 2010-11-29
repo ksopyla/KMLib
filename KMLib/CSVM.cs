@@ -107,11 +107,12 @@ namespace KMLib
             kernel.ProblemElements = problem.Elements;
             kernel.Labels = problem.Labels;
             kernel.Init();
-
-
-            Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
-            //Solver = new ParallelSmoFanSolver2<TProblemElement>(problem, kernel, C);
-
+            
+            //
+            //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+            //this solver works a bit faster and use less memory
+            Solver = new ParallelSmoFanSolver2<TProblemElement>(problem, kernel, C);
+            
             if (kernel.ProblemElements == null)
                 throw new ArgumentNullException("Not initialized, should call Init method");
 
@@ -127,10 +128,13 @@ namespace KMLib
             var disKernel = kernel as IDisposable;
             if (disKernel != null)
                 disKernel.Dispose();
+            
+            kernel.ProblemElements = null;
+            kernel.Labels = null;
 
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
-            evaluator.TrainningProblem = problem;
+            //evaluator.TrainningProblem = problem;
 
         }
 

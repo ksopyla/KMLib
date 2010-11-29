@@ -26,7 +26,7 @@ namespace KMLib
         /// <summary>
         /// <see cref="SupportElements"/> labels
         /// </summary>
-        ///public int[] Labels;
+        public float[] Labels;
         
         /// <summary>
         /// <see cref=" SupportElements"/> indexes from original problem set
