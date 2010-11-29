@@ -286,11 +286,16 @@ namespace KMLibUsageApp
             IKernel<SparseVector> kernel = new CudaLinearKernel();
             Model<SparseVector> model;
 
+            Console.WriteLine("read vectors");
             Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+            Console.WriteLine("end read vectors");
+
+            Console.WriteLine("kernel init");
             kernel.ProblemElements = train.Elements;
             kernel.Labels = train.Labels;
             kernel.Init();
 
+            Console.WriteLine("create solver");
             //
             //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             //this solver works a bit faster and use less memory
@@ -302,10 +307,11 @@ namespace KMLibUsageApp
             model = Solver.ComputeModel();
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
 
+            Console.WriteLine("dispose kernel");
             var disKernel = kernel as IDisposable;
             if (disKernel != null)
                 disKernel.Dispose();
-
+            Console.WriteLine("after disposing");
             
 
             Solver = null;
@@ -314,12 +320,17 @@ namespace KMLibUsageApp
 
             Console.WriteLine("Start Testing");
 
+            Console.WriteLine("read test");
+
             Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
+            Console.WriteLine("after read test");
 
-
+            Console.WriteLine("evaluator init");
             evaluator.Init();
+            Console.WriteLine("after evaluator init");
+
             Stopwatch t = Stopwatch.StartNew();
             float[] predictions = evaluator.Predict(test.Elements);
             t.Stop();
