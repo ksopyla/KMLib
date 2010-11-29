@@ -105,11 +105,14 @@ namespace KMLibUsageApp
 
 
             float gamma = 0.5f;
-            //EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
-            //IKernel<SparseVector> kernel = new RbfKernel(gamma);
+            EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
+            IKernel<SparseVector> kernel = new RbfKernel(gamma);
 
-            EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
-            IKernel<SparseVector> kernel = new LinearKernel();
+            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+            //IKernel<SparseVector> kernel = new LinearKernel();
+
+            //EvaluatorBase<SparseVector> evaluator = new CudaLinearEvaluator();
+            //IKernel<SparseVector> kernel = new CudaLinearKernel();
 
             foreach (var data in dataSetsToTest)
             {
@@ -135,8 +138,8 @@ namespace KMLibUsageApp
         private static IList<Tuple<string, string, int>> CreateDataSetList(string dataFolder)
         {
             List<Tuple<string, string, int>> dataSets = new List<Tuple<string, string, int>>(8);
-            
-            
+
+
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/a1a.train",
                 dataFolder + "/a1a.test",

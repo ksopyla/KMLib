@@ -50,13 +50,13 @@ namespace KMLib
         /// Solver, solves C-SVM optimization problem 
         /// </summary>
         protected Solver<TProblemElement> Solver;
-       // private Problem<TProblemElement> trainSubprob;
-      //  private IKernel<TProblemElement> Kernel;
-       // private EvaluatorBase<TProblemElement> Evaluator;
+        // private Problem<TProblemElement> trainSubprob;
+        //  private IKernel<TProblemElement> Kernel;
+        // private EvaluatorBase<TProblemElement> Evaluator;
 
 
 
-       
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CSVM&lt;TProblemElement&gt;"/> class.
         /// </summary>
@@ -64,8 +64,8 @@ namespace KMLib
         /// <param name="kernel">The kernel for computing product.</param>
         /// <param name="C">Parameter C.</param>
         /// <param name="evaluator">The evaluator class for prediction.</param>
-        public CSVM(Problem<TProblemElement> trainProblem, IKernel<TProblemElement> kernel, 
-                    float C, EvaluatorBase<TProblemElement> evaluator )
+        public CSVM(Problem<TProblemElement> trainProblem, IKernel<TProblemElement> kernel,
+                    float C, EvaluatorBase<TProblemElement> evaluator)
         {
             this.problem = trainProblem;
 
@@ -80,7 +80,7 @@ namespace KMLib
 
         }
 
-        
+
 
 
         /// <summary>
@@ -92,13 +92,13 @@ namespace KMLib
             //kernel.Labels = problem.Labels;
             //kernel.Init();
 
-            
+
             //solver = new ParallelSMOSolver<TProblemElement>(problem, kernel, C);
             //solver = new ModSMOSolver<TProblemElement>(problem, kernel, C);
             //solver = new SMOSolver<TProblemElement>(problem, kernel, C); 
 
-           // Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
-           // Solver = new SmoFanSolver<TProblemElement>(problem, kernel, C);
+            // Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+            // Solver = new SmoFanSolver<TProblemElement>(problem, kernel, C);
         }
 
         public void Train()
@@ -107,16 +107,18 @@ namespace KMLib
             kernel.ProblemElements = problem.Elements;
             kernel.Labels = problem.Labels;
             kernel.Init();
+
+
             Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
-           
             //Solver = new ParallelSmoFanSolver2<TProblemElement>(problem, kernel, C);
+
             if (kernel.ProblemElements == null)
                 throw new ArgumentNullException("Not initialized, should call Init method");
-           
 
-           
 
-            Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(),kernel.ToString());
+
+
+            Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 
             Stopwatch timer = Stopwatch.StartNew();
             model = Solver.ComputeModel();
@@ -129,7 +131,7 @@ namespace KMLib
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
             evaluator.TrainningProblem = problem;
-          
+
         }
 
         /// <summary>
@@ -139,7 +141,7 @@ namespace KMLib
         /// <returns></returns>
         public float Predict(TProblemElement problemElement)
         {
-            
+
             return evaluator.Predict(problemElement);
             //float sum = 0;
 
@@ -169,11 +171,11 @@ namespace KMLib
 
             if (problem == null)
                 throw new ApplicationException("Train problem not set");
-             
-            
+
+
             evaluator.Init();
             Stopwatch t = Stopwatch.StartNew();
-            float[] predictions =  evaluator.Predict(predictElements);
+            float[] predictions = evaluator.Predict(predictElements);
 
             //toremove: only for tests
             Console.WriteLine("prediction takes {0} ms", t.ElapsedMilliseconds);
@@ -186,7 +188,7 @@ namespace KMLib
 
 
             return predictions;
-           
+
         }
 
 
