@@ -314,10 +314,18 @@ namespace KMLibUsageApp
             if (disKernel != null)
                 disKernel.Dispose();
             Console.WriteLine("after disposing");
-            
 
+
+            var disSolver = Solver as IDisposable;
+            if (disSolver != null)
+                disSolver.Dispose();
             Solver = null;
+
+
+            train.Elements = null;
+            train.Labels = null;
             train = null;
+            
 
 
             Console.WriteLine("Start Testing");
