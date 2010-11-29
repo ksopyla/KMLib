@@ -29,6 +29,8 @@ namespace KMLibUsageApp
 
             IList<Tuple<string, string, int>> dataSetsToTest = CreateDataSetList(dataFolder);
 
+            Console.WriteLine("press any key to start");
+            Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
             
             //TestOneDataSet(dataFolder);
