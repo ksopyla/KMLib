@@ -37,6 +37,9 @@ namespace KMLibUsageApp
 
             SVMClassifyLowLevel(dataFolder, C);
 
+            Console.WriteLine("Press any button");
+            Console.ReadKey();
+
         }
 
         private static void TestOneDataSet(string dataFolder)
@@ -309,6 +312,8 @@ namespace KMLibUsageApp
             train = null;
 
 
+            Console.WriteLine("Start Testing");
+
             Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
@@ -335,7 +340,7 @@ namespace KMLibUsageApp
             }
 
             double accuracy = (float)correct / test.ElementsCount;
-
+            Console.WriteLine("accuracy ={0}", accuracy);
 
         }
 

@@ -48,6 +48,7 @@ namespace KMLib.GPU
             outputIntPtr = cuda.HostAllocate(memElementsSize, CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
 
+            //outputPtr = cuda.Allocate(memElementsSize);
 
             //todo: Set the cuda kernel paramerters
             #region set cuda parameters
@@ -166,16 +167,22 @@ namespace KMLib.GPU
                 cuda.Free(valsPtr);
                 valsPtr.Pointer = 0;
                  
+                
+
                 cuda.Free(idxPtr);
                 idxPtr.Pointer = 0;
                 
                 cuda.Free(vecLenghtPtr);
                 vecLenghtPtr.Pointer = 0;
-               
+
+
+                cuda.FreeHost(outputIntPtr);
                 
-                cuda.Free(outputPtr);
+                //cuda.Free(outputPtr);
                 outputPtr.Pointer = 0;
-                //cuda.FreeHost(outputIntPtr);
+
+                cuda.FreeHost(svVecIntPtrs[0]);
+                cuda.FreeHost(svVecIntPtrs[1]);
 
                 cuda.Free(mainVecPtr);
                 mainVecPtr.Pointer = 0;

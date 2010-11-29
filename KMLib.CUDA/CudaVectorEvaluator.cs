@@ -195,7 +195,7 @@ namespace KMLib.GPU
             cuFuncSign = cuda.GetModuleFunction(cudaSignKernelName);
 
             //reserved memory based on dimension of support vector
-            svVector = new float[TrainedModel.SupportElements[0].Count];
+            //svVector = new float[TrainedModel.SupportElements[0].Count];
 
              stream = cuda.CreateStream();
              memSvSize = (uint)(TrainedModel.SupportElements[0].Count * sizeof(float));
