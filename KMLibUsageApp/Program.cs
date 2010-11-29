@@ -33,7 +33,9 @@ namespace KMLibUsageApp
             
             //TestOneDataSet(dataFolder);
 
-            TestOneDataSetWithCuda(dataFolder);
+           // TestOneDataSetWithCuda(dataFolder);
+
+            SVMClassifyLowLevel(dataFolder, C);
 
         }
 
@@ -92,7 +94,7 @@ namespace KMLibUsageApp
 
             SVMClassify(train, test, kernel2,evaluator, C);
 
-
+            
            // SVMClassify(train, test, kernel2, evaluator, C);
 
             
@@ -263,7 +265,7 @@ namespace KMLibUsageApp
         /// <param name="train"></param>
         /// <param name="test"></param>
         /// <param name="kernel"></param>
-        private static void SVMClassifyLowLevel<TProbElement>(string dataFolder,
+        private static void SVMClassifyLowLevel(string dataFolder,
             float paramC)
         {
 
@@ -301,8 +303,7 @@ namespace KMLibUsageApp
             if (disKernel != null)
                 disKernel.Dispose();
 
-            kernel.ProblemElements = null;
-            kernel.Labels = null;
+            
 
             Solver = null;
             train = null;

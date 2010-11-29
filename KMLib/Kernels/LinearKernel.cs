@@ -13,7 +13,7 @@ namespace KMLib.Kernels
     /// Represents Linear Kernel for computing linear product between 
     /// two sparse vectors
     /// </summary>
-    public class LinearKernel: VectorKernel<SparseVector> 
+    public class LinearKernel: VectorKernel<SparseVector> , IDisposable
     {
 
 
@@ -208,6 +208,14 @@ namespace KMLib.Kernels
         public override string ToString()
         {
             return "Linear Kernel";
+        }
+
+        public void Dispose()
+        {
+            problemElements = null;
+            Labels = null;
+            DiagonalDotCache = null;
+            IsInitialized = false;
         }
     }
 }

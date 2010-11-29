@@ -183,6 +183,15 @@ namespace KMLib.GPU
                 cuda.UnloadModule(cuModule);
                 cuda.Dispose();
                 cuda = null;
+
+                problemElements = null;
+                Labels = null;
+                DiagonalDotCache = null;
+
+
+
+                linKernel.Dispose();
+
                 IsInitialized = false;
             }
         }

@@ -13,7 +13,7 @@ namespace KMLib.Kernels
     /// K(x,y)  = exp( ||x-y||^2/gamma)
     /// </summary>
     /// <remarks> use Linear kernel to compute normal dot products</remarks>
-    public class RbfKernel: VectorKernel<SparseVector>
+    public class RbfKernel: VectorKernel<SparseVector>, IDisposable
     {
         public readonly float Gamma = 0.5f;
 
@@ -134,6 +134,16 @@ namespace KMLib.Kernels
         public override string ToString()
         {
             return string.Format("RBF kernel, Gamma={0}", Gamma);
+        }
+
+        public void Dispose()
+        {
+            linKernel.Dispose();
+
+            problemElements = null;
+            Labels = null;
+            DiagonalDotCache = null;
+            IsInitialized = false;
         }
     }
 }

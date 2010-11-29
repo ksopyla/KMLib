@@ -198,6 +198,14 @@ namespace KMLib.GPU
 
                 cuda.Dispose();
                 cuda = null;
+
+                TrainedModel.Labels = null;
+                TrainedModel.Alpha = null;
+                TrainedModel.SupportElements = null;
+                TrainedModel.SupportElementsIndexes = null;
+                TrainedModel = null;
+
+                
                 IsInitialized = false;
             }
         }
