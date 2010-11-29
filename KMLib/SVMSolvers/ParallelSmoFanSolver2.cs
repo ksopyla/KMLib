@@ -26,7 +26,7 @@ namespace KMLib.SVMSolvers
     /// Less memory allocation.
     /// </remarks>
     /// <typeparam name="TProblemElement">Problem elements</typeparam>
-    public class ParallelSmoFanSolver2<TProblemElement> : Solver<TProblemElement>
+    public class ParallelSmoFanSolver2<TProblemElement> : Solver<TProblemElement>, IDisposable
     {
 
         /// <summary>
@@ -905,7 +905,49 @@ namespace KMLib.SVMSolvers
         }
 
 
-        
 
+
+
+        public void Dispose()
+        {
+            problem = null;
+
+            Q = null;
+            QD = null;
+
+            this.active_set = null;
+            this.alpha = null;
+            this.alpha_status = null;
+            this.G_bar = null;
+            this.kernel = null;
+            this.lockObj = null;
+           
+
+            for (int i = 0; i <  numberOfThreads; i++)
+            {
+                maxPairs[i]  = null;
+                maxPairsWaitCallbacks[i] = null;
+                maxPairThreadsData[i] = null;
+
+                minPairs[i] = null;
+                minPairsWaitCallbacks[i] = null;
+                minPairThreadsData[i].Q_i = null;
+                minPairThreadsData[i] = null;
+
+                resetEvents[i].Dispose();
+
+            }
+            this.maxPairs = null;
+            this.maxPairsWaitCallbacks = null;
+            this.maxPairThreadsData = null;
+            this.minPairs = null;
+            this.minPairsWaitCallbacks = null;
+            this.minPairThreadsData = null;
+            this.p = null;
+            this.partition = null;
+            this.y = null;
+            
+            
+        }
     }
 }
