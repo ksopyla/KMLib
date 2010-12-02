@@ -321,10 +321,7 @@ namespace KMLibUsageApp
                 disSolver.Dispose();
             Solver = null;
 
-
-            train.Elements = null;
-            train.Labels = null;
-            train = null;
+            train.Dispose();
             
 
 
@@ -351,6 +348,9 @@ namespace KMLibUsageApp
             var disposeEvaluator = evaluator as IDisposable;
             if (disposeEvaluator != null)
                 disposeEvaluator.Dispose();
+            
+            test.Dispose();
+            
             int correct = 0;            
             for (int i = 0; i < test.ElementsCount; i++)
             {

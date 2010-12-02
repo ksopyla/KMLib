@@ -13,7 +13,7 @@ namespace KMLib
     /// This class is only container for data.
     /// </summary>
     /// <typeparam name="TProblemElement">Type of stored data can be Vectors, Matrix, strings etc.</typeparam>
-    public class Problem<TProblemElement>
+    public class Problem<TProblemElement>: IDisposable
     {
         //public IKernel<TProblemElement> Kernel;
 
@@ -55,6 +55,13 @@ namespace KMLib
 
 
 
+
+        public void Dispose()
+        {
+            Elements = null;
+            Labels = null;
+            ElementsCount = -1;
+        }
     }
 
 
