@@ -349,7 +349,7 @@ namespace KMLibUsageApp
             if (disposeEvaluator != null)
                 disposeEvaluator.Dispose();
             
-            test.Dispose();
+            
             
             int correct = 0;            
             for (int i = 0; i < test.ElementsCount; i++)
@@ -359,8 +359,8 @@ namespace KMLibUsageApp
                 if (predictedLabel == test.Labels[i])
                     ++correct;
             }
-
-            double accuracy = (float)correct / test.ElementsCount;
+            test.Dispose();
+            double accuracy = (float)correct / predictions.Length;
             Console.WriteLine("accuracy ={0}", accuracy);
 
         }
