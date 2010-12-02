@@ -104,26 +104,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Libs\dnAnalytics.dll</HintPath>
     </Reference>
-    <Reference Include="NMathCoreKernelx86, Version=2.6.0.0, Culture=neutral, PublicKeyToken=873235918a322639, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Libs\NMathCoreKernelx86.dll</HintPath>
-    </Reference>
-    <Reference Include="NMathCoreMath, Version=2.6.0.0, Culture=neutral, PublicKeyToken=873235918a322639, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Libs\NMathCoreMath.dll</HintPath>
-    </Reference>
-    <Reference Include="NMathCoreShared, Version=2.6.0.0, Culture=neutral, PublicKeyToken=873235918a322639, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Libs\NMathCoreShared.dll</HintPath>
-    </Reference>
-    <Reference Include="NMathMatrixKernelx86, Version=3.0.0.0, Culture=neutral, PublicKeyToken=873235918a322639, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Libs\NMathMatrixKernelx86.dll</HintPath>
-    </Reference>
-    <Reference Include="NMathMatrixMain, Version=3.0.0.0, Culture=neutral, PublicKeyToken=873235918a322639, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Libs\NMathMatrixMain.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
