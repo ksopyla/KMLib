@@ -136,8 +136,8 @@
     <Reference Include="CUDA.NET">
       <HintPath>..\Libs\CUDA.NET.dll</HintPath>
     </Reference>
-    <Reference Include="dnAnalytics, Version=2009.8.0.0, Culture=neutral, PublicKeyToken=47f8433cf19ffb12, processorArchitecture=x86">
-      <HintPath>..\Libs\x86\dnAnalytics.dll</HintPath>
+    <Reference Include="dnAnalytics">
+      <HintPath>..\Libs\dnAnalytics.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -152,21 +152,22 @@
     <Compile Include="CudaLinearEvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
     <Compile Include="CudaLinearKernel.cs" />
+    <Compile Include="CudaRBFEvaluator.cs" />
     <Compile Include="CudaRBFKernel.cs" />
     <Compile Include="CudaVectorEvaluator.cs" />
     <Compile Include="CUDAVectorKernel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="cudaSVMKernels.cu">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\KMLib\KMLib.csproj">
       <Project>{7CF41CFB-0611-4BDC-95D5-DD15EEF9CD20}</Project>
       <Name>KMLib</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cudaSVMKernels.cu">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
