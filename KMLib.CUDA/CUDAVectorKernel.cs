@@ -39,7 +39,10 @@ namespace KMLib.GPU
         /// </summary>
         protected   string cudaProductKernelName;
         #endregion
-       
+
+
+      
+        
         /// <summary>
         /// linear kernel for normal product
         /// </summary>

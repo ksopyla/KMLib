@@ -182,7 +182,7 @@ extern "C" __global__ void linearCsrFormatKernelShared(const float * vals,
 //vals - array of vectors values
 //idx  - array of vectros indexes in CSR fromat
 //vecPointers -array of pointers(indexes) to idx and vals array to specific vectors
-//selfDot - array of precomputed self linear product
+//selfDot - array of precomputed self linear product 
 //results - array of results Linear Kernel
 //num_rows -number of vectors, stored in CSR matrix format, each vector is stored in one row of matrix
 //mainVecIndex - main vector index, needed for retriving its label
@@ -327,6 +327,93 @@ extern "C" __global__ void linearCSREvaluatorDenseVector(const float * AVals,
 			
 	}
 }
+
+
+
+//summary: cuda rbf kernel for evaluation, predicts new unseen elements using rbf SVM kernel,
+// first elements matrix is in sparse CSR format, second (support vectors) matrix B is 
+// in column major order (each kolumn is in dense format, in 'svTexRef' texture cache)
+// you have to Launch this kernel as many times as support vectors, each time
+// copy new support vector into texture cache
+//params:
+//AVals - values for first matrix
+//AIdx - indexes for first matrix
+//APtrs - pointers to next vector
+//svLabels - support vector labels
+//svAlphas - support vector alphas coef 
+//selfDot - precomputed self linear product
+//result - result matrix
+//ARows - number of rows in first matrix
+//BCols - number of cols in second matrix
+//ColumnIndex - index of support vector in B matrix
+//gamma - gamma prameter in RBF
+extern "C" __global__ void rbfCSREvaluatorDenseVector(const float * AVals,
+													  const int * AIdx, 
+													  const int * APtrs, 
+													  const float * svLabels,
+													  const float * svAlphas,
+													  const float* svSelfDot,
+													  const float* elSelfDot,
+													  float * result,
+													  const int ARows,
+													  const int BCols,
+													  const float Gamma,
+													  const int ColumnIndex)
+{
+	__shared__ float sdata[BLOCK_SIZE + 16];                          // padded to avoid reduction ifs
+	
+
+	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
+	
+	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
+	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
+	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
+	const int warp_lane   = threadIdx.x / WARP_SIZE;                // warp index within the CTA
+	const int num_warps   = (BLOCK_SIZE / WARP_SIZE) * gridDim.x;   // total number of active warps
+
+	for(int row = warp_id; row < ARows; row += num_warps){
+		// use two threads to fetch Ap[row] and Ap[row+1]
+		// this is considerably faster than the straightforward version
+		if(thread_lane < 2)
+			ptrs[warp_lane][thread_lane] = APtrs[row + thread_lane];
+		const int row_start = ptrs[warp_lane][0];                   //same as: row_start = Ap[row];
+		const int row_end   = ptrs[warp_lane][1];                   //same as: row_end   = Ap[row+1];
+
+		// compute local sum
+		float sum = 0;
+		
+		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
+		{	
+			sum += AVals[jj] * tex1Dfetch(svTexRef,AIdx[jj]);
+		}
+
+		// reduce local sums to row sum (ASSUME: warpsize 32)
+		sdata[threadIdx.x] = sum;
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x + 16]; __syncthreads(); 
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  8]; __syncthreads();
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  4]; __syncthreads();
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  2]; __syncthreads();
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
+	   
+
+
+		// first thread writes warp result
+		if (thread_lane == 0)
+		{
+			//remeber that we use result memory for stroing partial result
+			//so the size of array is the same as number of elements
+			result[row]+=expf(-Gamma*(elSelfDot[row]+svSelfDot[ColumnIndex]-2*sdata[threadIdx.x]))*svLabels[ColumnIndex]*svAlphas[ColumnIndex];
+
+			//results[row]+=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*sdata[threadIdx.x]));
+			
+		}
+		
+			
+	}
+}
+
+
+
 
 //rho for computing
 //__constant__ float RHO=-2;

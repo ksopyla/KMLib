@@ -38,9 +38,14 @@ namespace KMLib.GPU
         /// <summary>
         /// cuda function name for computing prediction
         /// </summary>
-        protected string cudaEvaluatorKernelName = "linearCSREvaluatorDenseVector";
+        protected string cudaEvaluatorKernelName;
         #endregion
 
+
+        /// <summary>
+        /// rho or "b" parameter
+        /// </summary>
+        protected float rho;
 
         /// <summary>
         /// choosed support vector 
@@ -62,7 +67,7 @@ namespace KMLib.GPU
         /// <summary>
         ///support elements lenght 
         /// </summary>
-        protected int[] svLenght;
+      //  protected int[] svLenght;
 
         /// <summary>
         /// native pointer to output memory region

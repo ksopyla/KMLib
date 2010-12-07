@@ -129,8 +129,7 @@ namespace KMLib
             if (disKernel != null)
                 disKernel.Dispose();
             
-            kernel.ProblemElements = null;
-            kernel.Labels = null;
+          
 
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
