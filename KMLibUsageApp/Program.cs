@@ -238,21 +238,21 @@ namespace KMLibUsageApp
             ////string testFile = dataFolder + "/rcv1_train_test.binary";
             //numberOfFeatures = 47236;
 
-            trainningFile = dataFolder + "/news20.binary";
-            testFile = dataFolder + "/news20.binary";
-            numberOfFeatures = 1335191;
+            //trainningFile = dataFolder + "/news20.binary";
+            //testFile = dataFolder + "/news20.binary";
+            //numberOfFeatures = 1335191;
 
-            //trainningFile = dataFolder + "/mnist.scale";
-            //testFile = dataFolder + "/mnist.scale.t";
-            //numberOfFeatures = 784;
+            trainningFile = dataFolder + "/mnist.scale";
+            testFile = dataFolder + "/mnist.scale.t";
+            numberOfFeatures = 784;
 
 
             //string trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
             //string trainningFile = dataFolder + "/real-sim_med_10K";
-            //string trainningFile = dataFolder + "/real-sim";
-            //string testFile = dataFolder + "/real-sim.t";
-            //int numberOfFeatures = 20958;
+            //trainningFile = dataFolder + "/real-sim";
+            //testFile = dataFolder + "/real-sim.t";
+            //numberOfFeatures = 20958;
 
             //for test
             //string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
