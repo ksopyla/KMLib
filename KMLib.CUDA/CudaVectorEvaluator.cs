@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using KMLib.Evaluate;
 using GASS.CUDA.Types;
 using GASS.CUDA;
 using System.IO;
 using System.Threading.Tasks;
+using KMLib.Helpers;
 
 namespace KMLib.GPU
 {
@@ -16,7 +17,7 @@ namespace KMLib.GPU
     /// base class for all cuda enabled evaluators
     /// </summary>
     /// <remarks>It sores nesessary data for cuda initialization</remarks>
-    public abstract class CudaVectorEvaluator : EvaluatorBase<SparseVector>
+    public abstract class CudaVectorEvaluator : EvaluatorBase<SparseVec>
     {
 
         #region cuda names

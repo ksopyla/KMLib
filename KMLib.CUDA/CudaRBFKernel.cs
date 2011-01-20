@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using GASS.CUDA;
 using GASS.CUDA.Types;
 using System.IO;
 using System.Runtime.InteropServices;
 using KMLib.Kernels;
+using KMLib.Helpers;
 
 namespace KMLib.GPU
 {
@@ -45,7 +46,7 @@ namespace KMLib.GPU
         }
 
 
-        public override float Product(SparseVector element1, SparseVector element2)
+        public override float Product(SparseVec element1, SparseVec element2)
         {
 
             float x1Squere = linKernel.Product(element1, element1);
@@ -95,7 +96,7 @@ namespace KMLib.GPU
             return prod;
         }
 
-        public override ParameterSelection<SparseVector> CreateParameterSelection()
+        public override ParameterSelection<SparseVec> CreateParameterSelection()
         {
             throw new NotImplementedException();
             //return new RbfParameterSelection();

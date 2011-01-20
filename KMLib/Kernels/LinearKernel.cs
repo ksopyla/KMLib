@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using KMLib.Helpers;
 
 namespace KMLib.Kernels
@@ -13,7 +13,7 @@ namespace KMLib.Kernels
     /// Represents Linear Kernel for computing linear product between 
     /// two sparse vectors
     /// </summary>
-    public class LinearKernel: VectorKernel<SparseVector> , IDisposable
+    public class LinearKernel: VectorKernel<SparseVec> , IDisposable
     {
 
 
@@ -50,7 +50,7 @@ namespace KMLib.Kernels
         /// <param name="element1"></param>
         /// <param name="element2"></param>
         /// <returns>linear product between elements</returns>
-        public override float Product(SparseVector element1, SparseVector element2)
+        public override float Product(SparseVec element1, SparseVec element2)
         {
             return  (float) element1.DotProduct(element2);
 
@@ -192,7 +192,7 @@ namespace KMLib.Kernels
         /// this kernel, it finds only SVM penalty "C" parameter.
         /// </summary>
         /// <returns>Instance of parameter selection class</returns>
-        public override ParameterSelection<SparseVector> CreateParameterSelection()
+        public override ParameterSelection<SparseVec> CreateParameterSelection()
         {
             return new LinearParameterSelection();
         }

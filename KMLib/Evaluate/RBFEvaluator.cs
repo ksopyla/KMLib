@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using KMLib.Kernels;
 using System.Threading.Tasks;
+using KMLib.Helpers;
 
 namespace KMLib.Evaluate
 {
@@ -13,7 +14,7 @@ namespace KMLib.Evaluate
     /// Rerpesents evaluator for RBF kernel, use some optimization
     /// is faster for RBF than <see cref="SequentialEvalutor"/>
     /// </summary>
-    public class RBFEvaluator : EvaluatorBase<SparseVector>
+    public class RBFEvaluator : EvaluatorBase<SparseVec>
     {
         LinearKernel linKernel;
 
@@ -40,7 +41,7 @@ namespace KMLib.Evaluate
         /// <remarks>Use some optimization for RBF kernel</remarks>
         /// <param name="elements">The elements.</param>
         /// <returns>array of predicted labels</returns>
-        public override float[] Predict(SparseVector[] elements)
+        public override float[] Predict(SparseVec[] elements)
         {
             if (!IsInitialized)
                 throw new ApplicationException("Evaluator is not initialized. Call init method");

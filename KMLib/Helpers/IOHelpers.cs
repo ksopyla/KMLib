@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using dnaLA = dnAnalytics.LinearAlgebra;
+//using dnaLA = dnAnalytics.LinearAlgebra;
 using System.Globalization;
 
 namespace KMLib.Helpers
@@ -100,16 +100,16 @@ namespace KMLib.Helpers
         /// </summary>
         /// <param name="fileName">Data set file name</param>
         /// <returns></returns>
-        public static Problem<dnaLA.SparseVector> ReadDNAVectorsFromFile(string fileName,int numberOfFeatures) 
+        public static Problem<SparseVec> ReadDNAVectorsFromFile(string fileName,int numberOfFeatures) 
         {
-            //initial list capacity 8KB, its heuristic
+            //initial list capacity 8KB, its only heuristic
             int listCapacity = 1 << 13;
             
             //list of labels
             List<float> labels = new List<float>(listCapacity);
 
             //list of array, each array symbolize vector
-            List<KeyValuePair<int, double>[]> vectors = new List<KeyValuePair<int, double>[]>(listCapacity);
+           // List<KeyValuePair<int, float>[]> vectors = new List<KeyValuePair<int, float>[]>(listCapacity);
             //new List<List<KeyValuePair<int, double>>>();
 
             //vector parts (index and value) separator
@@ -118,7 +118,10 @@ namespace KMLib.Helpers
             char[] idxValSeparator = new char[] { ':' };
             int max_index = 0;
 
-            List<KeyValuePair<int, double>> vec = new List<KeyValuePair<int, double>>(32);
+            List<KeyValuePair<int, float>> vec = new List<KeyValuePair<int, float>>(32);
+
+            //list of Vectors, currently use SparseVector implementation from dnAnalitycs
+            List<SparseVec> dnaVectors = new List<SparseVec>(listCapacity);
 
             using (FileStream fileStream = File.OpenRead(fileName))
             {
@@ -135,10 +138,11 @@ namespace KMLib.Helpers
                         int index = 0;
 
                         float value=0;
-                        
-                        
-                        
-                       /*
+
+
+                        #region old code
+
+                        /*
                         string[] parts =inputLine.Split(vecPartsSeparator,StringSplitOptions.RemoveEmptyEntries);
 
                         //label
@@ -169,13 +173,11 @@ namespace KMLib.Helpers
 
                         }
                         */
-
+                        #endregion
 
                         //add one space to the end of line, needed for parsing
                         string oneLine = new StringBuilder(inputLine).Append(" ").ToString();
 
-                       
-                        
                         int partBegin = -1, partEnd = -1;
 
                         partBegin = oneLine.IndexOf(vecPartsSeparator[0]);
@@ -195,7 +197,7 @@ namespace KMLib.Helpers
                             value = float.Parse(oneLine.Substring(indexSeparatorPosition + 1, partEnd - (indexSeparatorPosition + 1)), CultureInfo.InvariantCulture);
 
 
-                            vec.Add(new KeyValuePair<int, double>(index, value));
+                            vec.Add(new KeyValuePair<int, float>(index, value));
                             partBegin = partEnd;
                             partEnd = oneLine.IndexOf(vecPartsSeparator[0], partBegin + 1);
 
@@ -213,7 +215,9 @@ namespace KMLib.Helpers
                             max_index = numberOfFeatures;
 
 
-                        vectors.Add(vec.ToArray());
+                       // vectors.Add(vec.ToArray());
+
+                        dnaVectors.Add(new SparseVec(max_index, vec));
 
                         //clear vector parts
                         vec.Clear();
@@ -221,33 +225,12 @@ namespace KMLib.Helpers
                 }
             }
 
-            long doubleCount = 0;
-            long valCount = 0;
-            //list of Vectors, currently use SparseVector implementation from dnAnalitycs
-            List<dnaLA.SparseVector> dnaVectors = new List<dnaLA.SparseVector>(vectors.Count);
-            //assing max index as  vector Dimension,
-            //not always true for different data sets
-            for (int i = 0; i < vectors.Count; i++)
-            {
-                dnaLA.SparseVector oneVec = new dnaLA.SparseVector(max_index+1);
-                
-                for (int j = 0; j < vectors[i].Length; j++)
-                {
-                    int index = vectors[i][j].Key;
-                    double val = vectors[i][j].Value;
-                    oneVec[index] = val;
-                }
-                doubleCount += oneVec.mIndices.LongLength;
-                doubleCount += oneVec.mValues.LongLength;
-                valCount += oneVec.mValueCount;
-
-                dnaVectors.Add(oneVec);
-
-            }
+          
+           
 
 
 
-            return new Problem<dnaLA.SparseVector>(dnaVectors.ToArray(), labels.ToArray());
+            return new Problem<SparseVec>(dnaVectors.ToArray(), labels.ToArray());
         }
     }
 }

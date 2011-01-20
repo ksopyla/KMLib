@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using dnAnalytics.LinearAlgebra;
 using KMLib.Evaluate;
+using KMLib.Helpers;
 
 namespace KMLib.Kernels
 {

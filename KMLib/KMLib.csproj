@@ -94,7 +94,7 @@
     <CodeAnalysisRuleDirectories>;D:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\FxCop\\Rules</CodeAnalysisRuleDirectories>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="dnAnalytics">
+    <Reference Include="dnAnalytics, Version=2009.8.0.0, Culture=neutral, PublicKeyToken=47f8433cf19ffb12, processorArchitecture=x86">
       <HintPath>..\Libs\dnAnalytics.dll</HintPath>
     </Reference>
     <Reference Include="System" />
@@ -114,7 +114,7 @@
     <Compile Include="Helpers\Pair.cs" />
     <Compile Include="Helpers\AlphaInfo.cs" />
     <Compile Include="Helpers\StepVariable.cs" />
-    <Compile Include="Helpers\Vector.cs" />
+    <Compile Include="Helpers\SparsVec.cs" />
     <Compile Include="Kernels\FrobeniusKernel.cs" />
     <Compile Include="Kernels\FrobeniusParameterSelection.cs" />
     <Compile Include="Kernels\LinearKernel.cs" />

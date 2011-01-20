@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+using KMLib.Helpers;
+//using dnAnalytics.LinearAlgebra;
 
 namespace KMLib.Kernels
 {
@@ -10,7 +11,7 @@ namespace KMLib.Kernels
     /// <summary>
     /// Represents polinominal kernel (Gamma*dot(x,y)+Coef)^deg
     /// </summary>
-    public class PolinominalKernel:VectorKernel<SparseVector>
+    public class PolinominalKernel:VectorKernel<SparseVec>
     {
         public readonly double Degree = 3;
         public readonly double Coef = 0;
@@ -19,7 +20,7 @@ namespace KMLib.Kernels
 
         private LinearKernel linKernel;
 
-        public override SparseVector[] ProblemElements
+        public override SparseVec[] ProblemElements
         {
             get { return ProblemElements; }
             set
@@ -52,7 +53,7 @@ namespace KMLib.Kernels
         }
 
 
-        public override float Product(SparseVector element1, SparseVector element2)
+        public override float Product(SparseVec element1, SparseVec element2)
         {
             float dot = linKernel.Product(element1, element2);
 
@@ -74,7 +75,7 @@ namespace KMLib.Kernels
             return prod;
         }
 
-        public override ParameterSelection<SparseVector> CreateParameterSelection()
+        public override ParameterSelection<SparseVec> CreateParameterSelection()
         {
             throw new NotImplementedException();
         }

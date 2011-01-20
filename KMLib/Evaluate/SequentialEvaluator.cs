@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using System.Threading.Tasks;
 
 namespace KMLib.Evaluate

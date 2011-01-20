@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using System.Diagnostics;
+using KMLib.Helpers;
 
 namespace KMLib.GPU
 {
@@ -19,28 +20,28 @@ namespace KMLib.GPU
         /// </summary>
         /// <param name="mainVec"></param>
         /// <param name="fillVector"></param>
-        public static void FillDenseVector(SparseVector mainVec,float[] fillVector)
+        public static void FillDenseVector(SparseVec mainVec,float[] fillVector)
         {
             Array.Clear(fillVector, 0, fillVector.Length);
-            for (int j = 0; j < mainVec.mValueCount; j++)
+            for (int j = 0; j < mainVec.Count; j++)
             {
-                int idx = mainVec.mIndices[j];
-                float val = (float)mainVec.mValues[j];
+                int idx = mainVec.Indices[j];
+                float val = (float)mainVec.Values[j];
                 fillVector[idx] = val;
             }
         }
 
         /// <summary>
-        /// Convert sparse vectors into CSR fromat (three array one for values, one for indexes and one for vector pointers)
+        /// Convert sparse vectors into CSR fromat (three array, one for values, one for indexes and one for vector pointers)
         /// </summary>
         /// <param name="vecVals"></param>
         /// <param name="vecIdx"></param>
         /// <param name="vecLenght"></param>
         /// <param name="problemElements"></param>
-        public static void TransformToCSRFormat(out float[] vecVals, out int[] vecIdx, out int[] vecLenght,SparseVector[] problemElements)
+        public static void TransformToCSRFormat(out float[] vecVals, out int[] vecIdx, out int[] vecLenght,SparseVec[] problemElements)
         {
             //transform elements to specific array format -> CSR http://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR_or_CRS.29
-            int avgVectorLenght = problemElements[0].mValueCount;
+            int avgVectorLenght = problemElements[0].Count;
             //list for all vectors values
             List<float> vecValsL = new List<float>(problemElements.Length * avgVectorLenght);
 
@@ -65,16 +66,16 @@ namespace KMLib.GPU
 
                 //coping and converting from double to float using Linq
                 //var converted = vec.mValues.Take(vec.mValueCount).Select(x => Convert.ToSingle(x));
-                var converted = vec.mValues.Select(x => Convert.ToSingle(x)).Take(vec.mValueCount);
+                //var converted = vec.mValues.Select(x => Convert.ToSingle(x)).Take(vec.mValueCount);
                 //Array.ConstrainedCopy(vec.mValues, 0, vecVals, 0, vec.mValueCount);
 
-                vecValsL.AddRange(converted);
+                vecValsL.AddRange(vec.Values);
 
-                vecIdxL.AddRange(vec.mIndices.Take(vec.mValueCount));
+                vecIdxL.AddRange(vec.Indices);
 
 
                 vecLenghtL.Add(vecStartIdx);
-                vecStartIdx += vec.mValueCount;
+                vecStartIdx += vec.Count;
             }
           //  timer.Stop();
 
@@ -125,7 +126,7 @@ namespace KMLib.GPU
 
         /// <summary>
         ///  sets the value for one matrix row, 
-        ///  matrix is in sparse matrix in CSR format
+        ///  matrix is in sparse matrix CSR format
         /// </summary>
         /// <param name="matVals">matrx values</param>
         /// <param name="matIdx">matrix indices</param>
@@ -151,17 +152,17 @@ namespace KMLib.GPU
         }
 
 
-        internal static void InitBuffer(SparseVector sparseVector, IntPtr bufferPtr)
+        internal static void InitBuffer(SparseVec sparseVector, IntPtr bufferPtr)
         {
             unsafe
             {
 
                 float* vecPtr = (float*)bufferPtr.ToPointer();
 
-                for (int j = 0; j < sparseVector.mValueCount; j++)
+                for (int j = 0; j < sparseVector.Count; j++)
                 {
-                    int idx = sparseVector.mIndices[j];
-                    float val = (float)sparseVector.mValues[j];
+                    int idx = sparseVector.Indices[j];
+                    float val = (float)sparseVector.Values[j];
                     vecPtr[idx] = val;
 
 
@@ -176,15 +177,15 @@ namespace KMLib.GPU
         /// <param name="sparseVector"></param>
         /// <param name="bufferPtr"></param>
         /// <param name="value"></param>
-        internal static void SetBufferIdx(SparseVector sparseVector, IntPtr bufferPtr, float value)
+        internal static void SetBufferIdx(SparseVec sparseVector, IntPtr bufferPtr, float value)
         {
             unsafe
             {
 
                 float* vecPtr = (float*)bufferPtr.ToPointer();
-                for (int j = 0; j < sparseVector.mValueCount; j++)
+                for (int j = 0; j < sparseVector.Count; j++)
                 {
-                    int idx = sparseVector.mIndices[j];
+                    int idx = sparseVector.Indices[j];
                     vecPtr[idx] = value;
                 }
 

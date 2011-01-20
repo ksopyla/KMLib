@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using KMLib.Kernels;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;//
 using GASS.CUDA.Types;
 using GASS.CUDA;
 using System.Runtime.InteropServices;
 using System.IO;
+using KMLib.Helpers;
 
 namespace KMLib.GPU
 {
@@ -15,7 +16,7 @@ namespace KMLib.GPU
     /// <summary>
     /// Based clas for all cuda enable svm kernel
     /// </summary>
-    public abstract class CUDAVectorKernel: VectorKernel<SparseVector>
+    public abstract class CUDAVectorKernel: VectorKernel<SparseVec>
     {
 
         #region cuda names
@@ -141,7 +142,7 @@ namespace KMLib.GPU
         #endregion
 
 
-        public override SparseVector[] ProblemElements
+        public override SparseVec[] ProblemElements
         {
             set
             {
@@ -160,7 +161,7 @@ namespace KMLib.GPU
             //cuda calculation
             //todo: possible small improvements
             //if mainVectorIdx==element1 then we don't have to copy to device
-            SparseVector mainVec = problemElements[element1];
+            SparseVec mainVec = problemElements[element1];
 
             if (mainVectorIdx != element1)
             {

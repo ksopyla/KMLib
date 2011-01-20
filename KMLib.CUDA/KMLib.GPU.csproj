@@ -136,9 +136,6 @@
     <Reference Include="CUDA.NET">
       <HintPath>..\Libs\CUDA.NET.dll</HintPath>
     </Reference>
-    <Reference Include="dnAnalytics">
-      <HintPath>..\Libs\dnAnalytics.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />

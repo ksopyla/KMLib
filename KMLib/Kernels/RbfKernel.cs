@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using dnAnalytics.LinearAlgebra;
+using KMLib.Helpers;
+//using dnAnalytics.LinearAlgebra;
 
 
 namespace KMLib.Kernels
@@ -13,14 +14,14 @@ namespace KMLib.Kernels
     /// K(x,y)  = exp( ||x-y||^2/gamma)
     /// </summary>
     /// <remarks> use Linear kernel to compute normal dot products</remarks>
-    public class RbfKernel: VectorKernel<SparseVector>, IDisposable
+    public class RbfKernel: VectorKernel<SparseVec>, IDisposable
     {
         public readonly float Gamma = 0.5f;
 
         private LinearKernel linKernel;
 
 
-        public override SparseVector[] ProblemElements
+        public override SparseVec[] ProblemElements
         {
             set
             {
@@ -56,7 +57,7 @@ namespace KMLib.Kernels
         /// <param name="element1"></param>
         /// <param name="element2"></param>
         /// <returns></returns>
-        public override float Product(SparseVector element1, SparseVector element2)
+        public override float Product(SparseVec element1, SparseVec element2)
         {
             // epx(-g*|x-y|^2) =exp(-g*dot(x-y,x-y))= exp(-g*[ (x1-y1)^2+ ....(xN-yN)^2])
             //=exp(-g*( x1^2+...+xN^2 + y1^2+...+yN^2 -2x1y1+...+ -2xNyN))
@@ -126,7 +127,7 @@ namespace KMLib.Kernels
         /// Creates object for parameters selection for RBF kernel
         /// </summary>
         /// <returns></returns>
-        public override ParameterSelection<SparseVector> CreateParameterSelection()
+        public override ParameterSelection<SparseVec> CreateParameterSelection()
         {
             return new RbfParameterSelection();
         }
