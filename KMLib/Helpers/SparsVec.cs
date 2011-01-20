@@ -83,7 +83,7 @@ namespace KMLib.Helpers
 
             int k = 0;
             int prevIdx = 0;
-
+            SelfDotProd = 0;
             foreach (var item in vec)
             {
            
