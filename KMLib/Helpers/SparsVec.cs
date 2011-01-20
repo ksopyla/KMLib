@@ -33,7 +33,13 @@ namespace KMLib.Helpers
         /// <summary>
         /// number of non zero positions
         /// </summary>
-        public int Count;
+        public int Count
+        {
+            get
+            {
+                return Indices.Length;
+            }
+        }
 
         public int[] Indices;
 
