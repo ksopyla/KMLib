@@ -5,7 +5,7 @@ using System.Text;
 
 namespace KMLib.Helpers
 {
-    internal class SparseVector
+    internal class SparseVec
     {
 
         /// <summary>
@@ -22,7 +22,7 @@ namespace KMLib.Helpers
 
         public float[] Values;
 
-        public SparseVector(int dim, ICollection<int> indexes, ICollection<float> vals)
+        public SparseVec(int dim, ICollection<int> indexes, ICollection<float> vals)
         {
             Dim = dim;
 
@@ -53,7 +53,7 @@ namespace KMLib.Helpers
         /// </summary>
         /// <param name="otherVector"></param>
         /// <returns></returns>
-        public float DotProduct(SparseVector otherVector)
+        public float DotProduct(SparseVec otherVector)
         {
            
             if (otherVector == null)
