@@ -211,8 +211,8 @@ namespace KMLibUsageApp
 
 
             trainningFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.test";
-           // testFile = dataFolder + "/a1a.train";
+           // testFile = dataFolder + "/a1a.test";
+            testFile = dataFolder + "/a1a.train";
             //in a1a problem max index is 123
             numberOfFeatures = 123;
 
