@@ -33,12 +33,18 @@ namespace KMLibUsageApp
             //Console.WriteLine("press any key to start");
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
-
-            TestOneDataSet(dataFolder);
+            GroupedTestingLowLevelDataSets(dataSetsToTest);
+            //TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
-           // SVMClassifyLowLevel(dataFolder, C);
+            //TestOneDataSetWithCuda(dataFolder);
+
+            string trainningFile;
+            string testFile;
+            int numberOfFeatures;
+            ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
+            SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
 
             Console.WriteLine("Press any button");
             Console.ReadKey();
@@ -143,9 +149,9 @@ namespace KMLibUsageApp
             int numberOfFeatures;
 
 
-            float gamma = 0.5f;
-            //EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
-            //IKernel<SparseVector> kernel = new RbfKernel(gamma);
+
+            EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
+            IKernel<SparseVector> kernel = new RbfKernel(gamma);
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             //IKernel<SparseVector> kernel = new LinearKernel();
@@ -169,6 +175,29 @@ namespace KMLibUsageApp
                 Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
                 
                 SVMClassify(train, test, kernel, evaluator, C);
+                Console.WriteLine("***************************\n");
+
+            }
+        }
+
+        private static void GroupedTestingLowLevelDataSets(IList<Tuple<string, string, int>> dataSetsToTest)
+        {
+            string trainningFile;
+            string testFile;
+            int numberOfFeatures;
+            
+            foreach (var data in dataSetsToTest)
+            {
+                trainningFile = data.Item1;
+                testFile = data.Item2;
+                numberOfFeatures = data.Item3;
+
+                Console.WriteLine("\n----------------------------------------------\n");
+                Console.WriteLine("DataSets , trainning={1} testing={2} , atr={0}", numberOfFeatures, trainningFile, testFile);
+                Console.WriteLine();
+
+                SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+                
                 Console.WriteLine("***************************\n");
 
             }
@@ -273,17 +302,17 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/news20.binary";
             //numberOfFeatures = 1335191;
 
-            //trainningFile = dataFolder + "/mnist.scale";
-            //testFile = dataFolder + "/mnist.scale.t";
-            //numberOfFeatures = 784;
+            trainningFile = dataFolder + "/mnist.scale";
+            testFile = dataFolder + "/mnist.scale.t";
+            numberOfFeatures = 784;
 
 
             //string trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
             //string trainningFile = dataFolder + "/real-sim_med_10K";
-            //string trainningFile = dataFolder + "/real-sim";
-            //string testFile = dataFolder + "/real-sim.t";
-            //int numberOfFeatures = 20958;
+            //trainningFile = dataFolder + "/real-sim";
+            //testFile = dataFolder + "/real-sim.t";
+            //numberOfFeatures = 20958;
 
             //for test
             //string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
@@ -301,14 +330,11 @@ namespace KMLibUsageApp
         /// <param name="train"></param>
         /// <param name="test"></param>
         /// <param name="kernel"></param>
-        private static void SVMClassifyLowLevel(string dataFolder,
+        private static void SVMClassifyLowLevel( string trainningFile,
+            string testFile,
+            int numberOfFeatures,
             float paramC)
         {
-
-            string trainningFile;
-            string testFile;
-            int numberOfFeatures;
-            ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
@@ -328,7 +354,7 @@ namespace KMLibUsageApp
             kernel.Labels = train.Labels;
             kernel.Init();
 
-            Console.WriteLine("create solver");
+           
             //
             //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             //this solver works a bit faster and use less memory
@@ -340,11 +366,11 @@ namespace KMLibUsageApp
             model = Solver.ComputeModel();
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
 
-            Console.WriteLine("dispose kernel");
+           
             var disKernel = kernel as IDisposable;
             if (disKernel != null)
                 disKernel.Dispose();
-            Console.WriteLine("after disposing");
+           
 
 
             var disSolver = Solver as IDisposable;
@@ -358,22 +384,20 @@ namespace KMLibUsageApp
 
             Console.WriteLine("Start Testing");
 
-            Console.WriteLine("read test");
+            
 
             Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
            // evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
-            Console.WriteLine("after read test");
-
-            Console.WriteLine("evaluator init");
+           
             evaluator.Init();
-            Console.WriteLine("after evaluator init");
+           
 
             Stopwatch t = Stopwatch.StartNew();
             float[] predictions = evaluator.Predict(test.Elements);
             t.Stop();
             //toremove: only for tests
-            Console.WriteLine("prediction takes {0} ms", t.ElapsedMilliseconds);
+            Console.WriteLine("prediction takes {0}  ms={1}",t.Elapsed, t.ElapsedMilliseconds);
 
             //todo: Free evaluator memories
             var disposeEvaluator = evaluator as IDisposable;
