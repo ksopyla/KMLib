@@ -61,7 +61,7 @@ namespace KMLibUsageApp
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             
-            EvaluatorBase<SparseVec> evaluator = new RBFEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
 
            // evaluator.Init();
@@ -69,6 +69,34 @@ namespace KMLibUsageApp
             IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVector> kernel = new LinearKernel();
             SVMClassify(train, test, kernel, evaluator,C);
+
+        }
+
+
+        private static void TestOneDataSetLinearSVM(string dataFolder)
+        {
+            string trainningFile;
+            string testFile;
+            int numberOfFeatures;
+            ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
+
+            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
+            Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
+            Console.WriteLine();
+            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+
+            Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+
+            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+
+            // evaluator.Init();
+            //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVector> kernel = new LinearKernel();
+            SVMClassify(train, test, kernel, evaluator, C);
 
         }
 
@@ -210,19 +238,19 @@ namespace KMLibUsageApp
         {
 
 
-            trainningFile = dataFolder + "/a1a.train";
+            //trainningFile = dataFolder + "/a1a.train";
             //testFile = dataFolder + "/a1a.test";
-            testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
+            ////testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a";
             //testFile = dataFolder + "/a9a.t";
             //numberOfFeatures = 123;
 
-             //trainningFile = dataFolder + "/w8a";
-             //testFile = dataFolder + "/w8a.t";
-             //numberOfFeatures = 300;
+            trainningFile = dataFolder + "/w8a";
+            testFile = dataFolder + "/w8a.t";
+            numberOfFeatures = 300;
 
             //string trainningFile = dataFolder + "/colon-cancer.train";
             //string testFile = dataFolder + "/colon-cancer.train";
@@ -418,7 +446,7 @@ namespace KMLibUsageApp
             validation.TrainingProblem = train;
             validation.Kernel = kernel;
 
-            validation.Evaluator = new SequentialEvaluator<Vector>();
+            validation.Evaluator = new SequentialDualEvaluator<Vector>();
             Stopwatch timer = new Stopwatch();
             Stopwatch globalTimer = new Stopwatch();
             globalTimer.Start();

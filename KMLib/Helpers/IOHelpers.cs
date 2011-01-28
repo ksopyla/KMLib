@@ -230,7 +230,7 @@ namespace KMLib.Helpers
 
 
 
-            return new Problem<SparseVec>(dnaVectors.ToArray(), labels.ToArray());
+            return new Problem<SparseVec>(dnaVectors.ToArray(), labels.ToArray(),numberOfFeatures);
         }
     }
 }

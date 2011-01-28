@@ -41,9 +41,9 @@ namespace KMLib.Helpers
             }
         }
 
-        public int[] Indices;
+        readonly public int[] Indices;
 
-        public float[] Values;
+        readonly public float[] Values;
 
         public SparseVec(int dim, ICollection<int> indexes, ICollection<float> vals)
         {
@@ -79,7 +79,7 @@ namespace KMLib.Helpers
 
         }
 
-        public SparseVec(int dim, ICollection<KeyValuePair<int,float>> vec)
+        public SparseVec(int dim, IList<KeyValuePair<int,float>> vec)
         {
             Dim = dim;
 
@@ -87,12 +87,13 @@ namespace KMLib.Helpers
             Indices = new int[vec.Count];
             Values = new float[vec.Count];
 
-            int k = 0;
+            
             int prevIdx = 0;
             SelfDotProd = 0;
-            foreach (var item in vec)
+            for (int k = 0; k < vec.Count; k++)
             {
-           
+                var item = vec[k];
+
                 if (prevIdx > item.Key)
                 {
                     throw new ArgumentException("Indices should be in ascendig order");
@@ -101,8 +102,7 @@ namespace KMLib.Helpers
                 Values[k] = item.Value;
 
                 SelfDotProd += Values[k] * Values[k];
-                k++;
-
+               
                 prevIdx = item.Key;
             }
 

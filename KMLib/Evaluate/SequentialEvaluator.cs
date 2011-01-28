@@ -9,11 +9,12 @@ namespace KMLib.Evaluate
 {
     /// <summary>
     /// represents sequential evaluation(prediction) for new unseen vector elements,
+    /// It use dual form of SVM, all prediction are based on alpha coeficients in model
     /// </summary>
     /// <remarks>It is not so sequential, because it works on many CPU cores, but
-    /// word sequential means that elements are predicted one by one
+    ///  "sequential" means that elements are predicted one by one
     /// </remarks>
-    public class SequentialEvaluator<TProblemElement> : EvaluatorBase<TProblemElement>
+    public class SequentialDualEvaluator<TProblemElement> : EvaluatorBase<TProblemElement>
     {
         
         //#region IEvaluator<SparseVector> Members

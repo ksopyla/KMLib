@@ -6,7 +6,8 @@ namespace KMLib
     public class Model<TProblemElement>
     {
         public int NumberOfClasses;
-        
+
+        public int FeaturesCount;
 
         /// <summary>
         /// Support Elements, aka. support vectors
@@ -33,6 +34,11 @@ namespace KMLib
         /// </summary>
         public int[] SupportElementsIndexes;
 
+        /// <summary>
+        /// W vector in primal problem
+        /// </summary>
+        public double[] W;
+
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder(100);
@@ -45,7 +51,9 @@ namespace KMLib
             return sb.ToString();
         }
 
-        
 
+
+
+        
     }
 }

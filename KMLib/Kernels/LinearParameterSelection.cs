@@ -45,7 +45,7 @@ namespace KMLib.Kernels
                     Stopwatch timer = Stopwatch.StartNew();
 
                     Validation<SparseVec> valid = new Validation<SparseVec>();
-                    valid.Evaluator = new SequentialEvaluator<SparseVec>();
+                    valid.Evaluator = new SequentialDualEvaluator<SparseVec>();
                     valid.TrainingProblem = problem;
 
                     //but here kernel should be different because 

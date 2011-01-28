@@ -61,7 +61,7 @@ namespace KMLib.Kernels
             Parallel.ForEach(gammaRange,gamma=>{
 
                 Validation<SparseVec> valid = new Validation<SparseVec>();
-                valid.Evaluator = new SequentialEvaluator<SparseVec>();
+                valid.Evaluator = new SequentialDualEvaluator<SparseVec>();
                 valid.TrainingProblem = problem;
 
                 //but here kernel should be different because 
