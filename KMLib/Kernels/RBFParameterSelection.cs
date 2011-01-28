@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using KMLib.Evaluate;
+using KMLib.Helpers;
 
 namespace KMLib.Kernels
 {
@@ -10,7 +11,7 @@ namespace KMLib.Kernels
     /// <summary>
     /// Clas for searching best parameters "C" and "Gamma" for RbfKernel
     /// </summary>
-    public class RbfParameterSelection : ParameterSelection<SparseVector>
+    public class RbfParameterSelection : ParameterSelection<SparseVec>
     {
 
         /// <summary>
@@ -19,7 +20,7 @@ namespace KMLib.Kernels
         /// <param name="problem"></param>
         /// <param name="C"></param>
         /// <param name="kernel"></param>
-        public override void SearchParams(Problem<SparseVector> problem, out float C, out IKernel<SparseVector> kernel)
+        public override void SearchParams(Problem<SparseVec> problem, out float C, out IKernel<SparseVec> kernel)
         {
 
             Debug.WriteLine("Starting Parameter Selection for RBF kernel");
@@ -45,9 +46,9 @@ namespace KMLib.Kernels
             object lockObj = new object();
 
 
-            List<SparseVector>[] foldsElements;
+            List<SparseVec>[] foldsElements;
             List<float>[] foldsLabels;
-            Validation<SparseVector>.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
+            Validation<SparseVec>.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
 
 
             //paralle search for best C and gamma, for each kernel try different C
@@ -59,8 +60,8 @@ namespace KMLib.Kernels
             //{
             Parallel.ForEach(gammaRange,gamma=>{
 
-                Validation<SparseVector> valid = new Validation<SparseVector>();
-                valid.Evaluator = new SequentialEvaluator<SparseVector>();
+                Validation<SparseVec> valid = new Validation<SparseVec>();
+                valid.Evaluator = new SequentialDualEvaluator<SparseVec>();
                 valid.TrainingProblem = problem;
 
                 //but here kernel should be different because 

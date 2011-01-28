@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using KMLib.Kernels;
 using System.Threading.Tasks;
+using KMLib.Helpers;
 
 namespace KMLib.Evaluate
 {
@@ -12,13 +13,14 @@ namespace KMLib.Evaluate
     /// <summary>
     /// Rerpesents evaluator for RBF kernel, use some optimization
     /// is faster for RBF than <see cref="SequentialEvalutor"/>
+    /// Prediction is based on dual form of SVM, use alpha coeficient in model to predict.
     /// </summary>
-    public class RBFEvaluator : EvaluatorBase<SparseVector>
+    public class RBFDualEvaluator : EvaluatorBase<SparseVec>
     {
         LinearKernel linKernel;
 
         float gamma = 0.5f;
-        public RBFEvaluator(float gamma)
+        public RBFDualEvaluator(float gamma)
         {
             linKernel = new LinearKernel();
             this.gamma = gamma;
@@ -40,7 +42,7 @@ namespace KMLib.Evaluate
         /// <remarks>Use some optimization for RBF kernel</remarks>
         /// <param name="elements">The elements.</param>
         /// <returns>array of predicted labels</returns>
-        public override float[] Predict(SparseVector[] elements)
+        public override float[] Predict(SparseVec[] elements)
         {
             if (!IsInitialized)
                 throw new ApplicationException("Evaluator is not initialized. Call init method");

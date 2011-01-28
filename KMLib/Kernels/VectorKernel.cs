@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using KMLib.Helpers;
 
 namespace KMLib.Kernels
 {

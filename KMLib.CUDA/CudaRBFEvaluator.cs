@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using GASS.CUDA;
 using System.Diagnostics;
 using GASS.CUDA.Types;
 using System.Runtime.InteropServices;
+using KMLib.Helpers;
 
 namespace KMLib.GPU
 {
@@ -33,7 +34,7 @@ namespace KMLib.GPU
         /// </summary>
         /// <param name="elements">The elements.</param>
         /// <returns>array of predicted labels +1 or -1</returns>
-        public override float[] Predict(SparseVector[] elements)
+        public override float[] Predict(SparseVec[] elements)
         {
 
             if (!IsInitialized)

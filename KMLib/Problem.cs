@@ -34,6 +34,15 @@ namespace KMLib
 
 
         /// <summary>
+        /// How many features contain one problem element
+        /// </summary>
+        /// <remarks>
+        /// Maximum index for each problem element
+        /// </remarks>
+        public int FeaturesCount;
+
+
+        /// <summary>
         /// Empty constructor,nothing initialized
         /// </summary>
         public Problem()
@@ -51,6 +60,20 @@ namespace KMLib
             Elements = elements;
             Labels = labels;
             ElementsCount = elements.Length;
+        }
+
+        /// <summary>
+        /// constructor with ProblemElements array and labels for elements
+        /// </summary>
+        /// <param name="elements">array of elements</param>
+        /// <param name="labels">array of elements labels</param>
+        /// <param name="featuresCount">number of features</param>
+        public Problem(TProblemElement[] elements, float[] labels,int featuresCount)
+        {
+            Elements = elements;
+            Labels = labels;
+            ElementsCount = elements.Length;
+            FeaturesCount = featuresCount;
         }
 
 

@@ -41,6 +41,17 @@ namespace KMLib.SVMSolvers
             this.kernel = kernel;
             this.C = C;
         }
+        /// <summary>
+        /// Construct the solver when kernel is not needed
+        /// </summary>
+        /// <param name="problem">trainning problem</param>
+        /// <param name="C">penalty parameter</param>
+        public Solver(Problem<TProblemElement> problem, float C)
+        {
+            this.problem = problem;
+            this.kernel = null;
+            this.C = C;
+        }
 
         /// <summary>
         /// Abstract method for computing trainde model

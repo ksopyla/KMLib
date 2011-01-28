@@ -5,7 +5,24 @@ using System.Text;
 
 namespace KMLib.Helpers
 {
-    internal class SparseVec
+
+    public abstract class Vector
+    {
+        protected float SelfDotProd = float.NegativeInfinity;
+
+        public  float DotProduct()
+        {
+
+            if (SelfDotProd < 0)
+                throw new ArgumentOutOfRangeException("SelfDotProd is not computed");
+
+            return SelfDotProd;
+
+        }
+    }
+
+
+    public class SparseVec:Vector
     {
 
         /// <summary>
@@ -16,11 +33,17 @@ namespace KMLib.Helpers
         /// <summary>
         /// number of non zero positions
         /// </summary>
-        public int Count;
+        public int Count
+        {
+            get
+            {
+                return Indices.Length;
+            }
+        }
 
-        public int[] Indices;
+        readonly public int[] Indices;
 
-        public float[] Values;
+        readonly public float[] Values;
 
         public SparseVec(int dim, ICollection<int> indexes, ICollection<float> vals)
         {
@@ -37,11 +60,50 @@ namespace KMLib.Helpers
             var enumerator2 = vals.GetEnumerator();
 
             int k = 0;
+            int prevIdx = 0;
             while (enumerator1.MoveNext() && enumerator2.MoveNext())
             {
+                if (prevIdx > enumerator1.Current)
+                {
+                    throw new ArgumentException("Indices should be in ascendig order");
+                }
                 Indices[k] = enumerator1.Current;
                 Values[k] = enumerator2.Current;
+
+                SelfDotProd += Values[k] * Values[k];
                 k++;
+
+                prevIdx = enumerator1.Current;
+            }
+
+
+        }
+
+        public SparseVec(int dim, IList<KeyValuePair<int,float>> vec)
+        {
+            Dim = dim;
+
+            
+            Indices = new int[vec.Count];
+            Values = new float[vec.Count];
+
+            
+            int prevIdx = 0;
+            SelfDotProd = 0;
+            for (int k = 0; k < vec.Count; k++)
+            {
+                var item = vec[k];
+
+                if (prevIdx > item.Key)
+                {
+                    throw new ArgumentException("Indices should be in ascendig order");
+                }
+                Indices[k] = item.Key;
+                Values[k] = item.Value;
+
+                SelfDotProd += Values[k] * Values[k];
+               
+                prevIdx = item.Key;
             }
 
 
@@ -102,5 +164,9 @@ namespace KMLib.Helpers
             return result;
 
         }
+
+
+
+        
     }
 }

@@ -4,8 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using KMLib.Evaluate;
+using KMLib.Helpers;
 
 namespace KMLib.Kernels
 {
@@ -14,11 +15,11 @@ namespace KMLib.Kernels
     /// Class for finding best parameters for Linear kernel, in this case 
     /// <see cref="SearchParams"/> search only one parameter C
     /// </summary>
-    public class LinearParameterSelection: ParameterSelection<SparseVector> 
+    public class LinearParameterSelection: ParameterSelection<SparseVec> 
     {
-        public override void SearchParams(Problem<SparseVector> problem, 
+        public override void SearchParams(Problem<SparseVec> problem, 
             out float C, 
-            out IKernel<SparseVector> kernel)
+            out IKernel<SparseVec> kernel)
         {
          //   throw new NotImplementedException();
             Debug.WriteLine("Starting Parameter Selection for Linear kernel");
@@ -34,17 +35,17 @@ namespace KMLib.Kernels
             object lockObj = new object();
 
 
-            List<SparseVector>[] foldsElements;
+            List<SparseVec>[] foldsElements;
             List<float>[] foldsLabels;
-            Validation<SparseVector>.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
+            Validation<SparseVec>.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
 
             Parallel.ForEach(rangeC, paramC =>
             {
                 //do cross validation
                     Stopwatch timer = Stopwatch.StartNew();
 
-                    Validation<SparseVector> valid = new Validation<SparseVector>();
-                    valid.Evaluator = new SequentialEvaluator<SparseVector>();
+                    Validation<SparseVec> valid = new Validation<SparseVec>();
+                    valid.Evaluator = new SequentialDualEvaluator<SparseVec>();
                     valid.TrainingProblem = problem;
 
                     //but here kernel should be different because 

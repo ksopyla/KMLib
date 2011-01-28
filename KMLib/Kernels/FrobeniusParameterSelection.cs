@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using dnAnalytics.LinearAlgebra;
 using KMLib.Evaluate;
+using KMLib.Helpers;
 
 namespace KMLib.Kernels
 {
@@ -46,7 +47,7 @@ namespace KMLib.Kernels
                 Stopwatch timer = Stopwatch.StartNew();
 
                 Validation<Matrix> valid = new Validation<Matrix>();
-                valid.Evaluator = new SequentialEvaluator<Matrix>();
+                valid.Evaluator = new SequentialDualEvaluator<Matrix>();
                 valid.TrainingProblem = problem;
 
                 //but here kernel should be different because 

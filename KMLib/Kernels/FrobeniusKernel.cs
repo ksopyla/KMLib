@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using dnAnalytics.LinearAlgebra;
 using System.Diagnostics;
+using KMLib.Helpers;
 
 namespace KMLib.Kernels
 {
@@ -34,6 +35,8 @@ namespace KMLib.Kernels
             //                     let col = item.B
             //                     let val = item.C
             //                     select val * element2[row, col]).Sum();
+
+           
 
             foreach (var item in element1.GetEnumerator())
             {

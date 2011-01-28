@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using dnAnalytics.LinearAlgebra;
+//using dnAnalytics.LinearAlgebra;
 using KMLib;
 using KMLib.Helpers;
 using KMLib.Kernels;
 using KMLib.GPU;
 using System.Diagnostics;
-using dnaLA = dnAnalytics.LinearAlgebra;
+//using dnaLA = dnAnalytics.LinearAlgebra;
 using KMLib.Evaluate;
 using KMLib.SVMSolvers;
 
@@ -36,7 +36,7 @@ namespace KMLibUsageApp
 
             TestOneDataSet(dataFolder);
 
-           // TestOneDataSetWithCuda(dataFolder);
+            //TestOneDataSetWithCuda(dataFolder);
 
            // SVMClassifyLowLevel(dataFolder, C);
 
@@ -55,20 +55,48 @@ namespace KMLibUsageApp
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
-            Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
-            Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+            Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             
-            EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
 
            // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            IKernel<SparseVector> kernel = new RbfKernel(gamma);
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVector> kernel = new LinearKernel();
             SVMClassify(train, test, kernel, evaluator,C);
+
+        }
+
+
+        private static void TestOneDataSetLinearSVM(string dataFolder)
+        {
+            string trainningFile;
+            string testFile;
+            int numberOfFeatures;
+            ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
+
+            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
+            Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
+            Console.WriteLine();
+            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+
+            Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+
+            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+
+            // evaluator.Init();
+            //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVector> kernel = new LinearKernel();
+            SVMClassify(train, test, kernel, evaluator, C);
 
         }
 
@@ -83,22 +111,22 @@ namespace KMLibUsageApp
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
-            Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
             
 
-            var trainSumArr = train.Elements.Sum(x => x.mIndices.Length);
-            var trainSum = train.Elements.Sum(x => x.mValueCount);
+            var trainSumArr = train.Elements.Sum(x => x.Indices.Length);
+            var trainSum = train.Elements.Sum(x => x.Count);
 
-            Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
-            var testSumArr = test.Elements.Sum(x => x.mIndices.Length);
-            var testSum = test.Elements.Sum(x => x.mValueCount);
+            Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+            var testSumArr = test.Elements.Sum(x => x.Indices.Length);
+            var testSum = test.Elements.Sum(x => x.Count);
             
-           // EvaluatorBase<SparseVector> evaluator = new CudaLinearEvaluator();
-            EvaluatorBase<SparseVector> evaluator = new CudaRBFEvaluator(gamma);
+           // EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
          
             //IKernel<SparseVector> kernel2 = new CudaLinearKernel();
-            IKernel<SparseVector> kernel2 = new CudaRBFKernel(gamma);
+            IKernel<SparseVec> kernel2 = new CudaRBFKernel(gamma);
 
             SVMClassify(train, test, kernel2,evaluator, C);
 
@@ -122,8 +150,8 @@ namespace KMLibUsageApp
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             //IKernel<SparseVector> kernel = new LinearKernel();
 
-            EvaluatorBase<SparseVector> evaluator = new CudaLinearEvaluator();
-            IKernel<SparseVector> kernel = new CudaLinearKernel();
+            EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            IKernel<SparseVec> kernel = new CudaLinearKernel();
 
             foreach (var data in dataSetsToTest)
             {
@@ -136,9 +164,9 @@ namespace KMLibUsageApp
                 Console.WriteLine();
                 
 
-                Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+                Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
-                Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+                Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
                 
                 SVMClassify(train, test, kernel, evaluator, C);
                 Console.WriteLine("***************************\n");
@@ -210,19 +238,19 @@ namespace KMLibUsageApp
         {
 
 
-            trainningFile = dataFolder + "/a1a.train";
+            //trainningFile = dataFolder + "/a1a.train";
            // testFile = dataFolder + "/a1a.test";
-            testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
+            ////testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a";
             //testFile = dataFolder + "/a9a.t";
             //numberOfFeatures = 123;
 
-             //trainningFile = dataFolder + "/w8a";
-             //testFile = dataFolder + "/w8a.t";
-             //numberOfFeatures = 300;
+            trainningFile = dataFolder + "/w8a";
+            testFile = dataFolder + "/w8a.t";
+            numberOfFeatures = 300;
 
             //string trainningFile = dataFolder + "/colon-cancer.train";
             //string testFile = dataFolder + "/colon-cancer.train";
@@ -287,12 +315,12 @@ namespace KMLibUsageApp
             Console.WriteLine();
             
             
-            EvaluatorBase<SparseVector> evaluator = new CudaLinearEvaluator();
-            IKernel<SparseVector> kernel = new CudaLinearKernel();
-            Model<SparseVector> model;
+            EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            IKernel<SparseVec> kernel = new CudaLinearKernel();
+            Model<SparseVec> model;
 
             Console.WriteLine("read vectors");
-            Problem<SparseVector> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
             Console.WriteLine("end read vectors");
 
             Console.WriteLine("kernel init");
@@ -304,7 +332,7 @@ namespace KMLibUsageApp
             //
             //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             //this solver works a bit faster and use less memory
-            var Solver = new ParallelSmoFanSolver2<SparseVector>(train, kernel, C);
+            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
 
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 
@@ -332,7 +360,7 @@ namespace KMLibUsageApp
 
             Console.WriteLine("read test");
 
-            Problem<SparseVector> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+            Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
            // evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
             Console.WriteLine("after read test");
@@ -418,7 +446,7 @@ namespace KMLibUsageApp
             validation.TrainingProblem = train;
             validation.Kernel = kernel;
 
-            validation.Evaluator = new SequentialEvaluator<Vector>();
+            validation.Evaluator = new SequentialDualEvaluator<Vector>();
             Stopwatch timer = new Stopwatch();
             Stopwatch globalTimer = new Stopwatch();
             globalTimer.Start();

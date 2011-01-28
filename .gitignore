@@ -41,3 +41,9 @@ KMLibUsageApp/Data/w8a.t
 KMLibUsageApp/Data/news20.binary.bz2
 *.bz2
 *.vsps
+Libs/NMathCoreKernelx86.dll
+*.psess
+Libs/NMathCoreMath.dll
+Libs/NMathCoreShared.dll
+Libs/NMathMatrixKernelx86.dll
+Libs/NMathMatrixMain.dll
