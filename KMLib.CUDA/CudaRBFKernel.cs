@@ -108,7 +108,7 @@ namespace KMLib.GPU
         public override void Init()
         {
             linKernel.ProblemElements = problemElements;
-            linKernel.Labels = Labels;
+            linKernel.Y = Y;
             linKernel.Init();
            
             base.Init();
@@ -153,7 +153,7 @@ namespace KMLib.GPU
 
             SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
 
-            SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, Labels, ref labelsPtr);
+            SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
            
 
         }

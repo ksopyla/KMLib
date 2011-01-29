@@ -142,7 +142,7 @@ namespace KMLib.Kernels
             linKernel.Dispose();
 
             problemElements = null;
-            Labels = null;
+            Y = null;
             DiagonalDotCache = null;
             IsInitialized = false;
         }

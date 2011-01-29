@@ -21,6 +21,10 @@ namespace KMLib
     {
 
         /// <summary>
+        /// type of SVM solver
+        /// </summary>
+        public SolverVariant solverType = SolverVariant.ParallelSmoFanSolver2;
+        /// <summary>
         /// 
         /// </summary>
         private Problem<TProblemElement> problem;
@@ -49,7 +53,7 @@ namespace KMLib
         /// <summary>
         /// Solver, solves C-SVM optimization problem 
         /// </summary>
-        protected Solver<TProblemElement> Solver;
+        protected Solver<TProblemElement> svmSolver;
         // private Problem<TProblemElement> trainSubprob;
         //  private IKernel<TProblemElement> Kernel;
         // private EvaluatorBase<TProblemElement> Evaluator;
@@ -105,24 +109,20 @@ namespace KMLib
         {
 
             kernel.ProblemElements = problem.Elements;
-            kernel.Labels = problem.Labels;
+            kernel.Y = problem.Y;
             kernel.Init();
             
             //
             //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             //this solver works a bit faster and use less memory
-            Solver = new ParallelSmoFanSolver2<TProblemElement>(problem, kernel, C);
-            
-            if (kernel.ProblemElements == null)
-                throw new ArgumentNullException("Not initialized, should call Init method");
+            svmSolver = new ParallelSmoFanSolver2<TProblemElement>(problem, kernel, C);
 
+           // svmSolver = SolverFactory.BinarySolver(solverType, problem, kernel, C);
 
-
-
-            Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
+            Console.WriteLine("User solver {0} and kernel {1}", svmSolver.ToString(), kernel.ToString());
 
             Stopwatch timer = Stopwatch.StartNew();
-            model = Solver.ComputeModel();
+            model = svmSolver.ComputeModel();
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
 
             var disKernel = kernel as IDisposable;

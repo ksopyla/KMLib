@@ -113,7 +113,7 @@ namespace KMLib.SVMSolvers
             Model<TProblemElement> model = new Model<TProblemElement>();
             model.NumberOfClasses = 2;
             model.Alpha = alpha;
-            model.Rho = b;
+            model.Bias = b;
 
 
             List<TProblemElement> supportElements = new List<TProblemElement>();
@@ -139,7 +139,7 @@ namespace KMLib.SVMSolvers
         /// <summary>Indicates if a step has been taken.</summary>
         private bool ExamineExample(int i1)
         {
-            float y1 = problem.Labels[i1],
+            float y1 = problem.Y[i1],
                   alph1 = alpha[i1],
                   E1 = 0;
 
@@ -271,7 +271,7 @@ namespace KMLib.SVMSolvers
             if (i1 == i2) return false; // no step taken
 
             alph1 = alpha[i1];
-            y1 = problem.Labels[i1];
+            y1 = problem.Y[i1];
             if (alph1 > 0 && alph1 < C)
             {
                 E1 = errorCache[i1];
@@ -282,7 +282,7 @@ namespace KMLib.SVMSolvers
             }
 
             alph2 = alpha[i2];
-            y2 = problem.Labels[i2];
+            y2 = problem.Y[i2];
             if (alph2 > 0 && alph2 < C)
             {
                 E2 = errorCache[i2];
@@ -449,7 +449,7 @@ namespace KMLib.SVMSolvers
             LinkedList<int> groupedIndexes = new LinkedList<int>();
 
             float E1 = 0f, alph1 = alpha[i1],
-            y1 = problem.Labels[i1];
+            y1 = problem.Y[i1];
             if (alph1 > 0 && alph1 < C)
             {
                 E1 = errorCache[i1];
@@ -532,7 +532,7 @@ namespace KMLib.SVMSolvers
             for (int i = 0; i < problem.Elements.Length; i++)
             {
                 if (alpha[i] != 0)
-                    sum += alpha[i] * problem.Labels[i] * Product(i, k);
+                    sum += alpha[i] * problem.Y[i] * Product(i, k);
             }
 
             sum -= b;

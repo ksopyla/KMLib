@@ -18,22 +18,24 @@ namespace KMLib.SVMSolvers
     /// </summary>
     public class LinearSolver : Solver<SparseVec>
     {
-        private int Bias;
+        private float bias=-1;
 
         /// <summary>
         /// contains labels which has different weight
         /// </summary>
-        int[] weightLabel;
+        int[] labelWithWeight;
 
         /// <summary>
-        /// contains weights for labels <see cref="weightLabel"/> array
+        /// contains weights for labels <see cref="labelWithWeight"/> array
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         double[] penaltyWeights;
+
+
         private SolverType solverType = SolverType.L2R_L2LOSS_SVC_DUAL;
-        private double epsilon;
+        private double epsilon= 0.01;
 
         enum SolverType
         {
@@ -71,17 +73,17 @@ namespace KMLib.SVMSolvers
         public LinearSolver(Problem<SparseVec> problem, float C)
             : base(problem, C)
         {
+        }
 
-            //default weight and penalty, this values are set in order to 
-            //weight was omitted
-            weightLabel = new int[1] { int.MinValue };
-            penaltyWeights = new double[1] { 1 };
-
+        public LinearSolver(Problem<SparseVec> problem, float C,int[] weightedLabels,double[] weights):base(problem,C)
+        {
+            labelWithWeight = weightedLabels;
+            penaltyWeights = weights;
         }
 
         public override Model<SparseVec> ComputeModel()
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
 
             //check if features are in correct order
             //for (FeatureNode[] nodes : prob.x) {
@@ -94,17 +96,20 @@ namespace KMLib.SVMSolvers
             //    }
             //}
 
-            int i, j;
+           int j;
             int l = problem.ElementsCount; //prob.l;
             int n = problem.FeaturesCount;// prob.n;
             int w_size = n; // prob.n;
             Model<SparseVec> model = new Model<SparseVec>();
+            model.FeaturesCount = n;
 
-            if (Bias > 0)
+            if (bias >= 0)
             {
                 //Add to each feature vector last feature ==1;
-                model.FeaturesCount = n;
+                model.FeaturesCount = n - 1;
             }
+            else
+                model.FeaturesCount = n;
 
             //    if (Bias >= 0)
             //    model.nr_feature = n - 1;
@@ -114,7 +119,7 @@ namespace KMLib.SVMSolvers
 
             //model.solverType = param.solverType;
             //model.bias = prob.bias;
-
+            model.Bias = bias;
 
             int[] perm = new int[l];
             // group training data of the same class
@@ -128,37 +133,28 @@ namespace KMLib.SVMSolvers
 
             model.NumberOfClasses = nr_class;
 
+            //todo: add inf about labels to Model
             //model class
-            //model.label = new int[nr_class];
-            //for (i = 0; i < nr_class; i++)
-            //    model.label[i] = label[i];
+            model.Labels = new float[nr_class];
+            for (int i = 0; i < nr_class; i++)
+                model.Labels[i] =(float) label[i];
 
             // calculate weighted C
             double[] weighted_C = new double[nr_class];
-            for (i = 0; i < nr_class; i++)
+            for (int i = 0; i < nr_class; i++)
             {
                 weighted_C[i] = C;
             }
 
 
-
-            for (i = 0; i < weightLabel.Length; i++)
-            {
-                for (j = 0; j < nr_class; j++)
-                    if (weightLabel[i] == label[j])
-                        break;
-                if (j == nr_class)
-                    throw new ArgumentOutOfRangeException("class label " + weightLabel[i] + " specified in weight is not found");
-
-                weighted_C[j] *= penaltyWeights[i];
-            }
+            SetClassWeights(nr_class, label, weighted_C);
 
             // constructing the subproblem
             //permutated vectors
             SparseVec[] permVec = new SparseVec[problem.ElementsCount];
             //FeatureNode[][] x = new FeatureNode[l][];
             Debug.Assert(l == problem.ElementsCount);
-            for (i = 0; i < l; i++)
+            for (int i = 0; i < l; i++)
             {
                 //x[i] = prob.x[perm[i]];
                 permVec[i] = problem.Elements[perm[i]];
@@ -169,7 +165,7 @@ namespace KMLib.SVMSolvers
             sub_prob.ElementsCount = l;
             sub_prob.FeaturesCount = n;
             //we set labels below
-            sub_prob.Labels = new float[sub_prob.ElementsCount];
+            sub_prob.Y = new float[sub_prob.ElementsCount];
             sub_prob.Elements = permVec;
             //java version
             //for (int k = 0; k < sub_prob.ElementsCount; k++)
@@ -181,11 +177,11 @@ namespace KMLib.SVMSolvers
             {
                 //model.w = new double[n * nr_class];
                 model.W = new double[n * nr_class];
-                for (i = 0; i < nr_class; i++)
+                for (int i = 0; i < nr_class; i++)
                 {
                     for (j = start[i]; j < start[i] + count[i]; j++)
                     {
-                        sub_prob.Labels[j] = i;
+                        sub_prob.Y[j] = i;
                     }
                 }
 
@@ -201,9 +197,9 @@ namespace KMLib.SVMSolvers
                     int e0 = start[0] + count[0];
                     int k = 0;
                     for (; k < e0; k++)
-                        sub_prob.Labels[k] = +1;
+                        sub_prob.Y[k] = +1;
                     for (; k < sub_prob.ElementsCount; k++)
-                        sub_prob.Labels[k] = -1;
+                        sub_prob.Y[k] = -1;
 
                     //train_one(sub_prob, param, model.w, weighted_C[0], weighted_C[1]);
                     solve_l2r_l1l2_svc(model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
@@ -214,18 +210,18 @@ namespace KMLib.SVMSolvers
                     double[] w = new double[w_size];
 
                     ///one against many
-                    for (i = 0; i < nr_class; i++)
+                    for (int i = 0; i < nr_class; i++)
                     {
                         int si = start[i];
                         int ei = si + count[i];
 
                         int k = 0;
                         for (; k < si; k++)
-                            sub_prob.Labels[k] = -1;
+                            sub_prob.Y[k] = -1;
                         for (; k < ei; k++)
-                            sub_prob.Labels[k] = +1;
+                            sub_prob.Y[k] = +1;
                         for (; k < sub_prob.ElementsCount; k++)
-                            sub_prob.Labels[k] = -1;
+                            sub_prob.Y[k] = -1;
 
                         //train_one(sub_prob, param, w, weighted_C[i], param.C);
                         solve_l2r_l1l2_svc(w, epsilon, weighted_C[0], C, solverType);
@@ -237,6 +233,25 @@ namespace KMLib.SVMSolvers
 
             }
             return model;
+        }
+
+        private void SetClassWeights(int nr_class, int[] label, double[] weighted_C)
+        {
+
+            if (labelWithWeight == null || labelWithWeight.Length == 1)
+                return;
+
+            int j;
+            for (int i = 0; i < labelWithWeight.Length; i++)
+            {
+                for (j = 0; j < nr_class; j++)
+                    if (labelWithWeight[i] == label[j])
+                        break;
+                if (j == nr_class)
+                    throw new ArgumentOutOfRangeException("class label " + labelWithWeight[i] + " specified in weight is not found");
+
+                weighted_C[j] *= penaltyWeights[i];
+            }
         }
 
         private void groupClasses(Problem<SparseVec> problem, out int nr_class, out int[] label, out int[] start, out int[] count, int[] perm)
@@ -252,7 +267,7 @@ namespace KMLib.SVMSolvers
 
             for (i = 0; i < l; i++)
             {
-                int this_label = (int)problem.Labels[i];//prob.y[i];
+                int this_label = (int)problem.Y[i];//prob.y[i];
                 int j;
                 for (j = 0; j < nr_class; j++)
                 {
@@ -397,7 +412,7 @@ namespace KMLib.SVMSolvers
             for (i = 0; i < l; i++)
             {
                 alpha[i] = 0;
-                if (problem.Labels[i] > 0)
+                if (problem.Y[i] > 0)
                 {
                     y[i] = +1;
                 }
@@ -424,7 +439,7 @@ namespace KMLib.SVMSolvers
 
                 for (i = 0; i < active_size; i++)
                 {
-                    int j = i + rand.Next(active_size - 1);// .nextInt(active_size - i);
+                    int j = i + rand.Next(active_size - i);// .nextInt(active_size - i);
 
                     //swap(index, i, j);
                     index.SwapIndex(i, j);

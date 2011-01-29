@@ -170,7 +170,7 @@ namespace KMLib.GPU
 
             //CUdeviceptr symbolAdr;
             //CUDARuntime.cudaGetSymbolAddress(ref symbolAdr,"RHO");
-            rho = TrainedModel.Rho;
+            rho = TrainedModel.Bias;
             //IntPtr symbolVal = new IntPtr(&rho);
             //CUDARuntime.cudaMemcpyToSymbol("RHO", symbolVal, 1, 1, cudaMemcpyKind.cudaMemcpyHostToDevice);
 
@@ -257,7 +257,7 @@ namespace KMLib.GPU
                 cuda.Dispose();
                 cuda = null;
 
-                TrainedModel.Labels = null;
+                TrainedModel.Y = null;
                 TrainedModel.Alpha = null;
                 TrainedModel.SupportElements = null;
                 TrainedModel.SupportElementsIndexes = null;

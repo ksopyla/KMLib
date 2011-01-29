@@ -72,9 +72,9 @@ namespace KMLib.Evaluate
 
 
                         index = TrainedModel.SupportElementsIndexes[k];
-                        sum += TrainedModel.Alpha[index] * TrainedModel.Labels[k] * rbfVal;
+                        sum += TrainedModel.Alpha[index] * TrainedModel.Y[k] * rbfVal;
                     }
-                    sum -= TrainedModel.Rho;
+                    sum -= TrainedModel.Bias;
                     predictions[i] = sum < 0 ? -1 : 1;
                 });
 

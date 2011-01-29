@@ -25,7 +25,7 @@ namespace KMLib.Kernels
             protected set;
         }
 
-        public float[] Labels
+        public float[] Y
         {
             get;
             set;
@@ -109,7 +109,7 @@ namespace KMLib.Kernels
             {
                 for (int k = range.Item1; k < range.Item2; k++)
                 {
-                    results[k] = (Labels[element1] * Labels[k] * Product(element1, k));
+                    results[k] = (Y[element1] * Y[k] * Product(element1, k));
                 }
 
             });
@@ -137,32 +137,32 @@ namespace KMLib.Kernels
         #region IKernel<T> Members
 
 
-        public float[] Predict(Model<T> model, T[] predictElements)
-        {
-            float[]  sum = new float[predictElements.Length];
+        //public float[] Predict(Model<T> model, T[] predictElements)
+        //{
+        //    float[]  sum = new float[predictElements.Length];
 
-            int index = -1;
-            for (int i = 0; i < predictElements.Length; i++)
-            {
+        //    int index = -1;
+        //    for (int i = 0; i < predictElements.Length; i++)
+        //    {
 
 
-                for (int k = 0; k < model.SupportElementsIndexes.Length; k++)
-                {
-                    index = model.SupportElementsIndexes[k];
+        //        for (int k = 0; k < model.SupportElementsIndexes.Length; k++)
+        //        {
+        //            index = model.SupportElementsIndexes[k];
                     
-                    sum[i] += model.Alpha[index] * Labels[index] *
-                                        Product(problemElements[index], predictElements[i]);
-                }
+        //            sum[i] += model.Alpha[index] * Y[index] *
+        //                                Product(problemElements[index], predictElements[i]);
+        //        }
 
 
-                sum[i] -= model.Rho;
-                sum[i] = sum[i] > 0 ? 1 : -1;
-            }
+        //        sum[i] -= model.Bias;
+        //        sum[i] = sum[i] > 0 ? 1 : -1;
+        //    }
 
             
 
-            return sum;
-        }
+        //    return sum;
+        //}
 
         #endregion
 

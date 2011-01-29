@@ -58,9 +58,7 @@ namespace KMLib.SVMSolvers
         /// </summary>
         /// <returns>trained model</returns>
         public abstract Model<TProblemElement> ComputeModel();
-
-
-       // public abstract void Init() { }
+       
         
     }
 }

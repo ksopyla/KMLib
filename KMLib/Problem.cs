@@ -9,7 +9,7 @@ namespace KMLib
 
     /// <summary>
     /// Problem, holds <see cref="Elements"> array of data</see> (type of <see cref="TProblemElement"/>) and 
-    /// for each element its <see cref="Labels"> label</see>
+    /// for each element its <see cref="Y"> label</see>
     /// This class is only container for data.
     /// </summary>
     /// <typeparam name="TProblemElement">Type of stored data can be Vectors, Matrix, strings etc.</typeparam>
@@ -20,7 +20,7 @@ namespace KMLib
         /// <summary>
         /// Array of labels, on specific position "i" stands label for i-th <see cref="Elements">element</see>
         /// </summary>
-        public float[] Labels;
+        public float[] Y;
 
         /// <summary>
         /// Array of problem data of type <see cref="TProblemElement"/>
@@ -58,7 +58,7 @@ namespace KMLib
         public Problem(TProblemElement[] elements,float[] labels)
         {
             Elements = elements;
-            Labels = labels;
+            Y = labels;
             ElementsCount = elements.Length;
         }
 
@@ -71,7 +71,7 @@ namespace KMLib
         public Problem(TProblemElement[] elements, float[] labels,int featuresCount)
         {
             Elements = elements;
-            Labels = labels;
+            Y = labels;
             ElementsCount = elements.Length;
             FeaturesCount = featuresCount;
         }
@@ -82,7 +82,7 @@ namespace KMLib
         public void Dispose()
         {
             Elements = null;
-            Labels = null;
+            Y = null;
             ElementsCount = -1;
         }
     }

@@ -265,7 +265,7 @@ namespace KMLib.SVMSolvers
                     {
 
 
-                        y1 = problem.Labels[k];
+                        y1 = problem.Y[k];
                         alpha1 = alpha[k];
                         E1 = ErrorForAlpha(k);
 
@@ -300,7 +300,7 @@ namespace KMLib.SVMSolvers
                             continue;
 
 
-                        y1 = problem.Labels[k];
+                        y1 = problem.Y[k];
                         alpha1 = alpha[k];
                         E1 = ErrorForAlpha(k);
 
@@ -347,7 +347,7 @@ namespace KMLib.SVMSolvers
             Model<TProblemElement> model = new Model<TProblemElement>();
             model.NumberOfClasses = 2;
             model.Alpha = alpha;
-            model.Rho = b;
+            model.Bias = b;
 
 
             //List<TProblemElement> supportElements = new List<TProblemElement>();
@@ -374,13 +374,13 @@ namespace KMLib.SVMSolvers
                 {
                     supportElements.Add(problem.Elements[j]);
                     suporrtIndexes.Add(j);
-                    supportLabels.Add(problem.Labels[j]);
+                    supportLabels.Add(problem.Y[j]);
                 }
 
             }
             model.SupportElements = supportElements.ToArray();
             model.SupportElementsIndexes = suporrtIndexes.ToArray();
-            model.Labels = supportLabels.ToArray();
+            model.Y = supportLabels.ToArray();
            
             #endregion
 
@@ -837,7 +837,7 @@ namespace KMLib.SVMSolvers
 
 
             alph2 = alpha[i2];
-            y2 = problem.Labels[i2];
+            y2 = problem.Y[i2];
             E2 = ErrorForAlpha(i2);
 
             s = y1 * y2;
@@ -995,7 +995,7 @@ namespace KMLib.SVMSolvers
         /// <returns></returns>
         private float ErrorForAlpha(int i)
         {
-            float y1 = problem.Labels[i],
+            float y1 = problem.Y[i],
                   alph1 = alpha[i],
                   E1 = 0;
 
@@ -1024,11 +1024,11 @@ namespace KMLib.SVMSolvers
             if (i1 == i2) return null; // no step taken
 
             alph1 = alpha[i1];
-            y1 = problem.Labels[i1];
+            y1 = problem.Y[i1];
             E1 = ErrorForAlpha(i1);
 
             alph2 = alpha[i2];
-            y2 = problem.Labels[i2];
+            y2 = problem.Y[i2];
             E2 = ErrorForAlpha(i2);
 
             s = y1 * y2;
@@ -1192,7 +1192,7 @@ namespace KMLib.SVMSolvers
             for (int i = 0; i < problem.Elements.Length; i++)
             {
                 if (alpha[i] != 0)
-                    sum += alpha[i] * problem.Labels[i] * Product(i, k);
+                    sum += alpha[i] * problem.Y[i] * Product(i, k);
             }
 
             sum -= b;

@@ -188,7 +188,7 @@ namespace KMLib
                     int eleIndex = permutation[j + start[c]];
 
                     foldsElements[modIndex].Add(Problem.Elements[eleIndex]);
-                    foldsLabels[modIndex].Add(Problem.Labels[eleIndex]);
+                    foldsLabels[modIndex].Add(Problem.Y[eleIndex]);
                     foldIndex++;
                 }
                 foldIndex = 0;
@@ -332,7 +332,7 @@ namespace KMLib
             int i = 0;
             while (startIndex < endindex)
             {
-                if (Problem.Labels[i] <= 0)
+                if (Problem.Y[i] <= 0)
                 {
                     //we start from -1 so incrementation should be first
                     startIndex++;
@@ -404,7 +404,7 @@ namespace KMLib
             {
                 float predictedLabel = predictions[i];
 
-                if (predictedLabel == TestProblem.Labels[i])
+                if (predictedLabel == TestProblem.Y[i])
                     ++correct;
             }
 

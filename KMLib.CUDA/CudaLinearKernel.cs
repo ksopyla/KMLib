@@ -38,7 +38,9 @@ namespace KMLib.GPU
 
         public override float Product(int element1, int element2)
         {
-            return linKernel.Product(element1, element2);
+            float t = problemElements[element1].DotProduct();
+            float t1 = linKernel.Product(element1, element2);
+            return t1;
         }
 
         public override ParameterSelection<SparseVec> CreateParameterSelection()
@@ -84,7 +86,10 @@ namespace KMLib.GPU
             
             //allocate memory for main vector, size of this vector is the same as dimenson, so many 
             //indexes will be zero, but cuda computation is faster
-            mainVector = new float[problemElements[0].Count];
+       
+
+
+            mainVector = new float[problemElements[0].Dim];
             CudaHelpers.FillDenseVector(problemElements[0],mainVector);
 
             //get reference to cuda texture for main vector
@@ -98,7 +103,7 @@ namespace KMLib.GPU
             //labelsPtr = cuda.CopyHostToDevice(Labels);
             //uint align = cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, (uint)(sizeof(float) * Labels.Length));
 
-            SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, Labels, ref labelsPtr);
+            SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
 
         }
 
@@ -187,7 +192,7 @@ namespace KMLib.GPU
                 cuda = null;
 
                 problemElements = null;
-                Labels = null;
+                Y = null;
                 DiagonalDotCache = null;
 
 

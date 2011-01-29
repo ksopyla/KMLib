@@ -17,7 +17,7 @@
         /// Gets or sets the labels.
         /// </summary>
         /// <value>The labels.</value>
-        float[] Labels { get; set; }
+        float[] Y { get; set; }
 
         /// <summary>
         /// Product of 2 elements, methods of messure similarity

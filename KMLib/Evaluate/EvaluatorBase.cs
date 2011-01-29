@@ -52,7 +52,7 @@ namespace KMLib.Evaluate
         /// </summary>
         /// <param name="element">The element to predict.</param>
         /// <returns>predicted class</returns>
-        public  float Predict(TProblemElement element)
+        public virtual  float Predict(TProblemElement element)
         {
             float sum = 0;
 
@@ -61,12 +61,12 @@ namespace KMLib.Evaluate
             for (int k = 0; k < TrainedModel.SupportElementsIndexes.Length; k++)
             {
                 index = TrainedModel.SupportElementsIndexes[k];
-                sum += TrainedModel.Alpha[index] * TrainedModel.Labels[k] *
+                sum += TrainedModel.Alpha[index] * TrainedModel.Y[k] *
                                     Kernel.Product(TrainedModel.SupportElements[k], element);
                 // Kernel.Product(TrainningProblem.Elements[index], element);
             }
 
-            sum -= TrainedModel.Rho;
+            sum -= TrainedModel.Bias;
 
            float ret = sum < 0 ? -1 : 1;
 

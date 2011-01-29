@@ -55,7 +55,7 @@ namespace KMLib.Kernels
         #region IKernel<Matrix> Members
 
 
-        public float[] Labels
+        public float[] Y
         {
             get
            ;

@@ -33,10 +33,10 @@ namespace KMLibUsageApp
             //Console.WriteLine("press any key to start");
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
-            GroupedTestingLowLevelDataSets(dataSetsToTest);
-            //TestOneDataSet(dataFolder);
+            //GroupedTestingLowLevelDataSets(dataSetsToTest);
+            TestOneDataSet(dataFolder);
 
-            //TestOneDataSetWithCuda(dataFolder);
+            TestOneDataSetWithCuda(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -45,6 +45,8 @@ namespace KMLibUsageApp
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
             SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
+
+            SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
             Console.WriteLine("Press any button");
             Console.ReadKey();
@@ -67,46 +69,23 @@ namespace KMLibUsageApp
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             
-            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
            // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            IKernel<SparseVec> kernel = new RbfKernel(gamma);
-            //IKernel<SparseVector> kernel = new LinearKernel();
+            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            IKernel<SparseVec> kernel = new LinearKernel();
             SVMClassify(train, test, kernel, evaluator,C);
 
         }
 
 
-        private static void TestOneDataSetLinearSVM(string dataFolder)
-        {
-            string trainningFile;
-            string testFile;
-            int numberOfFeatures;
-            ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-
-            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
-            Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
-            Console.WriteLine();
-            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
-
-            Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
-
-            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
-
-            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
-
-            // evaluator.Init();
-            //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            IKernel<SparseVec> kernel = new RbfKernel(gamma);
-            //IKernel<SparseVector> kernel = new LinearKernel();
-            SVMClassify(train, test, kernel, evaluator, C);
-
-        }
-
-
+       
+        /// <summary>
+        /// Read train and test problem from dataset file and then train SVM using CUDA kernels
+        /// </summary>
+        /// <param name="dataFolder"></param>
         private static void TestOneDataSetWithCuda(string dataFolder)
         {
             string trainningFile;
@@ -119,27 +98,22 @@ namespace KMLibUsageApp
             Console.WriteLine();
             Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
-            
-
             var trainSumArr = train.Elements.Sum(x => x.Indices.Length);
             var trainSum = train.Elements.Sum(x => x.Count);
 
             Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
             var testSumArr = test.Elements.Sum(x => x.Indices.Length);
             var testSum = test.Elements.Sum(x => x.Count);
-            
-           // EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-            EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
+
+            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
+
+            //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+           // EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
          
-            //IKernel<SparseVector> kernel2 = new CudaLinearKernel();
-            IKernel<SparseVec> kernel2 = new CudaRBFKernel(gamma);
+           IKernel<SparseVec> kernel2 = new CudaLinearKernel();
+           // IKernel<SparseVec> kernel2 = new CudaRBFKernel(gamma);
 
-            SVMClassify(train, test, kernel2,evaluator, C);
-
-            
-           // SVMClassify(train, test, kernel2, evaluator, C);
-
-            
+            SVMClassify(train, test, kernel2, evaluator, C);
         }
 
         private static void GroupedTestingDataSets(IList<Tuple<string, string, int>> dataSetsToTest)
@@ -150,8 +124,8 @@ namespace KMLibUsageApp
 
 
 
-            EvaluatorBase<SparseVector> evaluator = new RBFEvaluator(gamma);
-            IKernel<SparseVector> kernel = new RbfKernel(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             //IKernel<SparseVector> kernel = new LinearKernel();
@@ -267,19 +241,19 @@ namespace KMLibUsageApp
         {
 
 
-            //trainningFile = dataFolder + "/a1a.train";
-           // testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
+            trainningFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.test";
+            //testFile = dataFolder + "/a1a.train";
+            //in a1a problem max index is 123
+            numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a";
             //testFile = dataFolder + "/a9a.t";
             //numberOfFeatures = 123;
 
-            trainningFile = dataFolder + "/w8a";
-            testFile = dataFolder + "/w8a.t";
-            numberOfFeatures = 300;
+            //trainningFile = dataFolder + "/w8a";
+            //testFile = dataFolder + "/w8a.t";
+            //numberOfFeatures = 300;
 
             //string trainningFile = dataFolder + "/colon-cancer.train";
             //string testFile = dataFolder + "/colon-cancer.train";
@@ -302,9 +276,9 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/news20.binary";
             //numberOfFeatures = 1335191;
 
-            trainningFile = dataFolder + "/mnist.scale";
-            testFile = dataFolder + "/mnist.scale.t";
-            numberOfFeatures = 784;
+            //trainningFile = dataFolder + "/mnist.scale";
+            //testFile = dataFolder + "/mnist.scale.t";
+            //numberOfFeatures = 784;
 
 
             //string trainningFile = dataFolder + "/real-sim_small_3K";
@@ -325,11 +299,8 @@ namespace KMLibUsageApp
 
 
         /// <summary>
-        /// Train CSVM on train problem, and classify elements in test problem using different C
+        /// Train and test SVM, using low level api, construct kernels, solver and evaluator by hand
         /// </summary>
-        /// <param name="train"></param>
-        /// <param name="test"></param>
-        /// <param name="kernel"></param>
         private static void SVMClassifyLowLevel( string trainningFile,
             string testFile,
             int numberOfFeatures,
@@ -351,9 +322,8 @@ namespace KMLibUsageApp
 
             Console.WriteLine("kernel init");
             kernel.ProblemElements = train.Elements;
-            kernel.Labels = train.Labels;
+            kernel.Y = train.Y;
             kernel.Init();
-
            
             //
             //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
@@ -411,7 +381,83 @@ namespace KMLibUsageApp
             {
                 float predictedLabel = predictions[i];
 
-                if (predictedLabel == test.Labels[i])
+                if (predictedLabel == test.Y[i])
+                    ++correct;
+            }
+            test.Dispose();
+            double accuracy = (float)correct / predictions.Length;
+            Console.WriteLine("accuracy ={0}", accuracy);
+
+        }
+
+        /// <summary>
+        /// Train and test Linear SVM, using low level api, construct kernels, solver and evaluator by hand
+        /// </summary>
+        private static void SVMLinearClassifyLowLevel(string trainningFile,
+            string testFile,
+            int numberOfFeatures,
+            float paramC)
+        {
+
+            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
+            Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
+            Console.WriteLine();
+
+
+            EvaluatorBase<SparseVec> evaluator = new LinearPrimalEvaluator();
+            Model<SparseVec> model;
+
+            Console.WriteLine("read vectors");
+            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+            Console.WriteLine("end read vectors");
+
+
+            //
+            //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+            //this solver works a bit faster and use less memory
+            var Solver = new LinearSolver(train, C);
+
+            Console.WriteLine("User solver {0}", Solver.ToString());
+
+            Stopwatch timer = Stopwatch.StartNew();
+            model = Solver.ComputeModel();
+            Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
+            
+            var disSolver = Solver as IDisposable;
+            if (disSolver != null)
+                disSolver.Dispose();
+            Solver = null;
+
+            train.Dispose();
+
+            Console.WriteLine("Start Testing");
+
+
+
+            Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+            // evaluator.Kernel = kernel;
+            evaluator.TrainedModel = model;
+
+            evaluator.Init();
+
+
+            Stopwatch t = Stopwatch.StartNew();
+            float[] predictions = evaluator.Predict(test.Elements);
+            t.Stop();
+            //toremove: only for tests
+            Console.WriteLine("prediction takes {0}  ms={1}", t.Elapsed, t.ElapsedMilliseconds);
+
+            //todo: Free evaluator memories
+            var disposeEvaluator = evaluator as IDisposable;
+            if (disposeEvaluator != null)
+                disposeEvaluator.Dispose();
+
+            int correct = 0;
+            for (int i = 0; i < test.ElementsCount; i++)
+            {
+                float predictedLabel = predictions[i];
+
+                if (predictedLabel == test.Y[i])
                     ++correct;
             }
             test.Dispose();

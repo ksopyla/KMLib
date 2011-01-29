@@ -64,7 +64,7 @@ namespace KMLib.Kernels
             //rewrite labels from proble to y[]
             for (int i = 0; i < problem.ElementsCount; i++)
             {
-                if (problem.Labels[i] > 0) y[i] = +1;
+                if (problem.Y[i] > 0) y[i] = +1;
                 else y[i] = -1;
             }
 

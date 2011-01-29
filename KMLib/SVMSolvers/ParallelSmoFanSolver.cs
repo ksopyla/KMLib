@@ -124,7 +124,7 @@ namespace KMLib.SVMSolvers
             {
                 alphaResult[i] = 0;
                 Minus_ones[i] = -1;
-                if (problem.Labels[i] > 0) y[i] = +1;
+                if (problem.Y[i] > 0) y[i] = +1;
                 else y[i] = -1;
             }
 
@@ -136,7 +136,7 @@ namespace KMLib.SVMSolvers
             Model<TProblemElement> model = new Model<TProblemElement>();
             model.NumberOfClasses = 2;
             model.Alpha = alphaResult;
-            model.Rho = si.rho;
+            model.Bias = si.rho;
 
 
             List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
@@ -148,13 +148,13 @@ namespace KMLib.SVMSolvers
                 {
                     supportElements.Add(problem.Elements[j]);
                     suporrtIndexes.Add(j);
-                    supportLabels.Add(problem.Labels[j]);
+                    supportLabels.Add(problem.Y[j]);
                 }
 
             }
             model.SupportElements = supportElements.ToArray();
             model.SupportElementsIndexes = suporrtIndexes.ToArray();
-            model.Labels = supportLabels.ToArray();
+            model.Y = supportLabels.ToArray();
             return model;
         }
 

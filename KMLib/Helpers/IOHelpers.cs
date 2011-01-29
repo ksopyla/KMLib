@@ -93,7 +93,7 @@ namespace KMLib.Helpers
 
 
         /// <summary>
-        /// Reads vectos from file. Creates Vectors from dnAnalitycs library.
+        /// Reads vectos from file.
         /// File format like in LIbSVM
         /// label index:value index2:value .....
         /// -1        4:0.5       10:0.9 ....
@@ -104,7 +104,10 @@ namespace KMLib.Helpers
         {
             //initial list capacity 8KB, its only heuristic
             int listCapacity = 1 << 13;
-            
+
+            //if maxIndex is grether than numberOfFeatures
+            int indexAboveFeature = 0;
+
             //list of labels
             List<float> labels = new List<float>(listCapacity);
 
@@ -207,13 +210,18 @@ namespace KMLib.Helpers
                         if (vec.Count> 0)
                         {
                             max_index = Math.Max(max_index, index);
+
                         }
 
 
                         //we implictie set numberOfFeatures if max_index is less then numberOfFeatures
-                        if (max_index < numberOfFeatures)
+                        if (max_index <= numberOfFeatures)
                             max_index = numberOfFeatures;
-
+                        else
+                        {
+                            //how many previosus vectors has wrong (less) dim size
+                            indexAboveFeature = dnaVectors.Count;
+                        }
 
                        // vectors.Add(vec.ToArray());
 
@@ -223,9 +231,16 @@ namespace KMLib.Helpers
                         vec.Clear();
                     }//end while
                 }
+
+               
             }
 
-          
+           
+                for (int i = 0; i < indexAboveFeature; i++)
+                {
+                    dnaVectors[i].Dim = max_index;
+                }
+            
            
 
 

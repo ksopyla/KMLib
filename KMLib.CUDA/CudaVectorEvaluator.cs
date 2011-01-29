@@ -204,8 +204,8 @@ namespace KMLib.GPU
             //svVector = new float[TrainedModel.SupportElements[0].Count];
 
              stream = cuda.CreateStream();
-             memSvSize = (uint)(TrainedModel.SupportElements[0].Count * sizeof(float));
-            
+             //memSvSize = (uint)(TrainedModel.SupportElements[0].Count * sizeof(float));
+             memSvSize = (uint)(TrainedModel.SupportElements[0].Dim * sizeof(float));
 
             //allocates memory for buffers
             svVecIntPtrs[0] = cuda.AllocateHost(memSvSize);
@@ -226,7 +226,7 @@ namespace KMLib.GPU
             i=>{
                 int idx = TrainedModel.SupportElementsIndexes[i];
 
-                svLabels[i] = TrainedModel.Labels[i];
+                svLabels[i] = TrainedModel.Y[i];
                 //svLabels[i] = TrainningProblem.Labels[idx];
                 svAlphas[i] = TrainedModel.Alpha[idx];
                     

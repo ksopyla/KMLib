@@ -213,7 +213,7 @@ namespace KMLib.Kernels
         public void Dispose()
         {
             problemElements = null;
-            Labels = null;
+            Y = null;
             DiagonalDotCache = null;
             IsInitialized = false;
         }

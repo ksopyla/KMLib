@@ -10,6 +10,11 @@ namespace KMLib
         public int FeaturesCount;
 
         /// <summary>
+        /// all class labels
+        /// </summary>
+        public float[] Labels { get; set; }
+
+        /// <summary>
         /// Support Elements, aka. support vectors
         /// </summary>
         public TProblemElement[] SupportElements;
@@ -22,12 +27,12 @@ namespace KMLib
         /// <summary>
         /// rho == b parameters in svm formulation
         /// </summary>
-        public float Rho;
+        public float Bias;
         
         /// <summary>
         /// <see cref="SupportElements"/> labels
         /// </summary>
-        public float[] Labels;
+        public float[] Y;
         
         /// <summary>
         /// <see cref=" SupportElements"/> indexes from original problem set
@@ -35,7 +40,7 @@ namespace KMLib
         public int[] SupportElementsIndexes;
 
         /// <summary>
-        /// W vector in primal problem
+        /// "W" vector in primal problem
         /// </summary>
         public double[] W;
 
@@ -46,10 +51,12 @@ namespace KMLib
             sb.AppendFormat("number of SV={0} \n", SupportElements.Length);
             sb.AppendFormat("number of alpha = {0} \n", Alpha.Length);
             sb.AppendFormat("number of alpha non zero ={0}", SupportElementsIndexes.Length);
-            sb.AppendFormat("rho={0}", Rho);
+            sb.AppendFormat("rho={0}", Bias);
 
             return sb.ToString();
         }
+
+
 
 
 
