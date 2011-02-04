@@ -13,7 +13,7 @@ namespace KMLib.Kernels
     /// Represents Linear Kernel for computing linear product between 
     /// two sparse vectors
     /// </summary>
-    public class LinearKernel<T>: VectorKernel<T> , IDisposable
+    public class LinearKernel: VectorKernel<SparseVec> , IDisposable
     {
 
 
@@ -196,7 +196,7 @@ namespace KMLib.Kernels
         {
             return new LinearParameterSelection();
         }
-        
+
         #endregion
 
         /// <summary>
@@ -216,15 +216,6 @@ namespace KMLib.Kernels
             Y = null;
             DiagonalDotCache = null;
             IsInitialized = false;
-        }
-
-
-
-
-
-        public override float Product(T element1, T element2)
-        {
-            throw new NotImplementedException();
         }
     }
 }

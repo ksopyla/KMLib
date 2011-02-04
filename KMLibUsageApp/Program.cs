@@ -313,6 +313,8 @@ namespace KMLibUsageApp
             
             
             EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+
+
             IKernel<SparseVec> kernel = new CudaLinearKernel();
             Model<SparseVec> model;
 
