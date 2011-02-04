@@ -6,8 +6,54 @@ using System.Text;
 namespace KMLib.Helpers
 {
 
+    interface IVector<T>
+    {
+
+        
+        float DotProuct();
+
+        float DotProduct(T otherVec);
+    }
+
+    public class Dvec : IVector<Dvec>
+    {
+
+        public float DotProuct()
+        {
+            throw new NotImplementedException();
+        }
+
+        public float DotProduct(Dvec otherVec)
+        {
+
+            otherVec.DotProduct(this);
+            throw new NotImplementedException();
+        }
+    }
+
+    public class SpVec : IVector<SpVec>
+    {
+
+        public float DotProuct()
+        {
+            throw new NotImplementedException();
+        }
+
+        public float DotProduct(SpVec otherVec)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+
     public abstract class Vector
     {
+
+        /// <summary>
+        /// Max index
+        /// </summary>
+        public int Dim;
+
         protected float SelfDotProd = float.NegativeInfinity;
 
         public  float DotProduct()
@@ -19,16 +65,15 @@ namespace KMLib.Helpers
             return SelfDotProd;
 
         }
+
+
     }
 
 
     public class SparseVec:Vector
     {
 
-        /// <summary>
-        /// Max index
-        /// </summary>
-        public int Dim;
+       
 
         /// <summary>
         /// number of non zero positions
@@ -49,6 +94,7 @@ namespace KMLib.Helpers
         {
             Dim = dim;
 
+            
             if (indexes.Count != vals.Count)
             {
                 throw new ArgumentOutOfRangeException("collections have different sizes");

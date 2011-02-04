@@ -196,7 +196,7 @@ namespace KMLib.Kernels
         {
             return new LinearParameterSelection();
         }
-
+        
         #endregion
 
         /// <summary>
@@ -217,5 +217,9 @@ namespace KMLib.Kernels
             DiagonalDotCache = null;
             IsInitialized = false;
         }
+
+
+
+       
     }
 }
