@@ -13,7 +13,7 @@ namespace KMLib.Kernels
     /// <summary>
     /// Base class for vector kernels
     /// </summary>
-    public abstract class VectorKernel<T>: IKernel<T> where T:Vector
+    public abstract class VectorKernel<T>: IKernel<T> where T:IVector<T>
     {
 
         protected bool DiagonalDotCacheBuilded = false;

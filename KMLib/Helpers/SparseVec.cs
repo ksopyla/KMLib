@@ -6,7 +6,7 @@ using System.Text;
 namespace KMLib.Helpers
 {
 
-    interface IVector<T>
+    public interface IVector<T>
     {
 
         
@@ -15,7 +15,7 @@ namespace KMLib.Helpers
         float DotProduct(T otherVec);
     }
 
-    public class Dvec : IVector<Dvec>
+    public class DeVec : IVector<DeVec>
     {
 
         public float DotProuct()
@@ -23,7 +23,7 @@ namespace KMLib.Helpers
             throw new NotImplementedException();
         }
 
-        public float DotProduct(Dvec otherVec)
+        public float DotProduct(DeVec otherVec)
         {
 
             otherVec.DotProduct(this);
