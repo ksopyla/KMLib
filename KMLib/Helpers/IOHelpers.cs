@@ -78,16 +78,16 @@ namespace KMLib.Helpers
 
         //        }
         //    }
-            
+
         //    //Problem<Vector> vectorProblem = new Problem<Vector>(vectors.ToArray(),labels.ToArray());
-            
-            
+
+
         //    //vectorProblem.Elements = vectors.ToArray();
         //    //vectorProblem.ElementsCount = vectors.Count;
         //    //vectorProblem.Labels = labels.ToArray();
-            
+
         //    //return vectorProblem;
-            
+
         //    return new Problem<Vector>(vectors.ToArray(), labels.ToArray());
         //}
 
@@ -100,7 +100,7 @@ namespace KMLib.Helpers
         /// </summary>
         /// <param name="fileName">Data set file name</param>
         /// <returns></returns>
-        public static Problem<SparseVec> ReadDNAVectorsFromFile(string fileName,int numberOfFeatures) 
+        public static Problem<SparseVec> ReadDNAVectorsFromFile(string fileName, int numberOfFeatures)
         {
             //initial list capacity 8KB, its only heuristic
             int listCapacity = 1 << 13;
@@ -111,15 +111,17 @@ namespace KMLib.Helpers
             //list of labels
             List<float> labels = new List<float>(listCapacity);
 
+            Dictionary<float, int> coutLabels = new Dictionary<float, int>(10);
+
             //list of array, each array symbolize vector
-           // List<KeyValuePair<int, float>[]> vectors = new List<KeyValuePair<int, float>[]>(listCapacity);
+            // List<KeyValuePair<int, float>[]> vectors = new List<KeyValuePair<int, float>[]>(listCapacity);
             //new List<List<KeyValuePair<int, double>>>();
 
             //vector parts (index and value) separator
-            char[] vecPartsSeparator = new char[]{' '};
+            char[] vecPartsSeparator = new char[] { ' ' };
             //separator between index and value in one part
             char[] idxValSeparator = new char[] { ':' };
-            int max_index = 0;
+            int max_index = numberOfFeatures;
 
             List<KeyValuePair<int, float>> vec = new List<KeyValuePair<int, float>>(32);
 
@@ -130,7 +132,7 @@ namespace KMLib.Helpers
             {
                 using (StreamReader input = new StreamReader(fileStream))
                 {
-                    
+
 
                     //todo: string split function to many memory allocation, http://msdn.microsoft.com/en-us/library/b873y76a.aspx
                     while (input.Peek() > -1)
@@ -140,7 +142,7 @@ namespace KMLib.Helpers
 
                         int index = 0;
 
-                        float value=0;
+                        float value = 0;
 
 
                         #region old code
@@ -185,18 +187,24 @@ namespace KMLib.Helpers
 
                         partBegin = oneLine.IndexOf(vecPartsSeparator[0]);
                         //from begining to first space is label
-                        labels.Add(float.Parse(oneLine.Substring(0, partBegin), CultureInfo.InvariantCulture));
+                        float dataLabel = float.Parse(oneLine.Substring(0, partBegin), CultureInfo.InvariantCulture);
+                        labels.Add(dataLabel);
+
+                        if (coutLabels.ContainsKey(dataLabel))
+                            coutLabels[dataLabel]++;
+                        else
+                            coutLabels[dataLabel] = 1;
 
                         index = 0;
 
-                        value=0;
+                        value = 0;
                         partEnd = oneLine.IndexOf(vecPartsSeparator[0], partBegin + 1);
 
                         while (partEnd > 0)
                         {
 
                             indexSeparatorPosition = oneLine.IndexOf(idxValSeparator[0], partBegin);
-                            index = int.Parse(oneLine.Substring(partBegin + 1, indexSeparatorPosition - (partBegin+1)));
+                            index = int.Parse(oneLine.Substring(partBegin + 1, indexSeparatorPosition - (partBegin + 1)));
                             value = float.Parse(oneLine.Substring(indexSeparatorPosition + 1, partEnd - (indexSeparatorPosition + 1)), CultureInfo.InvariantCulture);
 
 
@@ -207,7 +215,7 @@ namespace KMLib.Helpers
                         }
 
 
-                        if (vec.Count> 0)
+                        if (vec.Count > 0)
                         {
                             max_index = Math.Max(max_index, index);
 
@@ -223,7 +231,7 @@ namespace KMLib.Helpers
                             indexAboveFeature = dnaVectors.Count;
                         }
 
-                       // vectors.Add(vec.ToArray());
+                        // vectors.Add(vec.ToArray());
 
                         dnaVectors.Add(new SparseVec(max_index, vec));
 
@@ -232,20 +240,21 @@ namespace KMLib.Helpers
                     }//end while
                 }
 
-               
+
             }
 
-           
-                for (int i = 0; i < indexAboveFeature; i++)
-                {
-                    dnaVectors[i].Dim = max_index;
-                }
-            
-           
+
+            for (int i = 0; i < indexAboveFeature; i++)
+            {
+                dnaVectors[i].Dim = max_index;
+            }
 
 
 
-            return new Problem<SparseVec>(dnaVectors.ToArray(), labels.ToArray(),numberOfFeatures);
+            int numberOfClasses = coutLabels.Count;
+            var elementClasses = coutLabels.Keys.ToArray();
+
+            return new Problem<SparseVec>(dnaVectors.ToArray(), labels.ToArray(), max_index,numberOfClasses,elementClasses);
         }
     }
 }
