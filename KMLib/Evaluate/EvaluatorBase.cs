@@ -37,6 +37,8 @@ namespace KMLib.Evaluate
         /// <returns></returns>
         public abstract float[] Predict(TProblemElement[] elements);
 
+
+
         public abstract void Init();
         /// <summary>
         /// Predicts the class of specified element.
@@ -54,6 +56,16 @@ namespace KMLib.Evaluate
         /// <returns>predicted class</returns>
         public virtual  float Predict(TProblemElement element)
         {
+            float sum = PredictVal(element);
+
+           float ret = sum < 0 ? -1 : 1;
+
+
+            return ret;
+        }
+
+        public virtual float PredictVal(TProblemElement element)
+        {
             float sum = 0;
 
             int index = -1;
@@ -67,11 +79,7 @@ namespace KMLib.Evaluate
             }
 
             sum -= TrainedModel.Bias;
-
-           float ret = sum < 0 ? -1 : 1;
-
-
-            return ret;
+            return sum;
         }
 
     }

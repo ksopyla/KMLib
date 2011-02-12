@@ -82,6 +82,30 @@ namespace KMLib.Evaluate
 
         }
 
+        public override float PredictVal(SparseVec element)
+        {
+            float x1Squere = element.DotProduct();
+            float sum = 0;
+
+            int index = -1;
+
+            for (int k = 0; k < TrainedModel.SupportElementsIndexes.Length; k++)
+            {
+                //support vector squere
+                float x2Squere = TrainedModel.SupportElements[k].DotProduct();// linKernel.DiagonalDotCache[k];
+
+                float dot = linKernel.Product(element, TrainedModel.SupportElements[k]);
+
+                float rbfVal = (float)Math.Exp(-gamma * (x1Squere + x2Squere - 2 * dot));
+
+
+                index = TrainedModel.SupportElementsIndexes[k];
+                sum += TrainedModel.Alpha[index] * TrainedModel.Y[k] * rbfVal;
+            }
+            sum -= TrainedModel.Bias;
+            return sum;
+        }
+
        
     }
 }
