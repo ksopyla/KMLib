@@ -11,6 +11,7 @@ using System.Diagnostics;
 //using dnaLA = dnAnalytics.LinearAlgebra;
 using KMLib.Evaluate;
 using KMLib.SVMSolvers;
+using System.IO;
 
 
 namespace KMLibUsageApp
@@ -34,11 +35,13 @@ namespace KMLibUsageApp
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
-            TestOneDataSet(dataFolder);
-
-            TestOneDataSetWithCuda(dataFolder);
+            //TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
+
+            //TestOneDataSetWithCuda(dataFolder);
+
+            //TestMultiClasDataSet(dataFolder);
 
             string trainningFile;
             string testFile;
@@ -46,7 +49,7 @@ namespace KMLibUsageApp
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
             SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
 
-            SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+            //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
             Console.WriteLine("Press any button");
             Console.ReadKey();
@@ -78,6 +81,87 @@ namespace KMLibUsageApp
             IKernel<SparseVec> kernel = new LinearKernel();
             SVMClassify(train, test, kernel, evaluator,C);
 
+        }
+
+        private static void TestMultiClasDataSet(string dataFolder)
+        {
+            //string trainningFile = dataFolder + "/glass.scale";
+            //string testFile = dataFolder + "/glass.scale"; ;
+            //int numberOfFeatures=9;
+
+            string trainningFile = dataFolder + "/genresTrain_scale.train";
+            string testFile = dataFolder + "/genresTest.arff_scale.t"; ;
+            int numberOfFeatures=181;
+            
+                
+
+            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
+            Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
+            Console.WriteLine();
+            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+
+            Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+
+            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
+
+            // evaluator.Init();
+            //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVec> kernel = new LinearKernel();
+
+            
+            //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+            //this solver works a bit faster and use less memory
+            var mcSvm = new MultiClassSVM<SparseVec>(train, kernel, C, evaluator);
+
+          
+            Stopwatch timer = Stopwatch.StartNew();
+
+            mcSvm.Train();
+
+            Console.WriteLine("Models computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
+
+
+            Console.WriteLine("Start Testing");
+            Stopwatch t = Stopwatch.StartNew();
+           float[] predictions= mcSvm.Predict(test.Elements);
+
+           
+t.Stop();
+            //toremove: only for tests
+            Console.WriteLine("prediction takes {0}  ms={1}", t.Elapsed, t.ElapsedMilliseconds);
+
+
+            SavePredictionToFile(predictions,Path.GetFileNameWithoutExtension(testFile)+".prediction");
+         
+            int correct = 0;
+            for (int i = 0; i < test.ElementsCount; i++)
+            {
+                float predictedLabel = predictions[i];
+
+                if (predictedLabel == test.Y[i])
+                    ++correct;
+            }
+            test.Dispose();
+            double accuracy = (float)correct / predictions.Length;
+            Console.WriteLine("accuracy ={0}", accuracy);
+
+        }
+
+        private static void SavePredictionToFile(float[] predictions, string fileName)
+        {
+            using (Stream str = File.Open(fileName, FileMode.Create))
+            using (StreamWriter sw = new StreamWriter(str, Encoding.ASCII, 1 << 12))
+            {
+                for (int i = 0; i < predictions.Length; i++)
+                {
+
+                    sw.WriteLine((int)predictions[i]);
+                }
+            }
         }
 
 
@@ -241,11 +325,11 @@ namespace KMLibUsageApp
         {
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.test";
-            //testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a";
             //testFile = dataFolder + "/a9a.t";
@@ -267,10 +351,10 @@ namespace KMLibUsageApp
             //string testFile = dataFolder + "/duke.tr";
             //int numberOfFeatures = 7129;
 
-            //trainningFile = dataFolder + "/rcv1_train.binary";
-            //testFile = dataFolder + "/rcv1_test.binary";
-            ////string testFile = dataFolder + "/rcv1_train_test.binary";
-            //numberOfFeatures = 47236;
+            trainningFile = dataFolder + "/rcv1_train.binary";
+            testFile = dataFolder + "/rcv1_test.binary";
+            //string testFile = dataFolder + "/rcv1_train_test.binary";
+            numberOfFeatures = 47236;
 
             //trainningFile = dataFolder + "/news20.binary";
             //testFile = dataFolder + "/news20.binary";
@@ -312,10 +396,11 @@ namespace KMLibUsageApp
             Console.WriteLine();
             
             
-            EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
 
-
-            IKernel<SparseVec> kernel = new CudaLinearKernel();
+            //IKernel<SparseVec> kernel = new CudaLinearKernel();
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
             Model<SparseVec> model;
 
             Console.WriteLine("read vectors");
@@ -566,9 +651,9 @@ namespace KMLibUsageApp
         }
 
 
-    }
+    
 
-    /* some tests with Mahalanobis Kernel
+    /* some tests with Mahalanobis Kernel 
              /// <summary>
              /// 
              /// </summary>
@@ -688,7 +773,8 @@ namespace KMLibUsageApp
                      Console.WriteLine();
                  }
              }
-             */
+     */
 
+    }
 
 }
