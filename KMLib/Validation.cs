@@ -317,7 +317,7 @@ namespace KMLib
 
 
         /// <summary>
-        /// Group elements indexes from Problem into blocks(with same label) of indexes in permuationa array
+        /// Group elements indexes from Problem into blocks(with same label) of indexes in permuation array
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="Problem"></param>

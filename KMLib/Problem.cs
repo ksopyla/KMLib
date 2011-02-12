@@ -42,6 +42,10 @@ namespace KMLib
         public int FeaturesCount;
 
 
+        public int NumberOfClasses;
+
+        public float[] ElementLabels;
+       
         /// <summary>
         /// Empty constructor,nothing initialized
         /// </summary>
@@ -60,6 +64,9 @@ namespace KMLib
             Elements = elements;
             Y = labels;
             ElementsCount = elements.Length;
+
+            NumberOfClasses = 2;
+            ElementLabels = new float[2]{-1,1};
         }
 
         /// <summary>
@@ -74,10 +81,17 @@ namespace KMLib
             Y = labels;
             ElementsCount = elements.Length;
             FeaturesCount = featuresCount;
+
+            NumberOfClasses = 2;
+            ElementLabels = new float[2] { -1, 1 };
         }
 
-
-
+        public Problem(TProblemElement[] sparseVec, float[] labels, int numberOfFeatures, int numberOfClasses, float[] elementClasses)
+            :this(sparseVec,labels,numberOfFeatures)
+        {
+            NumberOfClasses = numberOfClasses;
+            ElementLabels = elementClasses;
+        }
 
         public void Dispose()
         {

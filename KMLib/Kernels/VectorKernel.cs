@@ -13,7 +13,7 @@ namespace KMLib.Kernels
     /// <summary>
     /// Base class for vector kernels
     /// </summary>
-    public abstract class VectorKernel<T>: IKernel<T> where T:IVector<T>
+    public abstract class VectorKernel<T>: IKernel<T> where T:Vector
     {
 
         protected bool DiagonalDotCacheBuilded = false;
@@ -48,6 +48,7 @@ namespace KMLib.Kernels
         protected void ComputeDiagonalDotCache()
         {
             DiagonalDotCache = new float[problemElements.Length];
+            DiagonalDotCacheBuilded = false;
             for (int i = 0; i < DiagonalDotCache.Length; i++)
             {
               // DiagonalDotCache[i] = Product(ProblemElements[i], ProblemElements[i]);
@@ -100,7 +101,7 @@ namespace KMLib.Kernels
             if (results == null)
                 throw new ArgumentNullException("result array should not be null");
             //for (int j = 0; j < results.Length; j++)
-            //    results[j] = (Labels[element1] * Labels[j] * Product(element1, j));
+            //    results[j] = (Y[element1] * Y[j] * Product(element1, j));
 
 
             var partition = Partitioner.Create(0, problemElements.Length);

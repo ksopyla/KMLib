@@ -49,6 +49,10 @@ namespace KMLib.Helpers
     public abstract class Vector
     {
 
+        public int[] Indices { get; protected set; }
+
+        public float[] Values { get; protected set; }
+
         /// <summary>
         /// Max index
         /// </summary>
@@ -86,9 +90,7 @@ namespace KMLib.Helpers
             }
         }
 
-        readonly public int[] Indices;
-
-        readonly public float[] Values;
+       
 
         public SparseVec(int dim, ICollection<int> indexes, ICollection<float> vals)
         {

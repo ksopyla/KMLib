@@ -142,9 +142,16 @@ namespace KMLib.Kernels
             if (problemElements == null)
                 throw new ApplicationException("Problem elements are null");
 
-            if (element1 == element2 && (DiagonalDotCacheBuilded))
-                return DiagonalDotCache[element1];
+            if (element1 == element2)
+            {
+                return problemElements[element1].DotProduct();
+                //return DiagonalDotCache[element1];
+            }
 
+            //if (element1 == element2 && (DiagonalDotCacheBuilded))
+            //{
+            //    return DiagonalDotCache[element1];
+            //}
             return this.Product(problemElements[element1], problemElements[element2]);
  /*
             if (!useCache)

@@ -91,17 +91,17 @@ namespace KMLib.Kernels
 
             if (element1 == element2)
             {
-                if (DiagonalDotCacheBuilded)
-                    return DiagonalDotCache[element1];
-                else
-                {
+                //if (DiagonalDotCacheBuilded)
+                //    return DiagonalDotCache[element1];
+                //else
+                //{
                     //all parts are the same
                    // x1Squere = x2Squere = dot = linKernel.Product(element1, element1);
                     //prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
                    // (x1Squere + x2Squere - 2 * dot)==0 this expresion is equal zero
                     //so we can prod set to 1 beceause exp(0)==1
                     prod = 1f;
-                }
+                //}
             }
             else
             {

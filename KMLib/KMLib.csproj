@@ -97,6 +97,21 @@
     <Reference Include="dnAnalytics, Version=2009.8.0.0, Culture=neutral, PublicKeyToken=47f8433cf19ffb12, processorArchitecture=x86">
       <HintPath>..\Libs\dnAnalytics.dll</HintPath>
     </Reference>
+    <Reference Include="NMathCoreKernelx86">
+      <HintPath>..\Libs\NMathCoreKernelx86.dll</HintPath>
+    </Reference>
+    <Reference Include="NMathCoreMath">
+      <HintPath>..\Libs\NMathCoreMath.dll</HintPath>
+    </Reference>
+    <Reference Include="NMathCoreShared">
+      <HintPath>..\Libs\NMathCoreShared.dll</HintPath>
+    </Reference>
+    <Reference Include="NMathMatrixKernelx86">
+      <HintPath>..\Libs\NMathMatrixKernelx86.dll</HintPath>
+    </Reference>
+    <Reference Include="NMathMatrixMain">
+      <HintPath>..\Libs\NMathMatrixMain.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -126,6 +141,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Kernels\RBFParameterSelection.cs" />
+    <Compile Include="MultiClassSVM.cs" />
     <Compile Include="SVMSolvers\AlphaPair.cs" />
     <Compile Include="Helpers\ByValueComparer.cs" />
     <Compile Include="SVMSolvers\LinearSolver.cs" />
