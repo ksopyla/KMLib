@@ -89,7 +89,7 @@ namespace KMLib.GPU
        
 
 
-            mainVector = new float[problemElements[0].Dim];
+            mainVector = new float[problemElements[0].Dim+1];
             CudaHelpers.FillDenseVector(problemElements[0],mainVector);
 
             //get reference to cuda texture for main vector
