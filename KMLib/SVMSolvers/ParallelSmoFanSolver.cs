@@ -67,7 +67,7 @@ namespace KMLib.SVMSolvers
 
 
         private float[] QD;
-        private bool Shrinking;
+        private bool Shrinking=true;
         protected const float INF = float.PositiveInfinity;
         #endregion
 
@@ -224,13 +224,22 @@ namespace KMLib.SVMSolvers
             #endregion
             // optimization step
             int iter = 0;
-            //int counter = Math.Min(problemSize, 1000) + 1;
+            int counter = Math.Min(problemSize, 1000) + 1;
             int[] working_set = new int[2];
 
             int processors = Environment.ProcessorCount;
 
             while (true)
             {
+
+                if (--counter == 0)
+                {
+                    counter = Math.Min(problemSize, 1000);
+                    if (shrinking) do_shrinking();
+                    //Procedures.info(".");
+                }
+
+
                 if (select_working_set(working_set, processors) != 0)
                     break;
 
@@ -423,16 +432,145 @@ namespace KMLib.SVMSolvers
             // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
 
-        //public void UpdateGradient(Tuple<int, int> range)
-        //{
-        //    int rangeEnd = range.Item2;
-        //    for (int k = range.Item1; k < rangeEnd; k++)
-        //    {
-        //        G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
-        //    }
+        /// <summary>
+        /// 
+        /// </summary>
+        void do_shrinking()
+        {
+            Console.Write(".");
+            int i;
+            float GMax1 = -INF;		// Max { -y_i * grad(f)_i | i in I_up(\alpha) }
+            float GMax2 = -INF;		// Max { y_i * grad(f)_i | i in I_low(\alpha) }
 
-        //}
+            // find Maximal violating pair first
+            for (i = 0; i < active_size; i++)
+            {
+                if (y[i] == +1)
+                {
+                    if (!is_upper_bound(i))
+                    {
+                        if (-G[i] >= GMax1)
+                            GMax1 = -G[i];
+                    }
+                    if (!is_lower_bound(i))
+                    {
+                        if (G[i] >= GMax2)
+                            GMax2 = G[i];
+                    }
+                }
+                else
+                {
+                    if (!is_upper_bound(i))
+                    {
+                        if (-G[i] >= GMax2)
+                            GMax2 = -G[i];
+                    }
+                    if (!is_lower_bound(i))
+                    {
+                        if (G[i] >= GMax1)
+                            GMax1 = G[i];
+                    }
+                }
+            }
 
+            if (unshrink == false && GMax1 + GMax2 <= EPS * 10)
+            {
+                unshrink = true;
+                reconstruct_gradient();
+                active_size = problemSize;
+            }
+
+            for (i = 0; i < active_size; i++)
+                if (be_shrunk(i, GMax1, GMax2))
+                {
+                    active_size--;
+                    while (active_size > i)
+                    {
+                        if (!be_shrunk(active_size, GMax1, GMax2))
+                        {
+                            swap_index(i, active_size);
+                            break;
+                        }
+                        active_size--;
+                    }
+                }
+        }
+
+        protected void swap_index(int i, int j)
+        {
+            Q.SwapIndex(i, j);
+            y.SwapIndex(i, j);
+            G.SwapIndex(i, j);
+            alpha_status.SwapIndex(i, j);
+            alpha.SwapIndex(i, j);
+            p.SwapIndex(i, j);
+            active_set.SwapIndex(i, j);
+            G_bar.SwapIndex(i, j);
+        }
+
+        private bool be_shrunk(int i, float GMax1, float GMax2)
+        {
+            if (is_upper_bound(i))
+            {
+                if (y[i] == +1)
+                    return (-G[i] > GMax1);
+                else
+                    return (-G[i] > GMax2);
+            }
+            else if (is_lower_bound(i))
+            {
+                if (y[i] == +1)
+                    return (G[i] > GMax2);
+                else
+                    return (G[i] > GMax1);
+            }
+            else
+                return (false);
+        }
+
+        protected void reconstruct_gradient()
+        {
+            // reconstruct inactive elements of G from G_bar and free variables
+
+            if (active_size == problemSize) return;
+
+            int i, j;
+            int nr_free = 0;
+
+            for (j = active_size; j < problemSize; j++)
+                G[j] = G_bar[j] + p[j];
+
+            for (j = 0; j < active_size; j++)
+                if (is_free(j))
+                    nr_free++;
+
+            /*
+            if (2 * nr_free < active_size)
+                Procedures.info("\nWarning: using -h 0 may be faster\n");
+            */
+
+            if (nr_free * problemSize > 2 * active_size * (problemSize - active_size))
+            {
+                for (i = active_size; i < problemSize; i++)
+                {
+                    float[] Q_i = Q.GetQ(i, active_size);
+                    for (j = 0; j < active_size; j++)
+                        if (is_free(j))
+                            G[i] += alpha[j] * Q_i[j];
+                }
+            }
+            else
+            {
+                for (i = 0; i < active_size; i++)
+                    if (is_free(i))
+                    {
+                        float[] Q_i = Q.GetQ(i, problemSize);
+                        float alpha_i = alpha[i];
+                        for (j = active_size; j < problemSize; j++)
+                            G[j] += alpha_i * Q_i[j];
+                    }
+            }
+        }
 
         // return 1 if already optimal, return 0 otherwise
         int select_working_set(int[] working_set, int pairsCount)

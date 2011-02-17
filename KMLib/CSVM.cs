@@ -113,9 +113,9 @@ namespace KMLib
             kernel.Init();
             
             //
-            //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+            svmSolver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             //this solver works a bit faster and use less memory
-            svmSolver = new ParallelSmoFanSolver2<TProblemElement>(problem, kernel, C);
+           // svmSolver = new ParallelSmoFanSolver2<TProblemElement>(problem, kernel, C);
 
             Console.WriteLine("User solver {0} and kernel {1}", svmSolver.ToString(), kernel.ToString());
 
