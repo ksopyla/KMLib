@@ -79,6 +79,7 @@ namespace KMLib.Kernels
 
             //QD = tempQD;
             QD = kernel.DiagonalDotCache;
+        
         }
 
 
