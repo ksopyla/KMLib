@@ -61,7 +61,7 @@ namespace KMLib.SVMSolvers
 
         
         private float[] QD;
-        private bool Shrinking;
+        private bool Shrinking=true;
         protected const float INF = float.PositiveInfinity;
         #endregion
        
@@ -82,7 +82,7 @@ namespace KMLib.SVMSolvers
 
             QD = Q.GetQD();
 
-            Shrinking = false;
+           // Shrinking = false;
             //todo: change it, add array to base class with different penalty for labels
             Cp = C;
             Cn = C;
@@ -127,19 +127,25 @@ namespace KMLib.SVMSolvers
             model.Bias = si.rho;
 
 
-            List<TProblemElement> supportElements = new List<TProblemElement>();
+            //------------------
+            List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
             List<int> suporrtIndexes = new List<int>(alpha.Length);
+            List<float> supportLabels = new List<float>(alpha.Length);
             for (int j = 0; j < alphaResult.Length; j++)
             {
                 if (Math.Abs(alphaResult[j]) > 0)
                 {
                     supportElements.Add(problem.Elements[j]);
                     suporrtIndexes.Add(j);
+                    supportLabels.Add(problem.Y[j]);
                 }
 
             }
             model.SupportElements = supportElements.ToArray();
             model.SupportElementsIndexes = suporrtIndexes.ToArray();
+            model.Y = supportLabels.ToArray();
+
+
 
             return model;
         }
@@ -398,8 +404,15 @@ namespace KMLib.SVMSolvers
 
             // put back the solution
             {
+
+
                 for (int i = 0; i < problemSize; i++)
-                    alpha_[active_set[i]] = alpha[i];
+                {
+                    alpha_[i] = alpha[i];
+                    //alpha_[active_set[i]] = alpha[i];
+
+                    //kernel.SwapIndex(i, active_set[i]);
+                }
             }
 
             si.upper_bound_p = Cp;

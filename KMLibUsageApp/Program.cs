@@ -325,15 +325,15 @@ t.Stop();
         {
 
 
-            //trainningFile = dataFolder + "/a1a.train";
+            trainningFile = dataFolder + "/a1a.train";
             //testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
-
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
+            testFile = dataFolder + "/a1a.train";
+            //in a1a problem max index is 123
             numberOfFeatures = 123;
+
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -373,11 +373,11 @@ t.Stop();
             //numberOfFeatures = 20958;
 
             //for test
-            //string trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //string testFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
-            //////string testFile = dataFolder + "/liver-disorders_scale.txt";
-            //int numberOfFeatures = 6;
+            //trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
+            //testFile = dataFolder + "/liver-disorders_scale_small.txt";
+            ////////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
+            ////////string testFile = dataFolder + "/liver-disorders_scale.txt";
+            //numberOfFeatures = 6;
             //  string trainningFile = dataFolder + "/australian_scale.txt";
         }
 

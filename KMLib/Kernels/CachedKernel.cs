@@ -158,7 +158,11 @@ namespace KMLib.Kernels
 
             //_x.SwapIndex(i, j);
             y.SwapIndex(i, j);
-            QD.SwapIndex(i, j);
+           
+            //this change in kernel
+            // QD.SwapIndex(i, j);
+
+            kernel.SwapIndex(i, j);
         }
 
 

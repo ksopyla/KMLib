@@ -76,7 +76,7 @@ namespace KMLib.SVMSolvers
         /// </summary>
         private CachedKernel<TProblemElement> Q;
         private int problemSize;
-        private OrderablePartitioner<Tuple<int, int>> partition;
+     //   private OrderablePartitioner<Tuple<int, int>> partition;
 
         object lockObj = new object();
 
@@ -98,7 +98,7 @@ namespace KMLib.SVMSolvers
             problemSize = problem.ElementsCount;
 
             int rangeSize =(int) Math.Ceiling( (problemSize+0.0)/ Environment.ProcessorCount);
-            partition= Partitioner.Create( 0, problemSize,rangeSize);
+           // partition= Partitioner.Create( 0, problemSize,rangeSize);
             
         }
 
@@ -239,9 +239,21 @@ namespace KMLib.SVMSolvers
                     //Procedures.info(".");
                 }
 
-
                 if (select_working_set(working_set, processors) != 0)
-                    break;
+                {
+                    // reconstruct the whole gradient
+                    reconstruct_gradient();
+                    // reset active set size and check
+                    active_size = problemSize;
+                    // Procedures.info("*");
+                    if (select_working_set(working_set, processors) != 0)
+                        break;
+                    else
+                        counter = 1;	// do shrinking next iteration
+                }
+
+                //if (select_working_set(working_set, processors) != 0)
+                //    break;
 
                 int i = working_set[0];
                 int j = working_set[1];
@@ -349,15 +361,15 @@ namespace KMLib.SVMSolvers
                 float delta_alpha_i = alpha[i] - old_alpha_i;
                 float delta_alpha_j = alpha[j] - old_alpha_j;
 
-                
+
 
                 //for (int k = 0; k < active_size; k++)
                 //{
                 //    G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
                 //}
 
-                
-                //var partition = Partitioner.Create(0, active_size);
+
+                var partition = Partitioner.Create(0, active_size);
 
                 Parallel.ForEach(partition, (range) =>
                 {
@@ -369,40 +381,37 @@ namespace KMLib.SVMSolvers
 
                 });
 
-              //  Parallel.ForEach(partition, UpdateGradient);
-
-
 
                 // update alpha_status and G_bar
 
-                //{
-                bool ui = is_upper_bound(i);
-                bool uj = is_upper_bound(j);
-                update_alpha_status(i);
-                update_alpha_status(j);
-                //    int k;
-                //    if (ui != is_upper_bound(i))
-                //    {
-                //        Q_i = Q.GetQ(i, problemSize);
-                //        if (ui)
-                //            for (k = 0; k < problemSize; k++)
-                //                G_bar[k] -= C_i * Q_i[k];
-                //        else
-                //            for (k = 0; k < problemSize; k++)
-                //                G_bar[k] += C_i * Q_i[k];
-                //    }
+                {
+                    bool ui = is_upper_bound(i);
+                    bool uj = is_upper_bound(j);
+                    update_alpha_status(i);
+                    update_alpha_status(j);
+                    int k;
+                    if (ui != is_upper_bound(i))
+                    {
+                        Q_i = Q.GetQ(i, problemSize);
+                        if (ui)
+                            for (k = 0; k < problemSize; k++)
+                                G_bar[k] -= C_i * Q_i[k];
+                        else
+                            for (k = 0; k < problemSize; k++)
+                                G_bar[k] += C_i * Q_i[k];
+                    }
 
-                //    if (uj != is_upper_bound(j))
-                //    {
-                //        Q_j = Q.GetQ(j, problemSize);
-                //        if (uj)
-                //            for (k = 0; k < problemSize; k++)
-                //                G_bar[k] -= C_j * Q_j[k];
-                //        else
-                //            for (k = 0; k < problemSize; k++)
-                //                G_bar[k] += C_j * Q_j[k];
-                //    }
-                //}
+                    if (uj != is_upper_bound(j))
+                    {
+                        Q_j = Q.GetQ(j, problemSize);
+                        if (uj)
+                            for (k = 0; k < problemSize; k++)
+                                G_bar[k] -= C_j * Q_j[k];
+                        else
+                            for (k = 0; k < problemSize; k++)
+                                G_bar[k] += C_j * Q_j[k];
+                    }
+                }
 
             }//end while
 
@@ -423,7 +432,11 @@ namespace KMLib.SVMSolvers
             // put back the solution
             {
                 for (int i = 0; i < problemSize; i++)
-                    alpha_[active_set[i]] = alpha[i];
+                {
+                    //alpha_[active_set[i]] = alpha[i];
+                    //we don't set indexes to previous order
+                    alpha_[i] = alpha[i];
+                }
             }
 
             si.upper_bound_p = Cp;
@@ -597,9 +610,7 @@ namespace KMLib.SVMSolvers
 
             Pair<int, float> maxPair = new Pair<int, float>(-1, -INF);
             //todo: move it up to class field, in this solver active_size is constant
-           // var rangePart = Partitioner.Create(0, active_size);
-
-
+            var partition = Partitioner.Create(0, active_size);
 
             //object lockObj = new object();
             //todo: to many Pair allocation, use partitioner

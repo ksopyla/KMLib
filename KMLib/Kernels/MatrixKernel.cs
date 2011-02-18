@@ -102,5 +102,11 @@ namespace KMLib.Kernels
         {
             get { throw new NotImplementedException(); }
         }
+
+
+        public void SwapIndex(int i, int j)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

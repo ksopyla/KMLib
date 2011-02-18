@@ -61,5 +61,7 @@
         /// <returns>Instance of parameter selection class</returns>
         ParameterSelection<TProblemElement> CreateParameterSelection();
 
+
+        void SwapIndex(int i, int j);
     }
 }

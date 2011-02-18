@@ -104,7 +104,7 @@ namespace KMLib.Kernels
             //    results[j] = (Y[element1] * Y[j] * Product(element1, j));
 
 
-            var partition = Partitioner.Create(0, problemElements.Length);
+            var partition = Partitioner.Create(0, results.Length);
 
             Parallel.ForEach(partition, (range) =>
             {
@@ -168,6 +168,16 @@ namespace KMLib.Kernels
         #endregion
 
 
-       
+
+
+
+        public virtual void SwapIndex(int i, int j)
+        {
+            Y.SwapIndex(i, j);
+            DiagonalDotCache.SwapIndex(i, j);
+            problemElements.SwapIndex(i, j);
+
+
+        }
     }
 }

@@ -69,7 +69,18 @@ namespace KMLib.Helpers
             return SelfDotProd;
 
         }
+        public override string ToString()
+        {
 
+            StringBuilder sb = new StringBuilder(100);
+            sb.Append(Dim);
+            sb.Append("-");
+            for (int i = 0; i < Math.Min(5,Indices.Length); i++)
+            {
+                sb.AppendFormat("{0}/{1:0.00} ;", Indices[i], Values[i]);
+            }
+            return sb.ToString();
+        }
 
     }
 
@@ -214,7 +225,7 @@ namespace KMLib.Helpers
         }
 
 
-
+       
         
     }
 }

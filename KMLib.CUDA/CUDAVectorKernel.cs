@@ -218,6 +218,14 @@ namespace KMLib.GPU
         /// method for setting special parameters to different kernels
         /// </summary>
         protected abstract void SetCudaFunctionParameters();
+
+
+
+        public override void SwapIndex(int i, int j)
+        {
+            throw new NotSupportedException("shrinking is not supported in CUDA kernels");
+            //base.SwapIndex(i, j);
+        }
         
     }
 }
