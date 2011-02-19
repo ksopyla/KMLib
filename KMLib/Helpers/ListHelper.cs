@@ -37,5 +37,28 @@ namespace KMLib.Helpers
             return newArray;
 
         }
+
+
+        public static Tuple<int,int>[] CreateRanges(int size, int chunks)
+        {
+            Tuple<int, int>[] ranges = new Tuple<int, int>[chunks];
+
+            int rangeSize = (int)Math.Ceiling((size + 0.0) /chunks);
+
+            int startRange = 0;
+            int endRange = startRange + rangeSize;
+
+            for (int i = 0; i < chunks; i++)
+            {
+                ranges[i] = new Tuple<int, int>(startRange, endRange);
+
+                startRange = endRange;
+                int rangeSum = endRange + rangeSize;
+                endRange = rangeSum < size ? rangeSum : size;
+
+            }
+
+            return ranges;
+        }
     }
 }

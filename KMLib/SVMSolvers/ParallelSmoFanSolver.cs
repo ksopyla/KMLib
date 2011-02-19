@@ -26,7 +26,7 @@ namespace KMLib.SVMSolvers
     public class ParallelSmoFanSolver<TProblemElement> : Solver<TProblemElement>
     {
 
-       
+
 
         /// <summary>
         /// Internal helper class, whitch store computed solution
@@ -67,7 +67,7 @@ namespace KMLib.SVMSolvers
 
 
         private float[] QD;
-        private bool Shrinking=true;
+        private bool Shrinking = true;
         protected const float INF = float.PositiveInfinity;
         #endregion
 
@@ -76,7 +76,7 @@ namespace KMLib.SVMSolvers
         /// </summary>
         private CachedKernel<TProblemElement> Q;
         private int problemSize;
-     //   private OrderablePartitioner<Tuple<int, int>> partition;
+        //   private OrderablePartitioner<Tuple<int, int>> partition;
 
         object lockObj = new object();
 
@@ -84,7 +84,7 @@ namespace KMLib.SVMSolvers
             : base(problem, kernel, C)
         {
             //todo: add checking if kernel is initialized
-            
+
             //remeber that we have variable kernel in base class
             Q = new CachedKernel<TProblemElement>(problem, kernel);
 
@@ -97,9 +97,9 @@ namespace KMLib.SVMSolvers
             Cn = C;
             problemSize = problem.ElementsCount;
 
-            int rangeSize =(int) Math.Ceiling( (problemSize+0.0)/ Environment.ProcessorCount);
-           // partition= Partitioner.Create( 0, problemSize,rangeSize);
-            
+            int rangeSize = (int)Math.Ceiling((problemSize + 0.0) / Environment.ProcessorCount);
+            // partition= Partitioner.Create( 0, problemSize,rangeSize);
+
         }
 
 
@@ -109,8 +109,8 @@ namespace KMLib.SVMSolvers
         /// <returns>Model</returns>
         public override Model<TProblemElement> ComputeModel()
         {
-            
-          
+
+
 
             int problemSize = problem.ElementsCount;
             float[] Minus_ones = new float[problemSize];
@@ -595,7 +595,7 @@ namespace KMLib.SVMSolvers
             //    -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
 
             float GMax = -INF;
-           // float GNMax = -INF;
+            // float GNMax = -INF;
 
             float GMax2 = -INF;
             int GMax_idx = -1;
@@ -604,16 +604,14 @@ namespace KMLib.SVMSolvers
             //float obj_diff_NMin = INF;
 
 
-
-
             #region find max i
 
             Pair<int, float> maxPair = new Pair<int, float>(-1, -INF);
             //todo: move it up to class field, in this solver active_size is constant
             var partition = Partitioner.Create(0, active_size);
 
-            //object lockObj = new object();
-            //todo: to many Pair allocation, use partitioner
+            #region Find Max pair in parallel
+
             Parallel.ForEach(partition, () => new Pair<int, float>(-1, -INF),
               (range, loopState, localMax) =>
               {
@@ -661,6 +659,8 @@ namespace KMLib.SVMSolvers
               }
           );
 
+            #endregion
+
             GMax = maxPair.Second;
             GMax_idx = maxPair.First;
 
@@ -707,8 +707,6 @@ namespace KMLib.SVMSolvers
             GMax2 = FindMinObjParallel(GMax, partition, i, Q_i, minIdx);
             //GMax2 = FindMinObjParallel2(GMax, i, Q_i, minIdx);
             //GMax2 = FindMinObjSeq(GMax, GMax2, i, Q_i, minIdx);
-
-
 
             if (GMax + GMax2 < EPS)
                 return 1;
@@ -817,11 +815,11 @@ namespace KMLib.SVMSolvers
         private float FindMinObjParallel(float GMax, OrderablePartitioner<Tuple<int, int>> rangePart, int i, float[] Q_i, SortedNVal minIdx)
         {
 
-            
+
             float GMax2Tmp = -INF;
 
-            
-            
+
+
 
             //todo: to many allocation, use range partitioner
             Parallel.ForEach(rangePart, () => new Pair<float, Pair<int, float>>(-INF, new Pair<int, float>(-1, INF)),
@@ -905,7 +903,7 @@ namespace KMLib.SVMSolvers
         private float FindMinObjParallel2(float GMax, int i, float[] Q_i, SortedNVal minIdx)
         {
 
-           // object lockObj = new object();
+            // object lockObj = new object();
             float GMax2Tmp = -INF;
 
             //
@@ -970,7 +968,7 @@ namespace KMLib.SVMSolvers
                },
                (maxMinPair) =>
                {
-                   if (maxMinPair != null && maxMinPair.Second.First!=-1)
+                   if (maxMinPair != null && maxMinPair.Second.First != -1)
                        lock (lockObj)
                        {
                            if (GMax2Tmp < maxMinPair.First)
@@ -1052,6 +1050,6 @@ namespace KMLib.SVMSolvers
 
 
 
-       
+
     }
 }

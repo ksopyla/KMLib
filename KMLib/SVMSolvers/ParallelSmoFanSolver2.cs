@@ -204,16 +204,21 @@ namespace KMLib.SVMSolvers
             resetEvents = new ManualResetEvent[numberOfThreads];
             //max data structures
             maxPairsWaitCallbacks = new WaitCallback[numberOfThreads];
+            //data for finding maxPair in svm solver
             maxPairThreadsData = new MaxFindingThreadData[numberOfThreads];
             maxPairs = new Pair<int, float>[numberOfThreads];
 
             //min data structures
             minPairsWaitCallbacks = new WaitCallback[numberOfThreads];
+            //data for finding minPair in svm solver
             minPairThreadsData = new MinFindingThreadData[numberOfThreads];
             minPairs = new Pair<int, float>[numberOfThreads];
 
-            int startRange = 0;
-            int endRange = startRange + rangeSize;
+            //int startRange = 0;
+            //int endRange = startRange + rangeSize;
+
+            Tuple<int, int>[] ranges = ListHelper.CreateRanges(problemSize, numberOfThreads);
+
             for (int i = 0; i < numberOfThreads; i++)
             {
                 resetEvents[i] = new ManualResetEvent(false);
@@ -223,7 +228,8 @@ namespace KMLib.SVMSolvers
                 {
                     ResetEvent = resetEvents[i],
                     Pair = maxPairs[i],
-                    Range = new Tuple<int, int>(startRange, endRange)
+                    //Range = new Tuple<int, int>(startRange, endRange)
+                    Range = ranges[i]
                 };
 
                 maxPairsWaitCallbacks[i] = new WaitCallback(this.FindMaxPairInThread);
@@ -233,21 +239,24 @@ namespace KMLib.SVMSolvers
                 {
                     ResetEvent = resetEvents[i],
                     Pair = minPairs[i],
-                    Range = new Tuple<int, int>(startRange, endRange)
+                    //Range = new Tuple<int, int>(startRange, endRange)
+                    Range = ranges[i]
                 };
 
                 minPairsWaitCallbacks[i] = new WaitCallback(this.FindMinPairInThread);
 
 
                 //change the range
-                startRange = endRange;
-                int rangeSum = endRange + rangeSize;
-                endRange = rangeSum < problemSize ? rangeSum : problemSize;
+                //startRange = endRange;
+                //int rangeSum = endRange + rangeSize;
+                //endRange = rangeSum < problemSize ? rangeSum : problemSize;
 
 
             }
 
         }
+
+      
 
 
         /// <summary>
@@ -581,7 +590,6 @@ namespace KMLib.SVMSolvers
 
             // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
-
         
 
         // return 1 if already optimal, return 0 otherwise
@@ -632,11 +640,6 @@ namespace KMLib.SVMSolvers
             return 0;
         }
 
-
-
-       
-
-             
         private float get_C(int i)
         {
             return (y[i] > 0) ? Cp : Cn;
@@ -705,12 +708,15 @@ namespace KMLib.SVMSolvers
         /// <returns></returns>
         private Pair<int, float> FindMaxPair()
         {
+            var ranges = ListHelper.CreateRanges(active_size, numberOfThreads);
 
             for (int i = 0; i < numberOfThreads; i++)
             {
                 maxPairThreadsData[i].ResetEvent.Reset();
                 maxPairThreadsData[i].Pair.First = -1;
                 maxPairThreadsData[i].Pair.Second = float.NegativeInfinity;
+
+                maxPairThreadsData[i].Range = ranges[i];
 
 
                 ThreadPool.QueueUserWorkItem(maxPairsWaitCallbacks[i], maxPairThreadsData[i]);
@@ -741,6 +747,8 @@ namespace KMLib.SVMSolvers
         private float FindMinPair(out Pair<int, float> minPair, int GMaxIdx,float GMax,float[] Q_i)
         {
 
+            var ranges = ListHelper.CreateRanges(active_size, numberOfThreads);
+
             for (int i = 0; i < numberOfThreads; i++)
             {
                 minPairThreadsData[i].ResetEvent.Reset();
@@ -750,6 +758,7 @@ namespace KMLib.SVMSolvers
                 minPairThreadsData[i].GMax = GMax;
                 minPairThreadsData[i].Q_i = Q_i;
 
+                minPairThreadsData[i].Range = ranges[i];
 
                 ThreadPool.QueueUserWorkItem(minPairsWaitCallbacks[i], minPairThreadsData[i]);
             }
