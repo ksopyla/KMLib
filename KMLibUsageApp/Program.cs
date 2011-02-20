@@ -72,13 +72,13 @@ namespace KMLibUsageApp
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             
-            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
            // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
-            IKernel<SparseVec> kernel = new LinearKernel();
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVec> kernel = new LinearKernel();
             SVMClassify(train, test, kernel, evaluator,C);
 
         }
@@ -325,15 +325,15 @@ t.Stop();
         {
 
 
-            trainningFile = dataFolder + "/a1a.train";
+            //trainningFile = dataFolder + "/a1a.train";
             //testFile = dataFolder + "/a1a.test";
-            testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
-
-            //trainningFile = dataFolder + "/a9a";
-            //testFile = dataFolder + "/a9a.t";
+            ////testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
             //numberOfFeatures = 123;
+
+            trainningFile = dataFolder + "/a9a";
+            testFile = dataFolder + "/a9a.t";
+            numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";

@@ -122,7 +122,7 @@ namespace KMLib.SVMSolvers
 
 
         private float[] QD;
-        private bool Shrinking;
+        private bool Shrinking=true;
         protected const float INF = float.PositiveInfinity;
         #endregion
 
@@ -256,7 +256,7 @@ namespace KMLib.SVMSolvers
 
         }
 
-      
+
 
 
         /// <summary>
@@ -382,25 +382,35 @@ namespace KMLib.SVMSolvers
             }
             #endregion
 
-            #region init data needef for thread processing
-            //for (int i = 0; i < numberOfThreads; i++)
-            //{
-            //    maxPairThreadsData[i].Y = y;
-            //    maxPairThreadsData[i].G = G;
-            //}
-            #endregion
 
             // optimization step
             int iter = 0;
-            //int counter = Math.Min(problemSize, 1000) + 1;
+            int counter = Math.Min(problemSize, 1000) + 1;
             int[] working_set = new int[2];
 
             int processors = Environment.ProcessorCount;
 
             while (true)
             {
+                if (--counter == 0)
+                {
+                    counter = Math.Min(problemSize, 1000);
+                    if (shrinking) do_shrinking();
+                    //Procedures.info(".");
+                }
+
                 if (select_working_set(working_set, processors) != 0)
-                    break;
+                {
+                    // reconstruct the whole gradient
+                    reconstruct_gradient();
+                    // reset active set size and check
+                    active_size = problemSize;
+                    // Procedures.info("*");
+                    if (select_working_set(working_set, processors) != 0)
+                        break;
+                    else
+                        counter = 1;	// do shrinking next iteration
+                }
 
                 int i = working_set[0];
                 int j = working_set[1];
@@ -516,7 +526,7 @@ namespace KMLib.SVMSolvers
                 //}
 
 
-                //var partition = Partitioner.Create(0, active_size);
+                var partition = Partitioner.Create(0, active_size);
 
                 Parallel.ForEach(partition, (range) =>
                 {
@@ -534,34 +544,34 @@ namespace KMLib.SVMSolvers
 
                 // update alpha_status and G_bar
 
-                //{
-                bool ui = is_upper_bound(i);
-                bool uj = is_upper_bound(j);
-                update_alpha_status(i);
-                update_alpha_status(j);
-                //    int k;
-                //    if (ui != is_upper_bound(i))
-                //    {
-                //        Q_i = Q.GetQ(i, problemSize);
-                //        if (ui)
-                //            for (k = 0; k < problemSize; k++)
-                //                G_bar[k] -= C_i * Q_i[k];
-                //        else
-                //            for (k = 0; k < problemSize; k++)
-                //                G_bar[k] += C_i * Q_i[k];
-                //    }
+                {
+                    bool ui = is_upper_bound(i);
+                    bool uj = is_upper_bound(j);
+                    update_alpha_status(i);
+                    update_alpha_status(j);
+                    int k;
+                    if (ui != is_upper_bound(i))
+                    {
+                        Q_i = Q.GetQ(i, problemSize);
+                        if (ui)
+                            for (k = 0; k < problemSize; k++)
+                                G_bar[k] -= C_i * Q_i[k];
+                        else
+                            for (k = 0; k < problemSize; k++)
+                                G_bar[k] += C_i * Q_i[k];
+                    }
 
-                //    if (uj != is_upper_bound(j))
-                //    {
-                //        Q_j = Q.GetQ(j, problemSize);
-                //        if (uj)
-                //            for (k = 0; k < problemSize; k++)
-                //                G_bar[k] -= C_j * Q_j[k];
-                //        else
-                //            for (k = 0; k < problemSize; k++)
-                //                G_bar[k] += C_j * Q_j[k];
-                //    }
-                //}
+                    if (uj != is_upper_bound(j))
+                    {
+                        Q_j = Q.GetQ(j, problemSize);
+                        if (uj)
+                            for (k = 0; k < problemSize; k++)
+                                G_bar[k] -= C_j * Q_j[k];
+                        else
+                            for (k = 0; k < problemSize; k++)
+                                G_bar[k] += C_j * Q_j[k];
+                    }
+                }
 
             }//end while
 
@@ -582,7 +592,11 @@ namespace KMLib.SVMSolvers
             // put back the solution
             {
                 for (int i = 0; i < problemSize; i++)
-                    alpha_[active_set[i]] = alpha[i];
+                {
+                    //alpha_[active_set[i]] = alpha[i];
+                    //we don't set indexes to previous order
+                    alpha_[i] = alpha[i];
+                }
             }
 
             si.upper_bound_p = Cp;
@@ -590,7 +604,146 @@ namespace KMLib.SVMSolvers
 
             // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
-        
+
+        /// <summary>
+        /// 
+        /// </summary>
+        void do_shrinking()
+        {
+            Console.Write(".");
+            int i;
+            float GMax1 = -INF;		// Max { -y_i * grad(f)_i | i in I_up(\alpha) }
+            float GMax2 = -INF;		// Max { y_i * grad(f)_i | i in I_low(\alpha) }
+
+            // find Maximal violating pair first
+            for (i = 0; i < active_size; i++)
+            {
+                if (y[i] == +1)
+                {
+                    if (!is_upper_bound(i))
+                    {
+                        if (-G[i] >= GMax1)
+                            GMax1 = -G[i];
+                    }
+                    if (!is_lower_bound(i))
+                    {
+                        if (G[i] >= GMax2)
+                            GMax2 = G[i];
+                    }
+                }
+                else
+                {
+                    if (!is_upper_bound(i))
+                    {
+                        if (-G[i] >= GMax2)
+                            GMax2 = -G[i];
+                    }
+                    if (!is_lower_bound(i))
+                    {
+                        if (G[i] >= GMax1)
+                            GMax1 = G[i];
+                    }
+                }
+            }
+
+            if (unshrink == false && GMax1 + GMax2 <= EPS * 10)
+            {
+                unshrink = true;
+                reconstruct_gradient();
+                active_size = problemSize;
+            }
+
+            for (i = 0; i < active_size; i++)
+                if (be_shrunk(i, GMax1, GMax2))
+                {
+                    active_size--;
+                    while (active_size > i)
+                    {
+                        if (!be_shrunk(active_size, GMax1, GMax2))
+                        {
+                            swap_index(i, active_size);
+                            break;
+                        }
+                        active_size--;
+                    }
+                }
+        }
+
+        protected void swap_index(int i, int j)
+        {
+            Q.SwapIndex(i, j);
+            y.SwapIndex(i, j);
+            G.SwapIndex(i, j);
+            alpha_status.SwapIndex(i, j);
+            alpha.SwapIndex(i, j);
+            p.SwapIndex(i, j);
+            active_set.SwapIndex(i, j);
+            G_bar.SwapIndex(i, j);
+        }
+
+        private bool be_shrunk(int i, float GMax1, float GMax2)
+        {
+            if (is_upper_bound(i))
+            {
+                if (y[i] == +1)
+                    return (-G[i] > GMax1);
+                else
+                    return (-G[i] > GMax2);
+            }
+            else if (is_lower_bound(i))
+            {
+                if (y[i] == +1)
+                    return (G[i] > GMax2);
+                else
+                    return (G[i] > GMax1);
+            }
+            else
+                return (false);
+        }
+
+        protected void reconstruct_gradient()
+        {
+            // reconstruct inactive elements of G from G_bar and free variables
+
+            if (active_size == problemSize) return;
+
+            int i, j;
+            int nr_free = 0;
+
+            for (j = active_size; j < problemSize; j++)
+                G[j] = G_bar[j] + p[j];
+
+            for (j = 0; j < active_size; j++)
+                if (is_free(j))
+                    nr_free++;
+
+            /*
+            if (2 * nr_free < active_size)
+                Procedures.info("\nWarning: using -h 0 may be faster\n");
+            */
+
+            if (nr_free * problemSize > 2 * active_size * (problemSize - active_size))
+            {
+                for (i = active_size; i < problemSize; i++)
+                {
+                    float[] Q_i = Q.GetQ(i, active_size);
+                    for (j = 0; j < active_size; j++)
+                        if (is_free(j))
+                            G[i] += alpha[j] * Q_i[j];
+                }
+            }
+            else
+            {
+                for (i = 0; i < active_size; i++)
+                    if (is_free(i))
+                    {
+                        float[] Q_i = Q.GetQ(i, problemSize);
+                        float alpha_i = alpha[i];
+                        for (j = active_size; j < problemSize; j++)
+                            G[j] += alpha_i * Q_i[j];
+                    }
+            }
+        }
 
         // return 1 if already optimal, return 0 otherwise
         int select_working_set(int[] working_set, int pairsCount)
@@ -609,12 +762,12 @@ namespace KMLib.SVMSolvers
             int GMin_idx = -1;
             //float obj_diff_Min = INF;
             //float obj_diff_NMin = INF;
-            
+
             #region find max i
 
             Pair<int, float> maxPair = FindMaxPair();
 
-            
+
             GMax = maxPair.Second;
             GMax_idx = maxPair.First;
 
@@ -744,7 +897,7 @@ namespace KMLib.SVMSolvers
         /// <param name="GMax"></param>
         /// <param name="Q_i"></param>
         /// <returns></returns>
-        private float FindMinPair(out Pair<int, float> minPair, int GMaxIdx,float GMax,float[] Q_i)
+        private float FindMinPair(out Pair<int, float> minPair, int GMaxIdx, float GMax, float[] Q_i)
         {
 
             var ranges = ListHelper.CreateRanges(active_size, numberOfThreads);
@@ -841,7 +994,7 @@ namespace KMLib.SVMSolvers
             MinFindingThreadData data = (MinFindingThreadData)threadData;
             Pair<int, float> localMaxMin = data.Pair;
 
-           
+
             float GMax2 = float.NegativeInfinity;
 
             int i = data.GMaxIdx;
@@ -930,11 +1083,11 @@ namespace KMLib.SVMSolvers
             this.G_bar = null;
             this.kernel = null;
             this.lockObj = null;
-           
 
-            for (int i = 0; i <  numberOfThreads; i++)
+
+            for (int i = 0; i < numberOfThreads; i++)
             {
-                maxPairs[i]  = null;
+                maxPairs[i] = null;
                 maxPairsWaitCallbacks[i] = null;
                 maxPairThreadsData[i] = null;
 
@@ -955,8 +1108,8 @@ namespace KMLib.SVMSolvers
             this.p = null;
             this.partition = null;
             this.y = null;
-            
-            
+
+
         }
     }
 }
