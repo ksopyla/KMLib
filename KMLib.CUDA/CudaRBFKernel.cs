@@ -148,7 +148,7 @@ namespace KMLib.GPU
 
             //allocate memory for main vector, size of this vector is the same as dimenson, so many 
             //indexes will be zero, but cuda computation is faster
-            mainVector = new float[problemElements[0].Count];
+            mainVector = new float[problemElements[0].Dim+1];
             CudaHelpers.FillDenseVector(problemElements[0],mainVector);
 
             SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
