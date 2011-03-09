@@ -35,7 +35,7 @@ namespace KMLibUsageApp
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
-            TestOneDataSet(dataFolder);
+           // TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -47,7 +47,7 @@ namespace KMLibUsageApp
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-           // SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
+           SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
 
             //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
@@ -325,15 +325,15 @@ t.Stop();
         {
 
 
-            //trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
-
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
+            trainningFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.test";
+            //testFile = dataFolder + "/a1a.train";
+            //in a1a problem max index is 123
             numberOfFeatures = 123;
+
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -353,6 +353,8 @@ t.Stop();
 
             //trainningFile = dataFolder + "/rcv1_train.binary";
             //testFile = dataFolder + "/rcv1_test.binary";
+            //trainningFile = dataFolder + "/rcv1_test.binary";
+            //testFile = dataFolder + "/rcv1_train.binary";
             ////string testFile = dataFolder + "/rcv1_train_test.binary";
             //numberOfFeatures = 47236;
 
@@ -375,8 +377,8 @@ t.Stop();
             //for test
             //trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
             //testFile = dataFolder + "/liver-disorders_scale_small.txt";
-            ////////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
-            ////////string testFile = dataFolder + "/liver-disorders_scale.txt";
+            //string trainningFile = dataFolder + "/liver-disorders_scale.txt";
+            //string testFile = dataFolder + "/liver-disorders_scale.txt";
             //numberOfFeatures = 6;
             //  string trainningFile = dataFolder + "/australian_scale.txt";
         }
@@ -397,10 +399,12 @@ t.Stop();
             
             
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
-            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            IKernel<SparseVec> kernel = new LinearKernel();
             Model<SparseVec> model;
 
             Console.WriteLine("read vectors");
@@ -424,11 +428,7 @@ t.Stop();
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
 
            
-            var disKernel = kernel as IDisposable;
-            if (disKernel != null)
-                disKernel.Dispose();
-           
-
+            
 
             var disSolver = Solver as IDisposable;
             if (disSolver != null)
@@ -456,6 +456,10 @@ t.Stop();
             //toremove: only for tests
             Console.WriteLine("prediction takes {0}  ms={1}",t.Elapsed, t.ElapsedMilliseconds);
 
+            var disKernel = kernel as IDisposable;
+            if (disKernel != null)
+                disKernel.Dispose();
+           
             //todo: Free evaluator memories
             var disposeEvaluator = evaluator as IDisposable;
             if (disposeEvaluator != null)

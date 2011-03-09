@@ -293,7 +293,7 @@ namespace KMLib.SVMSolvers
             model.NumberOfClasses = 2;
             model.Alpha = alphaResult;
             model.Bias = si.rho;
-
+            model.Obj = si.obj;
 
             List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
             List<int> suporrtIndexes = new List<int>(alpha.Length);
@@ -610,7 +610,7 @@ namespace KMLib.SVMSolvers
         /// </summary>
         void do_shrinking()
         {
-            Console.Write(".");
+            Console.WriteLine("->{0}",active_size);
             int i;
             float GMax1 = -INF;		// Max { -y_i * grad(f)_i | i in I_up(\alpha) }
             float GMax2 = -INF;		// Max { y_i * grad(f)_i | i in I_low(\alpha) }

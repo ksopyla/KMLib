@@ -43,6 +43,7 @@ namespace KMLib
         /// "W" vector in primal problem
         /// </summary>
         public double[] W;
+        public float Obj;
 
         public override string ToString()
         {
