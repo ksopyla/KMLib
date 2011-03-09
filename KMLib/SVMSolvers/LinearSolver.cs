@@ -18,7 +18,7 @@ namespace KMLib.SVMSolvers
     /// </summary>
     public class LinearSolver : Solver<SparseVec>
     {
-        private float bias=-1;
+        public float bias=-1;
 
         /// <summary>
         /// contains labels which has different weight
@@ -432,6 +432,7 @@ namespace KMLib.SVMSolvers
                 index[i] = i;
             }
             #endregion
+            
             while (iter < max_iter)
             {
                 PGmax_new = Double.NegativeInfinity;

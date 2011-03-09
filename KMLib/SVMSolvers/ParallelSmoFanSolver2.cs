@@ -122,7 +122,7 @@ namespace KMLib.SVMSolvers
 
 
         private float[] QD;
-        private bool Shrinking=true;
+        private bool Shrinking=false;
         protected const float INF = float.PositiveInfinity;
         #endregion
 

@@ -43,13 +43,36 @@ namespace KMLib.Evaluate
         public new float Predict(SparseVec element)
         {
 
-            int n = TrainedModel.FeaturesCount;
+           
 
             //if (model.bias >= 0)
             //    n = model.nr_feature + 1;
             //else
             //    n = model.nr_feature;
 
+            double[] dec_values = ComputeDecisions(element);
+
+            
+            if (TrainedModel.NumberOfClasses == 2)
+            {
+                //odwróciłem znak
+                return (dec_values[0] < 0) ? TrainedModel.Labels[0] : TrainedModel.Labels[1];
+            }
+            else
+            {
+                int dec_max_idx = 0;
+                for (int i = 1; i < TrainedModel.NumberOfClasses; i++)
+                {
+                    if (dec_values[i] > dec_values[dec_max_idx]) dec_max_idx = i;
+                }
+                return TrainedModel.Labels[dec_max_idx];// model.label[dec_max_idx];
+            }
+
+            return float.NegativeInfinity;
+        }
+
+        private double[] ComputeDecisions(SparseVec element)
+        {
             double[] w = TrainedModel.W;
             double[] dec_values = new double[TrainedModel.NumberOfClasses];
 
@@ -73,6 +96,7 @@ namespace KMLib.Evaluate
             //    }
             //}
 
+            int n = TrainedModel.FeaturesCount;
             for (int k = 0; k < element.Count; k++)
             {
                 int idx = element.Indices[k];
@@ -85,24 +109,13 @@ namespace KMLib.Evaluate
                 }
 
             }
+            return dec_values;
+        }
 
-            
-            if (TrainedModel.NumberOfClasses == 2)
-            {
-                //odwróciłem znak
-                return (dec_values[0] < 0) ? TrainedModel.Labels[0] : TrainedModel.Labels[1];
-            }
-            else
-            {
-                int dec_max_idx = 0;
-                for (int i = 1; i < TrainedModel.NumberOfClasses; i++)
-                {
-                    if (dec_values[i] > dec_values[dec_max_idx]) dec_max_idx = i;
-                }
-                return TrainedModel.Labels[dec_max_idx];// model.label[dec_max_idx];
-            }
-
-            return float.NegativeInfinity;
+        public override float PredictVal(SparseVec element)
+        {
+            //return only first value of decision
+            return (float)ComputeDecisions(element)[0];
         }
 
     }
