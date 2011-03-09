@@ -34,8 +34,8 @@ namespace KMLibUsageApp
             //Console.WriteLine("press any key to start");
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
-            //GroupedTestingLowLevelDataSets(dataSetsToTest);
-            TestOneDataSet(dataFolder);
+           // GroupedTestingLowLevelDataSets(dataSetsToTest);
+            //TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -43,11 +43,13 @@ namespace KMLibUsageApp
 
             //TestMultiClasDataSet(dataFolder);
 
+           // TestRanking(dataFolder);
+
             string trainningFile;
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-           // SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
+            SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
 
             //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
@@ -82,6 +84,10 @@ namespace KMLibUsageApp
             SVMClassify(train, test, kernel, evaluator,C);
 
         }
+
+
+
+
 
         private static void TestMultiClasDataSet(string dataFolder)
         {
@@ -148,6 +154,131 @@ t.Stop();
             test.Dispose();
             double accuracy = (float)correct / predictions.Length;
             Console.WriteLine("accuracy ={0}", accuracy);
+
+        }
+
+
+        private static void TestRanking(string dataFolder)
+        {
+           
+            string trainningFile = dataFolder + "/rankingTrain.t";
+            string testFile = dataFolder + "/rankingTest.t"; ;
+            int numberOfFeatures = 2;
+
+
+
+            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
+            Console.WriteLine("Ranking DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
+            Console.WriteLine();
+            Problem<SparseVec> origtrain = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+
+
+
+            Problem<SparseVec> train = CreateRankingProblem(origtrain);
+
+            Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
+
+            EvaluatorBase<SparseVec> evaluator = new LinearPrimalEvaluator();
+            Model<SparseVec> model;
+
+            //
+            //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+            //this solver works a bit faster and use less memory
+            var Solver = new LinearSolver(train, C);
+
+            Console.WriteLine("User solver {0}", Solver.ToString());
+
+            Stopwatch timer = Stopwatch.StartNew();
+            model = Solver.ComputeModel();
+            Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
+
+            var disSolver = Solver as IDisposable;
+            if (disSolver != null)
+                disSolver.Dispose();
+            Solver = null;
+
+            train.Dispose();
+
+            Console.WriteLine("Start Testing");
+
+            evaluator.TrainedModel = model;
+
+            evaluator.Init();
+
+
+            
+            float[] predictions = new float[test.Elements.Length];
+            Stopwatch t = Stopwatch.StartNew();
+            for (int i = 0; i < test.ElementsCount; i++)
+            {
+                predictions[i] = evaluator.PredictVal(test.Elements[i]);
+            }
+            t.Stop();
+            //toremove: only for tests
+            Console.WriteLine("ranking prediction takes {0}  ms={1}", t.Elapsed, t.ElapsedMilliseconds);
+
+            //todo: Free evaluator memories
+            var disposeEvaluator = evaluator as IDisposable;
+            if (disposeEvaluator != null)
+                disposeEvaluator.Dispose();
+
+            int correct = 0;
+            for (int i = 0; i < test.ElementsCount; i++)
+            {
+                float predictedLabel = predictions[i];
+
+                if (predictedLabel == test.Y[i])
+                    ++correct;
+            }
+            test.Dispose();
+            double accuracy = (float)correct / predictions.Length;
+            Console.WriteLine("accuracy ={0}", accuracy);
+
+        }
+
+
+        /// <summary>
+        /// Create ranking problem, computes vector parwise substraction
+        ///  y_i < y_j  (x_i - x_j) -> 1
+        /// </summary>
+        /// <param name="origtrain"></param>
+        /// <returns></returns>
+        private static Problem<SparseVec> CreateRankingProblem(Problem<SparseVec> origtrain)
+        {
+           
+            int k = origtrain.ElementsCount;
+            int size = k * (k + 1) / 2;
+
+            List<SparseVec> pairVector = new List<SparseVec>(size);
+            List<float> pairLabels = new List<float>(size);
+
+            for (int i = 0; i < k; i++)
+            {
+                for (int j = 0; j < (i+1); j++)
+                {
+                    if (i==j)
+                        continue;
+
+                    int ii=i, jj=j;
+
+                    //add some permutation
+                    //if ( (j+i*(i+1)/2) % 2 == 0) { ii = j; jj = i; }
+
+                    SparseVec subVec = origtrain.Elements[ii].Subtract(origtrain.Elements[jj]);
+                    pairVector.Add(subVec);
+
+                    float labelDiff = origtrain.Y[ii] - origtrain.Y[jj];
+                    float label = 1;
+                    if (labelDiff < 0)
+                        label = -1;
+                    pairLabels.Add(label);
+                }
+            }
+
+            Problem<SparseVec> rankingProb = new Problem<SparseVec>(pairVector.ToArray(), pairLabels.ToArray(), 2, 2, new float[2] { -1, 1 });
+
+
+            return rankingProb;
 
         }
 
@@ -305,10 +436,15 @@ t.Stop();
 
 
             //string testFile = dataFolder + "/rcv1_train_test.binary";
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/rcv1_train.binary",
-            //    dataFolder + "/rcv1_test.binary",
-            //    47236));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/rcv1_train.binary",
+                dataFolder + "/rcv1_test.binary",
+                47236));
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/rcv1_test.binary",
+                dataFolder + "/rcv1_train.binary",
+                47236));
 
             return dataSets;
         }
@@ -325,15 +461,15 @@ t.Stop();
         {
 
 
-            //trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
-
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
+            trainningFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.test";
+            //testFile = dataFolder + "/a1a.train";
+            //in a1a problem max index is 123
             numberOfFeatures = 123;
+
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -397,10 +533,12 @@ t.Stop();
             
             
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+           // EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
-            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            IKernel<SparseVec> kernel = new LinearKernel();
             Model<SparseVec> model;
 
             Console.WriteLine("read vectors");
@@ -424,9 +562,6 @@ t.Stop();
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
 
            
-            var disKernel = kernel as IDisposable;
-            if (disKernel != null)
-                disKernel.Dispose();
            
 
 
@@ -442,9 +577,13 @@ t.Stop();
             Console.WriteLine("Start Testing");
 
             
+            var disKernel = kernel as IDisposable;
+            if (disKernel != null)
+                disKernel.Dispose();
+           
 
             Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
-           // evaluator.Kernel = kernel;
+            evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
            
             evaluator.Init();
@@ -460,8 +599,7 @@ t.Stop();
             var disposeEvaluator = evaluator as IDisposable;
             if (disposeEvaluator != null)
                 disposeEvaluator.Dispose();
-            
-            
+
             
             int correct = 0;            
             for (int i = 0; i < test.ElementsCount; i++)
@@ -493,6 +631,7 @@ t.Stop();
 
             EvaluatorBase<SparseVec> evaluator = new LinearPrimalEvaluator();
             Model<SparseVec> model;
+
 
             Console.WriteLine("read vectors");
             Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
