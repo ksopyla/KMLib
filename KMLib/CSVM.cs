@@ -121,7 +121,8 @@ namespace KMLib
 
             Stopwatch timer = Stopwatch.StartNew();
             model = svmSolver.ComputeModel();
-            Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
+            Console.WriteLine("Model computed,  {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
+            Console.WriteLine("model obj={0} rho={1} nSV={2}", model.Obj, model.Bias, model.SupportElements.Length);
 
             var disKernel = kernel as IDisposable;
             if (disKernel != null)

@@ -489,6 +489,8 @@ t.Stop();
 
             //trainningFile = dataFolder + "/rcv1_train.binary";
             //testFile = dataFolder + "/rcv1_test.binary";
+            //trainningFile = dataFolder + "/rcv1_test.binary";
+            //testFile = dataFolder + "/rcv1_train.binary";
             ////string testFile = dataFolder + "/rcv1_train_test.binary";
             //numberOfFeatures = 47236;
 
@@ -511,8 +513,8 @@ t.Stop();
             //for test
             //trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
             //testFile = dataFolder + "/liver-disorders_scale_small.txt";
-            ////////string trainningFile = dataFolder + "/liver-disorders_scale.txt";
-            ////////string testFile = dataFolder + "/liver-disorders_scale.txt";
+            //string trainningFile = dataFolder + "/liver-disorders_scale.txt";
+            //string testFile = dataFolder + "/liver-disorders_scale.txt";
             //numberOfFeatures = 6;
             //  string trainningFile = dataFolder + "/australian_scale.txt";
         }
@@ -562,8 +564,7 @@ t.Stop();
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
 
            
-           
-
+            
 
             var disSolver = Solver as IDisposable;
             if (disSolver != null)
@@ -595,6 +596,10 @@ t.Stop();
             //toremove: only for tests
             Console.WriteLine("prediction takes {0}  ms={1}",t.Elapsed, t.ElapsedMilliseconds);
 
+            var disKernel = kernel as IDisposable;
+            if (disKernel != null)
+                disKernel.Dispose();
+           
             //todo: Free evaluator memories
             var disposeEvaluator = evaluator as IDisposable;
             if (disposeEvaluator != null)
