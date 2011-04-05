@@ -20,12 +20,13 @@ namespace KMLibUsageApp
     {
         private static float C = 4f;
         static float gamma = 0.5f;
+        private static int folds=5;
         private static void Main(string[] args)
         {
             if (args.Length < 1)
                 throw new ArgumentException("to liitle arguments");
 
-            Debug.Listeners.Add(new ConsoleTraceListener());
+           // Debug.Listeners.Add(new ConsoleTraceListener());
 
             string dataFolder = args[0];// @"D:\UWM\praca naukowa\doktorat\code\KMLib\KMLibUsageApp\Data";
 
@@ -49,14 +50,45 @@ namespace KMLibUsageApp
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-            SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
+            //SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
+            
+           SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
-            //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+            
+           // PerformCrossValidation(dataFolder, folds);
 
             Console.WriteLine("Press any button");
             Console.ReadKey();
 
         }
+
+        private static void PerformCrossValidation(string dataFolder, int folds)
+        {
+            string trainningFile;
+            string testFile;
+            int numberOfFeatures;
+            ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
+
+            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
+            Console.WriteLine("Cross validation folds={0} \nDataSet1 atr={1}, trainning={2}",folds, numberOfFeatures, trainningFile);
+            Console.WriteLine();
+            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+
+           
+            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
+
+            // evaluator.Init();
+            //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVec> kernel = new LinearKernel();
+
+            DoCrossValidation(train, kernel, evaluator, folds);
+
+        }
+
+       
 
         private static void TestOneDataSet(string dataFolder)
         {
@@ -460,16 +492,20 @@ t.Stop();
         private static void ChooseDataSet(string dataFolder, out string trainningFile, out string testFile, out int numberOfFeatures)
         {
 
+            //trainningFile = dataFolder + "/zegarki_meskie_damskie_sift_kmeans_5_50_headers.svm.libsvm";
+            //testFile = dataFolder + "/zegarki_meskie_damskie_sift_kmeans_5_50_headers.svm.libsvm";
+            //numberOfFeatures = 5;
 
-            trainningFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.test";
-            //testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
-
-            //trainningFile = dataFolder + "/a9a";
-            //testFile = dataFolder + "/a9a.t";
+            //trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
             //numberOfFeatures = 123;
+
+            trainningFile = dataFolder + "/a9a";
+            testFile = dataFolder + "/a9a.t";
+            //testFile = dataFolder + "/a9a";
+            numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -507,7 +543,7 @@ t.Stop();
             //string trainningFile = dataFolder + "/real-sim_med_6K";
             //string trainningFile = dataFolder + "/real-sim_med_10K";
             //trainningFile = dataFolder + "/real-sim";
-            //testFile = dataFolder + "/real-sim.t";
+            //testFile = dataFolder + "/real-sim";
             //numberOfFeatures = 20958;
 
             //for test
@@ -534,13 +570,13 @@ t.Stop();
             Console.WriteLine();
             
             
-            //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-           // EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
+            EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
-            //IKernel<SparseVec> kernel = new CudaLinearKernel();
+            IKernel<SparseVec> kernel = new CudaLinearKernel();
             //IKernel<SparseVec> kernel = new RbfKernel(gamma);
-            IKernel<SparseVec> kernel = new LinearKernel();
+            //IKernel<SparseVec> kernel = new LinearKernel();
             Model<SparseVec> model;
 
             Console.WriteLine("read vectors");
@@ -563,7 +599,9 @@ t.Stop();
             model = Solver.ComputeModel();
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
 
-           
+            var disKernel = kernel as IDisposable;
+            if (disKernel != null)
+                disKernel.Dispose();
             
 
             var disSolver = Solver as IDisposable;
@@ -577,12 +615,7 @@ t.Stop();
 
             Console.WriteLine("Start Testing");
 
-            
-            var disKernel = kernel as IDisposable;
-            if (disKernel != null)
-                disKernel.Dispose();
-           
-
+          
             Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
@@ -596,9 +629,7 @@ t.Stop();
             //toremove: only for tests
             Console.WriteLine("prediction takes {0}  ms={1}",t.Elapsed, t.ElapsedMilliseconds);
 
-            var disKernel = kernel as IDisposable;
-            if (disKernel != null)
-                disKernel.Dispose();
+           
            
             //todo: Free evaluator memories
             var disposeEvaluator = evaluator as IDisposable;
@@ -733,21 +764,19 @@ t.Stop();
         /// </summary>
         /// <param name="train"></param>
         /// <param name="kernel"></param>
-        private static void DoCrossValidation(Problem<Vector> train, IKernel<Vector> kernel)
+        private static void DoCrossValidation(Problem<SparseVec> train, IKernel<SparseVec> kernel,EvaluatorBase<SparseVec> evaluator, int folds)
         {
 
-            int folds = 3;
+            float[] penaltyC = new[] {0.125f, 0.025f, 0.5f, 1, 2,4,8,16,32,64,128};
 
-            //float[] penaltyC = new[] {0.125f, 0.025f, 0.5f, 1, 2,4,8,128};
-
-            float[] penaltyC = new float[] { 0.5f, 4, 16, 128 };
+            //float[] penaltyC = new float[] { 0.5f, 4, 16, 128 };
 
             double acc = 0, bestC = 0;
-            Validation<Vector> validation = new Validation<Vector>();
+            Validation<SparseVec> validation = new Validation<SparseVec>();
             validation.TrainingProblem = train;
             validation.Kernel = kernel;
 
-            validation.Evaluator = new SequentialDualEvaluator<Vector>();
+            validation.Evaluator = evaluator;
             Stopwatch timer = new Stopwatch();
             Stopwatch globalTimer = new Stopwatch();
             globalTimer.Start();
@@ -759,7 +788,7 @@ t.Stop();
                 double tempAcc = validation.CrossValidation(folds);
                 //.CrossValidation(train, kernel, penaltyC[i], folds);
                 timer.Stop();
-                Debug.WriteLine(string.Format("Tmp acuuracy = {0} C={1} time={2}", tempAcc, penaltyC[i], timer.Elapsed));
+                Console.WriteLine(string.Format("Tmp acuuracy = {0} C={1} time={2}", tempAcc, penaltyC[i], timer.Elapsed));
                 if (tempAcc > acc)
                 {
                     acc = tempAcc;
@@ -772,6 +801,9 @@ t.Stop();
 
             Console.WriteLine("Cross Validation nr folds={0} best acuuracy = {1} C={2} time={3}", folds, acc, bestC, globalTimer.Elapsed);
         }
+
+
+
 
         /// <summary>
         /// Testing methods for searching parameter C and Gamma

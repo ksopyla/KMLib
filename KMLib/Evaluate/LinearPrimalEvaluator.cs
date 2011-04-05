@@ -21,16 +21,16 @@ namespace KMLib.Evaluate
 
             float[] predictions = new float[elements.Length];
 
-            Parallel.For(0, elements.Length, i =>
-            {
-
-                predictions[i] = Predict(elements[i]);
-            });
-
-            //for (int i = 0; i < elements.Length; i++)
+            //Parallel.For(0, elements.Length, i =>
             //{
+
             //    predictions[i] = Predict(elements[i]);
-            //}
+            //});
+
+            for (int i = 0; i < elements.Length; i++)
+            {
+                predictions[i] = Predict(elements[i]);
+            }
 
             return predictions;
         }
@@ -55,8 +55,10 @@ namespace KMLib.Evaluate
             
             if (TrainedModel.NumberOfClasses == 2)
             {
+                //add multiplication by first label
+                var lab0 = TrainedModel.Labels[0];
                 //odwróciłem znak
-                return (dec_values[0] < 0) ? TrainedModel.Labels[0] : TrainedModel.Labels[1];
+                return (dec_values[0]*lab0 > 0) ? TrainedModel.Labels[0] : TrainedModel.Labels[1];
             }
             else
             {

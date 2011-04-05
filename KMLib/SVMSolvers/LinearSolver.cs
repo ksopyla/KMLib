@@ -317,8 +317,8 @@ namespace KMLib.SVMSolvers
         /// #define GETI(i) (y[i]+1)
         /// </summary>
         /// <remarks>
-        /// Its only a helper for getting 0- if yi=-1 and 2- ifyi=1,
-        /// 0 or 2 are indexes in 3-dim array containing penalty for positive and negative
+        /// It's only a helper for getting 0- if yi=-1 and 2- ifyi=1,
+        /// 0 or 2 are indexes in 3-dim array containing penalty for positive and negative examples
         /// 
         /// To support weights for instances, use GETI(i) (i)
         /// </remarks>

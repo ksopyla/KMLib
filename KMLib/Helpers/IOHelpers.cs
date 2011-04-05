@@ -111,6 +111,7 @@ namespace KMLib.Helpers
             //list of labels
             List<float> labels = new List<float>(listCapacity);
 
+            //counts how many labels we have
             Dictionary<float, int> coutLabels = new Dictionary<float, int>(10);
 
             //list of array, each array symbolize vector
@@ -253,6 +254,8 @@ namespace KMLib.Helpers
 
             int numberOfClasses = coutLabels.Count;
             var elementClasses = coutLabels.Keys.ToArray();
+           
+           // Array.Sort(elementClasses);
 
             return new Problem<SparseVec>(dnaVectors.ToArray(), labels.ToArray(), max_index,numberOfClasses,elementClasses);
         }
