@@ -16,7 +16,7 @@ texture<float,1,cudaReadModeElementType> mainVectorTexRef;
 //texture fo labels assiociated with vectors
 texture<float,1,cudaReadModeElementType> labelsTexRef;
 
-
+__device__  __constant__ float diag_shift[3];
 
 #define BLOCK_SIZE 128
 
@@ -119,9 +119,7 @@ deltas - array of size N, contains step in each dimension, out parameter
 extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	
 	const float* QD,
-	const float* diag,
 	const float* alpha,
-	const float paramC,
 	float* G,
 	float* deltas
 	)
@@ -138,10 +136,8 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	//G=W*element*yi-1+alpah[i]*Dii
 	grad = grad-1;
 	
-	grad+=alpha_i*diag[(int)yi+1];
+	grad+=alpha_i*diag_shift[(int)yi+1];
 
-	//paramC could be in constant cache
-	float C = paramC;
 	float PG=0;
 	
 	/*
@@ -176,14 +172,37 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	for L2-SVM we can simplify expresion, we don't have to check if alpha[i]=C because C is infinity
 	*/
 	PG=grad;
-	int signG = signbit(PG);
-	int isPosAlpha = isPositive(alpha_i);
+	
 
+	/*
+	this computes PG without using 'if' statements, line 472 in lin solver
+
+	
+
+	if alpha_i=0
+		PG= min(0,grad)
+	else
+		PG=grad
+
+	we could change this to
+	if alpha_i=0 and grad <0
+		PG = grad
+	if alpha_i=0 and grad >=0
+		PG = 0
+	if alpha_i>0 and grad <0
+		PG = grad
+	if alpha_i=> and grad >=0
+		PG = grad
+
+	we can set PG using formula:
 	float ifTest=(signG+isPosAlpha+0.0f)/(signG+isPosAlpha+1.0f);
 	ifTest= ceilf(ifTest);
 	PG=ifTest*PG;
-	
-	
+	*/
+	int signG = signbit(PG);
+	int isPosAlpha = isPositive(alpha_i);
+	PG=PG*ceilf((signG+isPosAlpha+0.0f)/(signG+isPosAlpha+1.0f));
+
 	//if PG< 1e-12, to znaczy że już jesteśmy w optimum,
 	//lecz to powinno zachodzić dla wszystkich
 	//we store 
@@ -191,7 +210,7 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 
 	//normaly in paper is Min(Max(alpha-G/QD[i],0.0),U) but in our case U is infinty 
 	//so min part was ommitted
-	float newAlpha = fmaxf(alpha_i-grad/QD[i],0.0f);
+	float newAlpha = fmaxf(alpha_i-grad/(QD[i]+diag_shift[(int)yi+1] ),0.0f);
 	
 	deltas[i]=(newAlpha-alpha_i)*yi;
 }
