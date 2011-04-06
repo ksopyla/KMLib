@@ -23,7 +23,7 @@ namespace KMLib.SVMSolvers
         /// <summary>
         /// contains labels which has different weight
         /// </summary>
-        int[] labelWithWeight;
+        protected int[] labelWithWeight;
 
         /// <summary>
         /// contains weights for labels <see cref="labelWithWeight"/> array
@@ -31,13 +31,13 @@ namespace KMLib.SVMSolvers
         /// <remarks>
         /// 
         /// </remarks>
-        double[] penaltyWeights;
+        protected double[] penaltyWeights;
 
 
-        private SolverType solverType = SolverType.L2R_L2LOSS_SVC_DUAL;
-        private double epsilon= 0.01;
+        protected SolverType solverType = SolverType.L2R_L2LOSS_SVC_DUAL;
+        protected double epsilon = 0.01;
 
-        enum SolverType
+        protected enum SolverType
         {
             /// <summary>
             ///L2-regularized L2-loss support vector classification (dual) (fka L2LOSS_SVM_DUAL)
@@ -96,7 +96,7 @@ namespace KMLib.SVMSolvers
             //    }
             //}
 
-           int j;
+            int j;
             int l = problem.ElementsCount; //prob.l;
             int n = problem.FeaturesCount;// prob.n;
             int w_size = n; // prob.n;
@@ -202,7 +202,7 @@ namespace KMLib.SVMSolvers
                         sub_prob.Y[k] = -1;
 
                     //train_one(sub_prob, param, model.w, weighted_C[0], weighted_C[1]);
-                    solve_l2r_l1l2_svc(model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
+                    solve_l2r_l1l2_svc(sub_prob, model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
                 }
                 else
                 {
@@ -224,7 +224,7 @@ namespace KMLib.SVMSolvers
                             sub_prob.Y[k] = -1;
 
                         //train_one(sub_prob, param, w, weighted_C[i], param.C);
-                        solve_l2r_l1l2_svc(w, epsilon, weighted_C[0], C, solverType);
+                        solve_l2r_l1l2_svc(sub_prob,w, epsilon, weighted_C[0], C, solverType);
 
                         for (j = 0; j < n; j++)
                             model.W[j * nr_class + i] = w[j];
@@ -235,7 +235,9 @@ namespace KMLib.SVMSolvers
             return model;
         }
 
-        private void SetClassWeights(int nr_class, int[] label, double[] weighted_C)
+       
+
+        protected void SetClassWeights(int nr_class, int[] label, double[] weighted_C)
         {
 
             if (labelWithWeight == null || labelWithWeight.Length == 1)
@@ -254,7 +256,7 @@ namespace KMLib.SVMSolvers
             }
         }
 
-        private void groupClasses(Problem<SparseVec> problem, out int nr_class, out int[] label, out int[] start, out int[] count, int[] perm)
+        protected void groupClasses(Problem<SparseVec> problem, out int nr_class, out int[] label, out int[] start, out int[] count, int[] perm)
         {
             int l = problem.ElementsCount; //prob.l;
             int max_nr_class = 16;
@@ -325,11 +327,12 @@ namespace KMLib.SVMSolvers
         /// <param name="y"></param>
         /// <param name="i"></param>
         /// <returns></returns>
-        private static int GETI(sbyte[] y, int i)
+        protected static int GETI(sbyte[] y, int i)
         {
             return y[i] + 1;
         }
 
+        
         /// <summary>
         /// A coordinate descent algorithm for L1-loss and L2-loss SVM dual problems
         /// </summary>
@@ -363,14 +366,14 @@ namespace KMLib.SVMSolvers
         /// <param name="Cp">penalty for positive elements</param>
         /// <param name="Cn">penalty for negative elements</param>
         /// <param name="solver_type"></param>
-        private void solve_l2r_l1l2_svc(double[] w, double eps, double Cp, double Cn, SolverType solver_type)
+        protected void solve_l2r_l1l2_svc(Problem<SparseVec> sub_prob,double[] w, double eps, double Cp, double Cn, SolverType solver_type)
         {
 
 
             Random rand = new Random();
 
-            int l = problem.ElementsCount;// prob.l;
-            int w_size = problem.FeaturesCount;// prob.n;
+            int l = sub_prob.ElementsCount;// prob.l;
+            int w_size = sub_prob.FeaturesCount;// prob.n;
             int i, s, iter = 0;
             double C, d, G;
 
@@ -412,7 +415,7 @@ namespace KMLib.SVMSolvers
             for (i = 0; i < l; i++)
             {
                 alpha[i] = 0;
-                if (problem.Y[i] > 0)
+                if (sub_prob.Y[i] > 0)
                 {
                     y[i] = +1;
                 }
@@ -426,7 +429,7 @@ namespace KMLib.SVMSolvers
                 //for (FeatureNode xi : prob.x[i]) {
                 //    QD[i] += xi.value * xi.value;
                 //}
-                QD[i] += problem.Elements[i].DotProduct();
+                QD[i] += sub_prob.Elements[i].DotProduct();
 
 
                 index[i] = i;
@@ -456,7 +459,7 @@ namespace KMLib.SVMSolvers
                     //    G += w[xi.index - 1] * xi.value;
                     //}
                     //above changed into:
-                    var element = problem.Elements[i];
+                    var element = sub_prob.Elements[i];
                     for (int k = 0; k < element.Count; k++)
                     {
                         G += w[element.Indices[k] - 1] * element.Values[k];
@@ -514,7 +517,7 @@ namespace KMLib.SVMSolvers
 
                         //update vector "w"
                         d = (alpha[i] - alpha_old) * yi;
-                        var spVec = problem.Elements[i];
+                        var spVec = sub_prob.Elements[i];
                         for (int k = 0; k < spVec.Count; k++)
                         {
                             w[spVec.Indices[k] - 1] += d * spVec.Values[k];

@@ -58,7 +58,9 @@ namespace KMLib.Evaluate
                 //add multiplication by first label
                 var lab0 = TrainedModel.Labels[0];
                 //odwróciłem znak
-                return (dec_values[0]*lab0 > 0) ? TrainedModel.Labels[0] : TrainedModel.Labels[1];
+                //return (dec_values[0]*lab0 > 0) ? TrainedModel.Labels[0] : TrainedModel.Labels[1];
+                
+                return (dec_values[0] > 0) ? TrainedModel.Labels[0] : TrainedModel.Labels[1];
             }
             else
             {

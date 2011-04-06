@@ -101,29 +101,36 @@ extern "C" __global__ void ComputeDotProd(const float * vals,
 	[vector values]
 	[vector indexes]
 	[pointers to starting index to vector "i"]
+
+	N - number of objects for classification
+	L - number of ovject features 
 Params:
-G - contains precomputed dot product between vector "W" and all obcjects(vectors) multipicated by label, 
-	"in out" parameter
-QD  - array, diagonal cache QD=Qii+diag
+
+QD  - array of size N, diagonal cache QD=Qii+diag
 diag - 3 dim array, diag[] = { 0.5/Cneg, 0, 0.5/Cpos} , specific diag is taken by diag[yi+1]
 	   if yi=-1 we take diag[0], if yi=1 we take diag[2], diag[1] - is not used
-alpha - array with alpha coeficients
-paramsC 
+alpha - array with alpha coeficients of size N
+paramsC - 
+G - array of size N,contains precomputed dot product between vector "W" and all obcjects(vectors) multipicated by label, 
+	after computation G stores al projected gradient for chcecking stop creterion, this is  "in out" parameter
+deltas - array of size N, contains step in each dimension, out parameter
 
 */
-extern "C" __global__ void lin_l2r_l1l2_svc_csr_solver_with_gradient(
-	float* G,
+extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
+	
 	const float* QD,
 	const float* diag,
-	const float* upper_bound,
 	const float* alpha,
-	const float paramC
+	const float paramC,
+	float* G,
+	float* deltas
 	)
 {
 
 	int i =  blockDim.x * blockIdx.x + threadIdx.x;
 	//grad = W'* element[i]*Y[i]
 	float grad = G[i];
+	
 	float yi = tex1Dfetch(labelsTexRef,i);
 	float alpha_i = alpha[i];
 
@@ -168,21 +175,25 @@ extern "C" __global__ void lin_l2r_l1l2_svc_csr_solver_with_gradient(
 	/*
 	for L2-SVM we can simplify expresion, we don't have to check if alpha[i]=C because C is infinity
 	*/
-	PG=G[i];
+	PG=grad;
 	int signG = signbit(PG);
 	int isPosAlpha = isPositive(alpha_i);
 
 	float ifTest=(signG+isPosAlpha+0.0f)/(signG+isPosAlpha+1.0f);
 	ifTest= ceilf(ifTest);
 	PG=ifTest*PG;
-
+	
+	
 	//if PG< 1e-12, to znaczy że już jesteśmy w optimum,
 	//lecz to powinno zachodzić dla wszystkich
+	//we store 
+	G[i]=PG;
 
 	//normaly in paper is Min(Max(alpha-G/QD[i],0.0),U) but in our case U is infinty 
 	//so min part was ommitted
 	float newAlpha = fmaxf(alpha_i-grad/QD[i],0.0f);
 	
+	deltas[i]=(newAlpha-alpha_i)*yi;
 }
 
 /*

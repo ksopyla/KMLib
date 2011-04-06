@@ -149,6 +149,7 @@
     <Compile Include="CudaLinearEvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
     <Compile Include="CudaLinearKernel.cs" />
+    <Compile Include="CUDALinSolver.cs" />
     <Compile Include="CudaRBFEvaluator.cs" />
     <Compile Include="CudaRBFKernel.cs" />
     <Compile Include="CudaVectorEvaluator.cs" />
