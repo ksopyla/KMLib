@@ -13,14 +13,51 @@
 //in SVM, when we have to compute many dot products (one vector with others)
 texture<float,1,cudaReadModeElementType> mainVectorTexRef;
 
+
+texture<float,1,cudaReadModeElementType> deltasTexRef;
+
 //texture fo labels assiociated with vectors
 texture<float,1,cudaReadModeElementType> labelsTexRef;
 
+
+//constant array for diagonal shift in L2-SVM diag_shift[]={ 0.5/Cn, 0 , 0.5/Cp}
+//where Cn,Cp penalty parameters for negative elements and positive
 __device__  __constant__ float diag_shift[3];
+
+//main vector dimension
+__device__ __constant__ int Dim;
+
+
+// 1/square(Dim)
+__device__ __constant__ float stepScaling=0.0f;
 
 #define BLOCK_SIZE 128
 
 #define WARP_SIZE 32
+
+
+
+/*
+	function checks if x is positive without 'if' statement
+
+	if x> 0 return 1
+	else return 0
+*/
+__device__ int isPositive(float x)
+{ 
+	//signbit returns 1 if x is negative and 0 otherwise
+	// could be a problem if x=-0.0 ?
+  int pos = signbit(x);	//  0-if x>0	1 if x<0	0 if x=0
+  int neg = signbit(-x);//  1-if x>0	0 if x<0	0 if x=0
+  
+  return neg*(1-pos);
+
+  //other solution
+  /*
+  float test = x>0.0f;
+  return 1.0f &&test
+  */
+}
 
 
 
@@ -117,9 +154,8 @@ deltas - array of size N, contains step in each dimension, out parameter
 
 */
 extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
-	
 	const float* QD,
-	const float* alpha,
+	float* alpha,
 	float* G,
 	float* deltas
 	)
@@ -210,29 +246,95 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 
 	//normaly in paper is Min(Max(alpha-G/QD[i],0.0),U) but in our case U is infinty 
 	//so min part was ommitted
-	float newAlpha = fmaxf(alpha_i-grad/(QD[i]+diag_shift[(int)yi+1] ),0.0f);
+	float deltaAlpha = fmaxf(alpha_i-grad/(QD[i]+diag_shift[(int)yi+1] ),0.0f)-alpha_i;
 	
-	deltas[i]=(newAlpha-alpha_i)*yi;
+	//stepScaling - scaling parameter
+	deltas[i]=deltaAlpha*yi*stepScaling;
+
+   //set new alpha
+	alpha[i]=alpha_i+deltaAlpha*stepScaling;
 }
 
-/*
-	function checks if x is positive without 'if' statement
 
-	if x> 0 return 1
-	else return 0
-*/
-__device__ int isPositive(float x)
-{ 
-	//signbit returns 1 if x is negative and 0 otherwise
-	// could be a problem if x=-0.0 ?
-  int pos = signbit(x);	//  0-if x>0	1 if x<0	0 if x=0
-  int neg = signbit(-x);//  1-if x>0	0 if x<0	0 if x=0
-  
-  return neg*(1-pos);
+//cuda kernel funtion for updating  W-vector in method of solving linear SVM,
+//the idea is almost the same as in CudaDotProd function, 
+//each warp computes multiplication between step vector (D) and each column
+//
+//
+//					   | x11 x12 .. x1n|
+//					   | x21 x22 .. x2n|
+//	[D1, D2, ..., Dl]* | .    .  ..  . |
+//					   | .    .  ..  . |
+//					   | xl1 xl2 .. xln|
+// l- number of elements
+// n - vector dim
+// we have to compute sums  sum_k = Sum_i (D_i*x_ik)
+// sum_1 = D1*x11+ D2*x21 +...+Dl*xl1
+// sum_2 =
+// ...
+// sum_l
+// when we have sums we can compute change for vector W
+// W[k]+= sum_k
+//
+//matrix is in CSC fromat
+//Params:
+//vals - array of vectors values, column order
+//idx  - array of vectros indexes in CSC fromat (compact sparse column)
+//vecPointers -array of pointers(indexes) to idx and vals array, indicates start and end of specific column
+//W - computed W vector - array of size dim, 
+//num_cols - number of vectors, stored in CSC matrix format, 
+extern "C" __global__ void update_W(const float * vals,
+									   const int * idx, 
+									   const int * vecPointers, 
+									   float * W,
+									   const int num_rows)
+{
 
-  //other solution
-  /*
-  float test = x>0.0f;
-  return 1.0f &&test
-  */
+//todo: change all  "*rows" into columns
+	__shared__ float sdata[BLOCK_SIZE + 16];                          // padded to avoid reduction ifs
+	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
+		
+
+	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
+	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
+	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
+	const int warp_lane   = threadIdx.x / WARP_SIZE;                // warp index within the CTA
+	const int num_warps   = (BLOCK_SIZE / WARP_SIZE) * gridDim.x;   // total number of active warps
+
+	for(int row = warp_id; row < num_rows; row += num_warps){
+		// use two threads to fetch vecPointers[row] and vecPointers[row+1]
+		// this is considerably faster than the straightforward version
+		if(thread_lane < 2)
+			ptrs[warp_lane][thread_lane] = vecPointers[row + thread_lane];
+		const int row_start = ptrs[warp_lane][0];                   //same as: row_start = vecPointers[row];
+		const int row_end   = ptrs[warp_lane][1];                   //same as: row_end   = vecPointers[row+1];
+
+		// compute local sum
+		float sum = 0;
+		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
+			sum += vals[jj] * tex1Dfetch(deltasTexRef,idx[jj]);
+
+		// reduce local sums to row sum (ASSUME: warpsize 32)
+		sdata[threadIdx.x] = sum;
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x + 16]; __syncthreads(); 
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  8]; __syncthreads();
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  4]; __syncthreads();
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  2]; __syncthreads();
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
+	   
+
+		
+
+		// first thread writes warp result
+		if (thread_lane == 0){
+			
+			//results[row] = tex1Dfetch(labelsTexRef,row)*sdata[threadIdx.x];
+			W[row] +=sdata[threadIdx.x];
+		}
+
+			
+	}
 }
+
+
+

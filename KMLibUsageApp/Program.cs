@@ -526,8 +526,8 @@ t.Stop();
             //trainningFile = dataFolder + "/rcv1_train.binary";
             //testFile = dataFolder + "/rcv1_test.binary";
             //trainningFile = dataFolder + "/rcv1_test.binary";
-            //testFile = dataFolder + "/rcv1_train.binary";
-            ////string testFile = dataFolder + "/rcv1_train_test.binary";
+            ////testFile = dataFolder + "/rcv1_train.binary";
+            //////string testFile = dataFolder + "/rcv1_train_test.binary";
             //numberOfFeatures = 47236;
 
             //trainningFile = dataFolder + "/news20.binary";
@@ -535,7 +535,7 @@ t.Stop();
             //numberOfFeatures = 1335191;
 
             //trainningFile = dataFolder + "/mnist.scale";
-            //testFile = dataFolder + "/mnist.scale.t";
+            //testFile = dataFolder + "/mnist.scale";
             //numberOfFeatures = 784;
 
 

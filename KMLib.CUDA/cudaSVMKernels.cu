@@ -432,7 +432,6 @@ extern "C" __global__ void setSignForPrediction(float * inputArray,const int siz
 	{	
 		float val = inputArray[idx] - shRHO;
 	
-		int test=signf(val);
 		//signbit returns 1 if val is negative, 0 otherwise
 		//if val=-1,8 
 		//signbit(val)==1,
