@@ -196,9 +196,9 @@ namespace KMLib.Helpers
                         else
                             coutLabels[dataLabel] = 1;
 
-                        index = 0;
+                        index = -1;
 
-                        value = 0;
+                        value = -1;
                         partEnd = oneLine.IndexOf(vecPartsSeparator[0], partBegin + 1);
 
                         while (partEnd > 0)
@@ -206,6 +206,12 @@ namespace KMLib.Helpers
 
                             indexSeparatorPosition = oneLine.IndexOf(idxValSeparator[0], partBegin);
                             index = int.Parse(oneLine.Substring(partBegin + 1, indexSeparatorPosition - (partBegin + 1)));
+
+                            if (index < 1)
+                            {
+                                throw new ArgumentOutOfRangeException("indexes should start from 1 not from 0");
+                            }
+
                             value = float.Parse(oneLine.Substring(indexSeparatorPosition + 1, partEnd - (indexSeparatorPosition + 1)), CultureInfo.InvariantCulture);
 
 

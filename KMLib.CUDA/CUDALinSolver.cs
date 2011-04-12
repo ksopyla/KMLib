@@ -197,6 +197,7 @@ namespace KMLib.GPU
         /// indicates how many blocks pre grid we create for cuda kernel launch
         /// </summary>
         protected int blocksPerGrid = -1;
+        private float[] diag;
        
 
         /// <summary>
@@ -283,8 +284,12 @@ namespace KMLib.GPU
 
             if (nr_class == 2)
             {
-               
+
                 float[] w = new float[w_size];
+                //for (int z = 0; z < w.Length; z++)
+                //{
+                //    w[z] = 1.0f;
+                //}
                 
 
                 int e0 = start[0] + count[0];
@@ -358,7 +363,7 @@ namespace KMLib.GPU
         {
             cuda.CopyHostToDevice(labelsPtr, sub_prob.Y);
 
-            float[] diag = new float[] { (float)(0.5/Cn),0 , (float)(0.5/Cp)};
+            diag = new float[] { (float)(0.5/Cn),0 , (float)(0.5/Cp)};
             
             cuda.CopyHostToDevice(diagPtr, diag);
 
@@ -424,7 +429,7 @@ namespace KMLib.GPU
             for (int i = 0; i < sub_prob.ElementsCount; i++)
             {
                 QD[i] = sub_prob.Elements[i].DotProduct();
-                alpha[i] = 0;
+                alpha[i] = 0f;
                 deltas[i] = 0;
             }
 
@@ -442,14 +447,14 @@ namespace KMLib.GPU
 
             CUdeviceptr dimPtr = cuda.GetModuleGlobal(cuModule, "Dim");
             //todo: check if it ok
-            cuda.Memset(dimPtr,(uint) vecDim, 1);
-            //int[] dimArr = new int[] { vecDim };
-            //cuda.CopyHostToDevice(dimPtr,dimArr);
+            //cuda.Memset(dimPtr,(uint) vecDim, 1);
+            int[] dimArr = new int[] { vecDim };
+            cuda.CopyHostToDevice(dimPtr,dimArr);
             
             //CUDARuntime.cudaMemcpyToSymbol("Dim", dimPtr, 1, 0, cudaMemcpyKind.cudaMemcpyHostToDevice);
             //CUDARuntime.cudaMemcpyToSymbol("Dim", ,1,0, cudaMemcpyKind.cudaMemcpyHostToDevice);
 
-            CUdeviceptr deltaScalingPtr = cuda.GetModuleGlobal(cuModule, "DimRSqrt");
+            CUdeviceptr deltaScalingPtr = cuda.GetModuleGlobal(cuModule, "stepScaling");
 
             //two ways of computing scaling param, should be the same, but it depends on rounding.
             float scaling =(float) ( 1.0/ Math.Sqrt(vecDim));
@@ -457,7 +462,9 @@ namespace KMLib.GPU
             //only for debug, 
             Debug.Assert(scaling == scaling2, "scaling param not equal");
             //set scaling constant
-            cuda.Memset(deltaScalingPtr,(uint) scaling, 1);
+            float[] scArr = new float[] { scaling};
+            cuda.CopyHostToDevice(deltaScalingPtr,scArr);
+            //cuda.Memset(deltaScalingPtr, (uint) scaling,sizeof(float));
 
             //cuda.CopyHostToDevice(dimPtr, problem.Elements[0].Dim);
 
@@ -574,12 +581,11 @@ namespace KMLib.GPU
                 vecLenghtCSRPtr.Pointer = 0;
                 vecLenghtCSCPtr.Pointer = 0;
 
-                cuda.Free(diagPtr);
-                diagPtr.Pointer = 0;
+                
 
                 cuda.Free(qdPtr);
                 qdPtr.Pointer = 0;
-                cuda.Free(diagPtr);
+              //  cuda.Free(diagPtr);
                 diagPtr.Pointer = 0;
                 cuda.Free(alphaPtr);
                 alphaPtr.Pointer = 0;
@@ -608,7 +614,7 @@ namespace KMLib.GPU
 
         private void solve_l2r_l2_svc_cuda(Problem<SparseVec> sub_prob, float[] w, double epsilon, double Cp, double Cn)
         {
-            throw new NotImplementedException();
+            
            
             //blocks per Grid for compuing dot prod
             int bpgDotProd = (sub_prob.Elements.Length + threadsPerBlock - 1) / threadsPerBlock;
@@ -626,10 +632,30 @@ namespace KMLib.GPU
 
                 cuda.Launch(cuFuncDotProd, bpgDotProd, 1);
 
+                cuda.SynchronizeContext();
+                float[] grad = new float[sub_prob.ElementsCount];
+                Marshal.Copy(gradIntPtr, grad, 0, grad.Length);
+
                 cuda.Launch(cuFuncSolver, bpgSolver, 1);
+
+                cuda.SynchronizeContext();
+                float[] grad2 = new float[sub_prob.ElementsCount];
+                Marshal.Copy(gradIntPtr, grad2, 0, grad2.Length);
+
+                float[] grad3 = new float[sub_prob.ElementsCount];
+                cuda.CopyDeviceToHost(gradPtr, grad3);
+
+                float[] deltasCu = new float[sub_prob.ElementsCount];
+                cuda.CopyDeviceToHost(deltasPtr, deltasCu);
+
+                float[]alphaCu = new float[sub_prob.ElementsCount];
+                cuda.CopyDeviceToHost(alphaPtr, alphaCu);
+
 
                 cuda.Launch(cuFuncUpdateW, bpgUpdateW, 1);
 
+                cuda.SynchronizeContext();
+                cuda.CopyDeviceToHost(mainVecPtr, w);
 
                 //take grad and check stop condition
                 //Marshal.Copy(gradIntPtr, , 0, results.Length);
@@ -640,9 +666,27 @@ namespace KMLib.GPU
             cuda.SynchronizeContext();
             //copy resulsts form device to host
             cuda.CopyDeviceToHost(mainVecPtr, w);
-            //copy results from native mapped memory pointer to array,
-            //faster then copyDtH function
-           // Marshal.Copy(gradIntPtr, , 0, results.Length);
+            cuda.CopyDeviceToHost(alphaPtr, alpha);
+
+
+            int l = sub_prob.ElementsCount;// prob.l;
+            int w_size = sub_prob.FeaturesCount;// prob.n;
+            double v = 0;
+            int nSV = 0;
+            for (int i = 0; i < w_size; i++)
+                v += w[i] * w[i];
+            for (int i = 0; i < l; i++)
+            {
+                sbyte y_i =(sbyte) sub_prob.Y[i];
+                v += alpha[i] * (alpha[i] * diag[y_i+1] - 2);
+                if (alpha[i] > 0) ++nSV;
+            }
+
+
+            Debug.WriteLine("Objective value = {0}", v / 2);
+            Debug.WriteLine("nSV = {0}", nSV);
+
+
 
         }
 

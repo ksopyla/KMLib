@@ -126,7 +126,7 @@ extern "C" __global__ void ComputeDotProd(const float * vals,
 		}
 
 			
-	}
+	}//end for
 }
 
 
@@ -242,7 +242,9 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	//if PG< 1e-12, to znaczy że już jesteśmy w optimum,
 	//lecz to powinno zachodzić dla wszystkich
 	//we store 
+	
 	G[i]=PG;
+	//G[i]=diag_shift[(int)yi+1]-5;
 
 	//normaly in paper is Min(Max(alpha-G/QD[i],0.0),U) but in our case U is infinty 
 	//so min part was ommitted
@@ -250,6 +252,7 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	
 	//stepScaling - scaling parameter
 	deltas[i]=deltaAlpha*yi*stepScaling;
+	//deltas[i]=stepScaling;
 
    //set new alpha
 	alpha[i]=alpha_i+deltaAlpha*stepScaling;
@@ -329,7 +332,7 @@ extern "C" __global__ void update_W(const float * vals,
 		if (thread_lane == 0){
 			
 			//results[row] = tex1Dfetch(labelsTexRef,row)*sdata[threadIdx.x];
-			W[row] +=sdata[threadIdx.x];
+			W[row] +=sdata[threadIdx.x]+0.1;
 		}
 
 			

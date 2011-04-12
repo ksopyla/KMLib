@@ -379,7 +379,7 @@ namespace KMLib.SVMSolvers
 
             //diagonal cache QD=Qii+diag (for different  formulation L1 or L2 diag is different)
             double[] QD = new double[l];
-            int max_iter = 1000;
+            
             int[] index = new int[l];
             double[] alpha = new double[l];
             sbyte[] y = new sbyte[l];
@@ -435,7 +435,7 @@ namespace KMLib.SVMSolvers
                 index[i] = i;
             }
             #endregion
-            
+            int max_iter = 20;
             while (iter < max_iter)
             {
                 PGmax_new = Double.NegativeInfinity;
@@ -569,6 +569,8 @@ namespace KMLib.SVMSolvers
                 v += alpha[i] * (alpha[i] * diag[GETI(y, i)] - 2);
                 if (alpha[i] > 0) ++nSV;
             }
+
+           
             Debug.WriteLine("Objective value = {0}", v / 2);
             Debug.WriteLine("nSV = {0}", nSV);
         }
