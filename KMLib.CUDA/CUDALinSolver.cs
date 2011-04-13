@@ -445,11 +445,11 @@ namespace KMLib.GPU
             //set this in fill function
             //cuda.CopyHostToDevice(diagPtr, diag);
 
-            CUdeviceptr dimPtr = cuda.GetModuleGlobal(cuModule, "Dim");
-            //todo: check if it ok
-            //cuda.Memset(dimPtr,(uint) vecDim, 1);
-            int[] dimArr = new int[] { vecDim };
-            cuda.CopyHostToDevice(dimPtr,dimArr);
+            //CUdeviceptr dimPtr = cuda.GetModuleGlobal(cuModule, "Dim");
+            ////todo: check if it ok
+            ////cuda.Memset(dimPtr,(uint) vecDim, 1);
+            //int[] dimArr = new int[] { vecDim };
+            //cuda.CopyHostToDevice(dimPtr,dimArr);
             
             //CUDARuntime.cudaMemcpyToSymbol("Dim", dimPtr, 1, 0, cudaMemcpyKind.cudaMemcpyHostToDevice);
             //CUDARuntime.cudaMemcpyToSymbol("Dim", ,1,0, cudaMemcpyKind.cudaMemcpyHostToDevice);
@@ -458,9 +458,7 @@ namespace KMLib.GPU
 
             //two ways of computing scaling param, should be the same, but it depends on rounding.
             float scaling =(float) ( 1.0/ Math.Sqrt(vecDim));
-            float scaling2 = (float)(Math.Sqrt(vecDim)/vecDim);
-            //only for debug, 
-            Debug.Assert(scaling == scaling2, "scaling param not equal");
+           
             //set scaling constant
             float[] scArr = new float[] { scaling};
             cuda.CopyHostToDevice(deltaScalingPtr,scArr);
@@ -486,6 +484,8 @@ namespace KMLib.GPU
             /*
              *  Set cuda function parmeters for computing Dot product
              */
+            #region Set cuda function parmeters for computing Dot product
+            
             cuda.SetFunctionBlockShape(cuFuncDotProd, threadsPerBlock, 1, 1);
 
             int offset = 0;
@@ -505,11 +505,13 @@ namespace KMLib.GPU
             offset += sizeof(int);
 
             cuda.SetParameterSize(cuFuncDotProd, (uint)offset);
-
+            #endregion
 
             /*
              *  Set Cuda function parameters for computing deltas
              */
+            #region Set Cuda function parameters for computing deltas
+            
             //todo: is threads per block for solver corect?
             cuda.SetFunctionBlockShape(cuFuncSolver, threadsPerBlock, 1, 1);
             int offset2 = 0;
@@ -524,33 +526,42 @@ namespace KMLib.GPU
             cuda.SetParameter(cuFuncSolver, offset2, deltasPtr.Pointer);
             offset2 += IntPtr.Size;
 
-            cuda.SetParameterSize(cuFuncSolver, (uint)offset2);
+            cuda.SetParameter(cuFuncSolver, offset2, (uint)sub_prob.ElementsCount);
+            offset2 += sizeof(int);
 
+            cuda.SetParameterSize(cuFuncSolver, (uint)offset2);
+            
+            #endregion
 
             /*
              * Set cuda function parameters for updating W vector
              */
-
+            #region Set cuda function parameters for updating W vector
+            
             //todo: is threads per block for updates W corect?
             cuda.SetFunctionBlockShape(cuFuncUpdateW, threadsPerBlock, 1, 1);
 
             int offset3 = 0;
             cuda.SetParameter(cuFuncUpdateW, offset3, valsCSCPtr.Pointer);
             offset3 += IntPtr.Size;
-            cuda.SetParameter(cuFuncUpdateW, offset3, idxCSRPtr.Pointer);
+            cuda.SetParameter(cuFuncUpdateW, offset3, idxCSCPtr.Pointer);
             offset3 += IntPtr.Size;
 
-            cuda.SetParameter(cuFuncUpdateW, offset3, vecLenghtCSRPtr.Pointer);
+            cuda.SetParameter(cuFuncUpdateW, offset3, vecLenghtCSCPtr.Pointer);
             offset3 += IntPtr.Size;
 
 
             cuda.SetParameter(cuFuncUpdateW, offset3, mainVecPtr.Pointer);
             offset3 += IntPtr.Size;
 
-            cuda.SetParameter(cuFuncUpdateW, offset3, (uint)sub_prob.Elements[0].Dim);
+            //cuda.SetParameter(cuFuncUpdateW, offset3, (uint)(sub_prob.ElementsCount+50) );//[0].Dim-40) );
+            cuda.SetParameter(cuFuncUpdateW, offset3, (uint)sub_prob.Elements[0].Dim );
             offset3 += sizeof(int);
 
             cuda.SetParameterSize(cuFuncUpdateW, (uint)offset3);
+
+            #endregion
+
         }
 
 
@@ -623,7 +634,7 @@ namespace KMLib.GPU
             //blocks per Grid for update_W kernel
             int bpgUpdateW = (sub_prob.Elements[0].Dim + threadsPerBlock - 1) / threadsPerBlock;
            
-            int maxIter = 20;
+            int maxIter = 1;
             int iter = 0;
             while (iter<maxIter)
             {
@@ -654,11 +665,28 @@ namespace KMLib.GPU
 
                 cuda.Launch(cuFuncUpdateW, bpgUpdateW, 1);
 
+                //cuda.UseRuntimeExceptions = false;
+                
                 cuda.SynchronizeContext();
-                cuda.CopyDeviceToHost(mainVecPtr, w);
 
+                cuda.CopyDeviceToHost(mainVecPtr, w);
+               
                 //take grad and check stop condition
                 //Marshal.Copy(gradIntPtr, , 0, results.Length);
+
+                float[] w1 = new float[sub_prob.Elements[0].Dim];
+                //compute w1
+                for (int p = 0; p < sub_prob.ElementsCount; p++)
+                {
+                    float d = deltasCu[p];
+                    var spVec = sub_prob.Elements[p];
+                    for (int k = 0; k < spVec.Count; k++)
+                    {
+                        w1[spVec.Indices[k] - 1] += d * spVec.Values[k];
+                    }
+                    
+                }
+
 
                 iter++;
             }

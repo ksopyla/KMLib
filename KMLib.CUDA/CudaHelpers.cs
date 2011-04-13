@@ -125,7 +125,7 @@ namespace KMLib.GPU
             int vecStartIdx = 0;
             int curColSize = 0;
             // Stopwatch timer = Stopwatch.StartNew();
-            for (int i = 1; i < Dim; i++)
+            for (int i = 1; i <= Dim; i++)
             {
                 curColSize = 0;
                 for (int k = 0; k < problemElements.Length; k++)

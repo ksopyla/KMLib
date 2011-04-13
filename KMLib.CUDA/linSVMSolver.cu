@@ -157,12 +157,15 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	const float* QD,
 	float* alpha,
 	float* G,
-	float* deltas
+	float* deltas,
+	const int elements
 	)
 {
 
 	int i =  blockDim.x * blockIdx.x + threadIdx.x;
 	//grad = W'* element[i]*Y[i]
+
+	if(i<elements){
 	float grad = G[i];
 	
 	float yi = tex1Dfetch(labelsTexRef,i);
@@ -251,11 +254,13 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	float deltaAlpha = fmaxf(alpha_i-grad/(QD[i]+diag_shift[(int)yi+1] ),0.0f)-alpha_i;
 	
 	//stepScaling - scaling parameter
-	deltas[i]=deltaAlpha*yi*stepScaling;
-	//deltas[i]=stepScaling;
+	//deltas[i]=deltaAlpha*yi*stepScaling;
+	//set new alpha
+	//alpha[i]=alpha_i+deltaAlpha*stepScaling;
 
-   //set new alpha
-	alpha[i]=alpha_i+deltaAlpha*stepScaling;
+	deltas[i]=deltaAlpha*yi;
+	alpha[i]=alpha_i+deltaAlpha;
+}//end if(i<elements)
 }
 
 
@@ -332,7 +337,7 @@ extern "C" __global__ void update_W(const float * vals,
 		if (thread_lane == 0){
 			
 			//results[row] = tex1Dfetch(labelsTexRef,row)*sdata[threadIdx.x];
-			W[row] +=sdata[threadIdx.x]+0.1;
+			W[row] =sdata[threadIdx.x];
 		}
 
 			
