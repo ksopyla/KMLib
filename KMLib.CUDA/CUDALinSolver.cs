@@ -42,7 +42,7 @@ namespace KMLib.GPU
         /// <summary>
         /// cuda function name for computing product between W vector and all vector elements
         /// </summary>
-        protected string cudaProductKernelName="ComputeDotProd";
+        protected string cudaProductKernelName = "ComputeDotProd";
 
         /// <summary>
         /// cuda function name for computing step
@@ -89,11 +89,11 @@ namespace KMLib.GPU
         /// <summary>
         /// Cuda device pointer to vectors values in CSR matrix  format
         /// </summary>                                  
-        protected CUdeviceptr valsCSRPtr;               
+        protected CUdeviceptr valsCSRPtr;
         /// <summary>                                   
         /// cuda devie pointer to vectors indexes in CSR matrix format
         /// </summary>                                    
-        protected CUdeviceptr idxCSRPtr;                  
+        protected CUdeviceptr idxCSRPtr;
         /// <summary>                                     
         /// cuda device pointer to vectors lenght in CSR matrix format
         /// </summary>
@@ -103,11 +103,11 @@ namespace KMLib.GPU
         /// <summary>
         /// Cuda device pointer to vectors values in CSC matrix format
         /// </summary>                                   
-        protected CUdeviceptr valsCSCPtr;                
+        protected CUdeviceptr valsCSCPtr;
         /// <summary>                                    
         /// cuda devie pointer to vectors indexes in CSC matrix format
         /// </summary>                                  
-        protected CUdeviceptr idxCSCPtr;                
+        protected CUdeviceptr idxCSCPtr;
         /// <summary>                                   
         /// cuda device pointer to vectors lenght in CSC matrix format
         /// </summary>
@@ -174,7 +174,7 @@ namespace KMLib.GPU
         /// <remarks>all the time this vector will be modified and copied to cuda array</remarks>
         protected float[] mainVector;
 
-        
+
 
         /// <summary>
         /// native pointer to memory region, used for computing  dot product and gradiens in solver
@@ -188,7 +188,7 @@ namespace KMLib.GPU
         private float[] alpha;
         private float[] deltas;
         private float[] QD;
-      
+
 
 
         protected int threadsPerBlock = CUDAConfig.XBlockSize;
@@ -198,7 +198,7 @@ namespace KMLib.GPU
         /// </summary>
         protected int blocksPerGrid = -1;
         private float[] diag;
-       
+
 
         /// <summary>
         /// Construct linear solver
@@ -290,7 +290,7 @@ namespace KMLib.GPU
                 //{
                 //    w[z] = 1.0f;
                 //}
-                
+
 
                 int e0 = start[0] + count[0];
                 int k = 0;
@@ -303,7 +303,7 @@ namespace KMLib.GPU
                 SetCudaData(sub_prob);
 
                 //Fill data on CUDA
-                FillDataOnCuda(sub_prob,w, weighted_C[0],weighted_C[1]);
+                FillDataOnCuda(sub_prob, w, weighted_C[0], weighted_C[1]);
 
                 solve_l2r_l2_svc_cuda(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
                 //solve_l2r_l1l2_svc(model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
@@ -335,7 +335,7 @@ namespace KMLib.GPU
                     for (; k < sub_prob.ElementsCount; k++)
                         sub_prob.Y[k] = -1;
 
-                    FillDataOnCuda(sub_prob,w, weighted_C[i],C);
+                    FillDataOnCuda(sub_prob, w, weighted_C[i], C);
                     //train_one(sub_prob, param, w, weighted_C[i], param.C);
                     solve_l2r_l2_svc_cuda(sub_prob, w, epsilon, weighted_C[i], C);
 
@@ -363,11 +363,15 @@ namespace KMLib.GPU
         {
             cuda.CopyHostToDevice(labelsPtr, sub_prob.Y);
 
-            diag = new float[] { (float)(0.5/Cn),0 , (float)(0.5/Cp)};
-            
+            diag = new float[] { (float)(0.5 / Cn), 0, (float)(0.5 / Cp) };
+
             cuda.CopyHostToDevice(diagPtr, diag);
 
-            cuda.CopyHostToDevice(mainVecPtr,w);
+
+            //todo: remov it, only for testing
+            w[0] = 0.5f;
+            w[1] = -0.5f;
+            cuda.CopyHostToDevice(mainVecPtr, w);
         }
 
         private void SetCudaData(Problem<SparseVec> sub_prob)
@@ -377,7 +381,7 @@ namespace KMLib.GPU
 
             /* 
              * copy vectors to CUDA device
-             */ 
+             */
             float[] vecVals;
             int[] vecIdx;
             int[] vecLenght;
@@ -391,12 +395,12 @@ namespace KMLib.GPU
             valsCSCPtr = cuda.CopyHostToDevice(vecVals);
             idxCSCPtr = cuda.CopyHostToDevice(vecIdx);
             vecLenghtCSCPtr = cuda.CopyHostToDevice(vecLenght);
-            
+
 
 
             /* 
              * allocate memory for gradient
-             */ 
+             */
             uint memSize = (uint)(sub_prob.ElementsCount * sizeof(float));
             //allocate mapped memory for our results (dot product beetween vector W and all elements)
             gradIntPtr = cuda.HostAllocate(memSize, CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
@@ -404,7 +408,10 @@ namespace KMLib.GPU
 
             //allocate memory for main vector, size of this vector is the same as dimenson, so many 
             //indexes will be zero, but cuda computation is faster
-            mainVector = new float[vecDim + 1];
+            mainVector = new float[vecDim];
+
+            //todo: remove line below, set only for testing
+            // mainVector[0] = 1; mainVector[1] = 1;
             //move W wector
             //CudaHelpers.FillDenseVector(problemElements[0], mainVector);
             SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
@@ -450,18 +457,18 @@ namespace KMLib.GPU
             ////cuda.Memset(dimPtr,(uint) vecDim, 1);
             //int[] dimArr = new int[] { vecDim };
             //cuda.CopyHostToDevice(dimPtr,dimArr);
-            
+
             //CUDARuntime.cudaMemcpyToSymbol("Dim", dimPtr, 1, 0, cudaMemcpyKind.cudaMemcpyHostToDevice);
             //CUDARuntime.cudaMemcpyToSymbol("Dim", ,1,0, cudaMemcpyKind.cudaMemcpyHostToDevice);
 
             CUdeviceptr deltaScalingPtr = cuda.GetModuleGlobal(cuModule, "stepScaling");
 
             //two ways of computing scaling param, should be the same, but it depends on rounding.
-            float scaling =(float) ( 1.0/ Math.Sqrt(vecDim));
-           
+            float scaling = (float)(1.0 / Math.Sqrt(vecDim));
+
             //set scaling constant
-            float[] scArr = new float[] { scaling};
-            cuda.CopyHostToDevice(deltaScalingPtr,scArr);
+            float[] scArr = new float[] { scaling };
+            cuda.CopyHostToDevice(deltaScalingPtr, scArr);
             //cuda.Memset(deltaScalingPtr, (uint) scaling,sizeof(float));
 
             //cuda.CopyHostToDevice(dimPtr, problem.Elements[0].Dim);
@@ -485,7 +492,7 @@ namespace KMLib.GPU
              *  Set cuda function parmeters for computing Dot product
              */
             #region Set cuda function parmeters for computing Dot product
-            
+
             cuda.SetFunctionBlockShape(cuFuncDotProd, threadsPerBlock, 1, 1);
 
             int offset = 0;
@@ -511,7 +518,7 @@ namespace KMLib.GPU
              *  Set Cuda function parameters for computing deltas
              */
             #region Set Cuda function parameters for computing deltas
-            
+
             //todo: is threads per block for solver corect?
             cuda.SetFunctionBlockShape(cuFuncSolver, threadsPerBlock, 1, 1);
             int offset2 = 0;
@@ -530,14 +537,14 @@ namespace KMLib.GPU
             offset2 += sizeof(int);
 
             cuda.SetParameterSize(cuFuncSolver, (uint)offset2);
-            
+
             #endregion
 
             /*
              * Set cuda function parameters for updating W vector
              */
             #region Set cuda function parameters for updating W vector
-            
+
             //todo: is threads per block for updates W corect?
             cuda.SetFunctionBlockShape(cuFuncUpdateW, threadsPerBlock, 1, 1);
 
@@ -555,7 +562,7 @@ namespace KMLib.GPU
             offset3 += IntPtr.Size;
 
             //cuda.SetParameter(cuFuncUpdateW, offset3, (uint)(sub_prob.ElementsCount+50) );//[0].Dim-40) );
-            cuda.SetParameter(cuFuncUpdateW, offset3, (uint)sub_prob.Elements[0].Dim );
+            cuda.SetParameter(cuFuncUpdateW, offset3, (uint)sub_prob.Elements[0].Dim);
             offset3 += sizeof(int);
 
             cuda.SetParameterSize(cuFuncUpdateW, (uint)offset3);
@@ -565,9 +572,9 @@ namespace KMLib.GPU
         }
 
 
-       
 
-       
+
+
 
         /// <summary>
         /// Dispose all object used by CUDA
@@ -581,22 +588,22 @@ namespace KMLib.GPU
                 cuda.Free(valsCSCPtr);
                 valsCSRPtr.Pointer = 0;
                 valsCSCPtr.Pointer = 0;
-                
+
                 cuda.Free(idxCSRPtr);
                 cuda.Free(idxCSCPtr);
                 idxCSRPtr.Pointer = 0;
                 idxCSCPtr.Pointer = 0;
-                
+
                 cuda.Free(vecLenghtCSRPtr);
                 cuda.Free(vecLenghtCSCPtr);
                 vecLenghtCSRPtr.Pointer = 0;
                 vecLenghtCSCPtr.Pointer = 0;
 
-                
+
 
                 cuda.Free(qdPtr);
                 qdPtr.Pointer = 0;
-              //  cuda.Free(diagPtr);
+                //  cuda.Free(diagPtr);
                 diagPtr.Pointer = 0;
                 cuda.Free(alphaPtr);
                 alphaPtr.Pointer = 0;
@@ -633,8 +640,14 @@ namespace KMLib.GPU
             int bpgSolver = (sub_prob.Elements.Length + threadsPerBlock - 1) / threadsPerBlock;
             //blocks per Grid for update_W kernel
             int bpgUpdateW = (sub_prob.Elements[0].Dim + threadsPerBlock - 1) / threadsPerBlock;
-           
-            int maxIter = 1;
+
+            double obj = Double.PositiveInfinity;
+            int maxIter = 200;
+
+
+            float[] deltasCu = new float[sub_prob.ElementsCount];
+            float[]alphaCu = new float[sub_prob.ElementsCount];
+
             int iter = 0;
             while (iter<maxIter)
             {
@@ -647,6 +660,21 @@ namespace KMLib.GPU
                 float[] grad = new float[sub_prob.ElementsCount];
                 Marshal.Copy(gradIntPtr, grad, 0, grad.Length);
 
+                float[] dots = new float[sub_prob.ElementsCount];
+                for (int i = 0; i < dots.Length; i++)
+                {
+
+                    var element = sub_prob.Elements[i];
+                    for (int k = 0; k < element.Count; k++)
+                    {
+                        dots[i] += w[element.Indices[k] - 1] * element.Values[k];
+
+                    }
+                    dots[i] *= sub_prob.Y[i];
+
+                }
+
+
                 cuda.Launch(cuFuncSolver, bpgSolver, 1);
 
                 cuda.SynchronizeContext();
@@ -654,12 +682,28 @@ namespace KMLib.GPU
                 Marshal.Copy(gradIntPtr, grad2, 0, grad2.Length);
 
                 float[] grad3 = new float[sub_prob.ElementsCount];
-                cuda.CopyDeviceToHost(gradPtr, grad3);
+                float[] projGrad = new float[sub_prob.ElementsCount];
+                for (int i = 0; i < grad3.Length; i++)
+                {
+                    sbyte y_i = (sbyte)sub_prob.Y[i];
+                    grad3[i] = dots[i] - 1 + alphaCu[i] * diag[y_i + 1];
 
-                float[] deltasCu = new float[sub_prob.ElementsCount];
+                    if (alphaCu[i] == 0)
+                    {
+                        projGrad[i] = Math.Min(0, grad3[i]);
+                    }
+                    else
+                        projGrad[i] = grad3[i];
+
+                    
+                }
+
+
+
+                
                 cuda.CopyDeviceToHost(deltasPtr, deltasCu);
 
-                float[]alphaCu = new float[sub_prob.ElementsCount];
+               
                 cuda.CopyDeviceToHost(alphaPtr, alphaCu);
 
 
@@ -687,6 +731,7 @@ namespace KMLib.GPU
                     
                 }
 
+              obj =  ComputeObj(w, alphaCu, sub_prob, diag);
 
                 iter++;
             }
@@ -697,32 +742,59 @@ namespace KMLib.GPU
             cuda.CopyDeviceToHost(alphaPtr, alpha);
 
 
-            int l = sub_prob.ElementsCount;// prob.l;
-            int w_size = sub_prob.FeaturesCount;// prob.n;
-            double v = 0;
-            int nSV = 0;
-            for (int i = 0; i < w_size; i++)
-                v += w[i] * w[i];
-            for (int i = 0; i < l; i++)
-            {
-                sbyte y_i =(sbyte) sub_prob.Y[i];
-                v += alpha[i] * (alpha[i] * diag[y_i+1] - 2);
-                if (alpha[i] > 0) ++nSV;
-            }
+
+            ComputeObj(w, alpha, sub_prob, diag);
+            //int l = sub_prob.ElementsCount;// prob.l;
+            //int w_size = sub_prob.FeaturesCount;// prob.n;
+            //double v = 0;
+            //int nSV = 0;
+            //for (int i = 0; i < w_size; i++)
+            //    v += w[i] * w[i];
+            //for (int i = 0; i < l; i++)
+            //{
+            //    sbyte y_i =(sbyte) sub_prob.Y[i];
+            //    v += alpha[i] * (alpha[i] * diag[y_i+1] - 2);
+            //    if (alpha[i] > 0) ++nSV;
+            //}
 
 
-            Debug.WriteLine("Objective value = {0}", v / 2);
-            Debug.WriteLine("nSV = {0}", nSV);
+            //Debug.WriteLine("Objective value = {0}", v / 2);
+            //Debug.WriteLine("nSV = {0}", nSV);
 
 
 
         }
 
+        private double ComputeObj(float[] w, float[] alpha, Problem<SparseVec> sub_prob, float[] diag)
+        {
+            double v = 0;
+            int nSV = 0;
+            for (int i = 0; i < w.Length; i++)
+                v += w[i] * w[i];
+            for (int i = 0; i < alpha.Length; i++)
+            {
+                sbyte y_i = (sbyte)sub_prob.Y[i];
+
+                //original line
+                //v += alpha[i] * (alpha[i] * diag[GETI(y_i, i)] - 2);
+                v += alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
+                if (alpha[i] > 0) ++nSV;
+            }
+
+            v = v / 2;
+            Debug.WriteLine("Objective value = {0}", v);
+            Debug.WriteLine("nSV = {0}", nSV);
+
+            return v;
+        }
+
+
+
         protected void InitCudaModule()
         {
             cuda = new CUDA(0, true);
             cuModule = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, cudaModuleName));
-            cuFuncDotProd  = cuda.GetModuleFunction(cudaProductKernelName);
+            cuFuncDotProd = cuda.GetModuleFunction(cudaProductKernelName);
             cuFuncSolver = cuda.GetModuleFunction(cudaSolveL2SVM);
             cuFuncUpdateW = cuda.GetModuleFunction(cudaUpdateW);
         }

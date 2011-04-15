@@ -47,16 +47,17 @@ __device__ int isPositive(float x)
 { 
 	//signbit returns 1 if x is negative and 0 otherwise
 	// could be a problem if x=-0.0 ?
-  int pos = signbit(x);	//  0-if x>0	1 if x<0	0 if x=0
+/* 
+ int pos = signbit(x);	//  0-if x>0	1 if x<0	0 if x=0
   int neg = signbit(-x);//  1-if x>0	0 if x<0	0 if x=0
   
   return neg*(1-pos);
-
+*/
   //other solution
-  /*
+ 
   float test = x>0.0f;
-  return 1.0f &&test
-  */
+  return 1.0f &&test;
+  
 }
 
 
@@ -106,7 +107,7 @@ extern "C" __global__ void ComputeDotProd(const float * vals,
 		// compute local sum
 		float sum = 0;
 		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
-			sum += vals[jj] * tex1Dfetch(mainVectorTexRef,idx[jj]);
+			sum += vals[jj] * tex1Dfetch(mainVectorTexRef,idx[jj]-1); //all indexes starts from 1, but mainVector starts from 0
 
 		// reduce local sums to row sum (ASSUME: warpsize 32)
 		sdata[threadIdx.x] = sum;
@@ -234,6 +235,12 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 		PG = grad
 
 	we can set PG using formula:
+	signG=1 if grad<0
+	signG=0 if grad>=0
+
+	isPosAlpha=1 if alpha_i>0
+	isPosAlpha=0 if alpha_i<=0
+
 	float ifTest=(signG+isPosAlpha+0.0f)/(signG+isPosAlpha+1.0f);
 	ifTest= ceilf(ifTest);
 	PG=ifTest*PG;
@@ -249,7 +256,12 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	G[i]=PG;
 	//G[i]=diag_shift[(int)yi+1]-5;
 
-	//normaly in paper is Min(Max(alpha-G/QD[i],0.0),U) but in our case U is infinty 
+	//we should compute delta only if PG>0
+	//but we want to omit branching so we computed delta but
+	//grad = PG  if PG=0 then delta ==0
+	grad=PG;
+	
+//normaly in paper is Min(Max(alpha-G/QD[i],0.0),U) but in our case U is infinty 
 	//so min part was ommitted
 	float deltaAlpha = fmaxf(alpha_i-grad/(QD[i]+diag_shift[(int)yi+1] ),0.0f)-alpha_i;
 	
