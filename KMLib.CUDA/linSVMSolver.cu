@@ -24,6 +24,10 @@ texture<float,1,cudaReadModeElementType> labelsTexRef;
 //where Cn,Cp penalty parameters for negative elements and positive
 __device__  __constant__ float diag_shift[3];
 
+//BB step for updateing alpha
+__device__ __constant__ float stepBB=0.0f;
+
+
 //main vector dimension
 __device__ __constant__ int Dim;
 
@@ -131,6 +135,187 @@ extern "C" __global__ void ComputeDotProd(const float * vals,
 }
 
 
+/*
+	Finalize computing gradient for l2 svm formulation
+	grad= w'*x_i*y_i-1+alpha_i*diag 
+
+	Params:
+	partGrad - in/out parameter, 
+*/
+extern "C" __global__ void GradientFinalize(float * partGrad,
+											float* alpha,
+											const int size)
+{
+
+
+	
+}
+
+
+/*
+	Update alpha by step*grad
+	alpha= alpha-step*grad;
+	deltas= alpha_new - alpha_old
+
+	step is copied into device constatnt "stepBB"
+
+*/
+extern "C" __global__ void UpdateAlpha(const float * grad,
+									   float* alpha,
+									   float* deltas,
+									   const int size)
+{
+
+
+	
+}
+
+
+/*
+	Computes vector square norm using parallel reduction
+	norm = vec'*vec
+	This kernel is needed for computing objective function value
+	obj =0.5*[ w*w+ alpha'*(C*alpha-2)]
+	and compute second part alpha'*(C*alpha-2)
+
+*/
+extern "C" __global__ void VectorSquareW(float * w, float* reducted, const int vecDim)
+{
+
+
+	
+}
+
+
+/*
+	Computes vector square norm using parallel reduction
+
+	This kernel is needed for computing objective function value
+	obj =0.5*[ w*w+ alpha'*(C*alpha-2)]
+	and compute firs part w*w
+
+*/
+extern "C" __global__ void VectorSquareAlpha(float * alpha,float* reducted, const int size)
+{
+
+
+	
+}
+
+extern "C" __global__ void ComputeLinPart(float * alpha,float* alphaOld,float* grad, float* reducted, const int size)
+{
+
+
+	
+}
+
+
+/*
+	Computes BB steps using parallel reduction
+
+	step1 = (x_new-x_old)'*(x_new-x_old)/ (x_new-x_old)'*(grad_new - grad_old)
+	step2 = (grad_new - grad_old)'*(grad_new - grad_old)/ (x_new-x_old)'*(grad_new - grad_old)
+*/
+ extern "C" __global__ void ComputeBBSteps(const float * alpha, 
+											const float* alpha_old,
+											const float* grad,
+											const float* grad_old,
+											float* reductedAlphaPart,
+											float* reductedGradPart,
+											float* reductedAlphaGradPart,
+											const int size)
+{
+
+
+	
+}
+
+
+
+//cuda kernel funtion for updating  W-vector in method of solving linear SVM,
+//the idea is almost the same as in CudaDotProd function, 
+//each warp computes multiplication between step vector (D) and each column
+//
+//
+//					   | x11 x12 .. x1n|
+//					   | x21 x22 .. x2n|
+//	[D1, D2, ..., Dl]* | .    .  ..  . |
+//					   | .    .  ..  . |
+//					   | xl1 xl2 .. xln|
+// l- number of elements
+// n - vector dim
+// we have to compute sums  sum_k = Sum_i (D_i*x_ik)
+// sum_1 = D1*x11+ D2*x21 +...+Dl*xl1
+// sum_2 =
+// ...
+// sum_l
+// when we have sums we can compute change for vector W
+// W[k]+= sum_k
+//
+//matrix is in CSC fromat
+//Params:
+//vals - array of vectors values, column order
+//idx  - array of vectros indexes in CSC fromat (compact sparse column)
+//vecPointers -array of pointers(indexes) to idx and vals array, indicates start and end of specific column
+//W - computed W vector - array of size dim, 
+//num_cols - number of vectors, stored in CSC matrix format, 
+extern "C" __global__ void update_W(const float * vals,
+									   const int * idx, 
+									   const int * vecPointers, 
+									   float * W,
+									   const int num_rows)
+{
+
+//todo: change all  "*rows" into columns
+	__shared__ float sdata[BLOCK_SIZE + 16];                          // padded to avoid reduction ifs
+	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
+		
+
+	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
+	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
+	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
+	const int warp_lane   = threadIdx.x / WARP_SIZE;                // warp index within the CTA
+	const int num_warps   = (BLOCK_SIZE / WARP_SIZE) * gridDim.x;   // total number of active warps
+
+	for(int row = warp_id; row < num_rows; row += num_warps){
+		// use two threads to fetch vecPointers[row] and vecPointers[row+1]
+		// this is considerably faster than the straightforward version
+		if(thread_lane < 2)
+			ptrs[warp_lane][thread_lane] = vecPointers[row + thread_lane];
+		const int row_start = ptrs[warp_lane][0];                   //same as: row_start = vecPointers[row];
+		const int row_end   = ptrs[warp_lane][1];                   //same as: row_end   = vecPointers[row+1];
+
+		// compute local sum
+		float sum = 0;
+		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
+			sum += vals[jj] * tex1Dfetch(deltasTexRef,idx[jj]); //deltas was already mul by yi in prev kernel
+
+		// reduce local sums to row sum (ASSUME: warpsize 32)
+		sdata[threadIdx.x] = sum;
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x + 16]; __syncthreads(); 
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  8]; __syncthreads();
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  4]; __syncthreads();
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  2]; __syncthreads();
+		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
+	   
+
+		
+
+		// first thread writes warp result
+		if (thread_lane == 0){
+			
+			//results[row] = tex1Dfetch(labelsTexRef,row)*sdata[threadIdx.x];
+			W[row] +=sdata[threadIdx.x];
+		}
+
+			
+	}
+}
+
+
+
+
+
 
 /*
 	Implements solve_l2r_l1l2_svc method.
@@ -141,7 +326,7 @@ extern "C" __global__ void ComputeDotProd(const float * vals,
 	[pointers to starting index to vector "i"]
 
 	N - number of objects for classification
-	L - number of ovject features 
+	L - number of object features 
 Params:
 
 QD  - array of size N, diagonal cache QD=Qii+diag
@@ -167,6 +352,7 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	//grad = W'* element[i]*Y[i]
 
 	if(i<elements){
+	
 	float grad = G[i];
 	
 	float yi = tex1Dfetch(labelsTexRef,i);
@@ -263,98 +449,18 @@ extern "C" __global__ void lin_l2r_l2_svc_solver_with_gradient(
 	
 //normaly in paper is Min(Max(alpha-G/QD[i],0.0),U) but in our case U is infinty 
 	//so min part was ommitted
-	float deltaAlpha = fmaxf(alpha_i-grad/(QD[i]+diag_shift[(int)yi+1] ),0.0f)-alpha_i;
+	//float deltaAlpha = fmaxf(alpha_i-grad/(QD[i]+diag_shift[(int)yi+1] ),0.0f)-alpha_i;
+
+	float deltaAlpha = fmaxf(alpha_i- stepScaling*grad,0.0f)-alpha_i;
+
 	
 	//stepScaling - scaling parameter
-	//deltas[i]=deltaAlpha*yi*stepScaling;
+	//deltas[i]=stepScaling*deltaAlpha*yi;
 	//set new alpha
 	//alpha[i]=alpha_i+deltaAlpha*stepScaling;
 
-	deltas[i]=deltaAlpha*yi;
+	deltas[i]=yi*deltaAlpha;
 	alpha[i]=alpha_i+deltaAlpha;
 }//end if(i<elements)
+
 }
-
-
-//cuda kernel funtion for updating  W-vector in method of solving linear SVM,
-//the idea is almost the same as in CudaDotProd function, 
-//each warp computes multiplication between step vector (D) and each column
-//
-//
-//					   | x11 x12 .. x1n|
-//					   | x21 x22 .. x2n|
-//	[D1, D2, ..., Dl]* | .    .  ..  . |
-//					   | .    .  ..  . |
-//					   | xl1 xl2 .. xln|
-// l- number of elements
-// n - vector dim
-// we have to compute sums  sum_k = Sum_i (D_i*x_ik)
-// sum_1 = D1*x11+ D2*x21 +...+Dl*xl1
-// sum_2 =
-// ...
-// sum_l
-// when we have sums we can compute change for vector W
-// W[k]+= sum_k
-//
-//matrix is in CSC fromat
-//Params:
-//vals - array of vectors values, column order
-//idx  - array of vectros indexes in CSC fromat (compact sparse column)
-//vecPointers -array of pointers(indexes) to idx and vals array, indicates start and end of specific column
-//W - computed W vector - array of size dim, 
-//num_cols - number of vectors, stored in CSC matrix format, 
-extern "C" __global__ void update_W(const float * vals,
-									   const int * idx, 
-									   const int * vecPointers, 
-									   float * W,
-									   const int num_rows)
-{
-
-//todo: change all  "*rows" into columns
-	__shared__ float sdata[BLOCK_SIZE + 16];                          // padded to avoid reduction ifs
-	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
-		
-
-	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
-	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
-	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
-	const int warp_lane   = threadIdx.x / WARP_SIZE;                // warp index within the CTA
-	const int num_warps   = (BLOCK_SIZE / WARP_SIZE) * gridDim.x;   // total number of active warps
-
-	for(int row = warp_id; row < num_rows; row += num_warps){
-		// use two threads to fetch vecPointers[row] and vecPointers[row+1]
-		// this is considerably faster than the straightforward version
-		if(thread_lane < 2)
-			ptrs[warp_lane][thread_lane] = vecPointers[row + thread_lane];
-		const int row_start = ptrs[warp_lane][0];                   //same as: row_start = vecPointers[row];
-		const int row_end   = ptrs[warp_lane][1];                   //same as: row_end   = vecPointers[row+1];
-
-		// compute local sum
-		float sum = 0;
-		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
-			sum += vals[jj] * tex1Dfetch(deltasTexRef,idx[jj]);
-
-		// reduce local sums to row sum (ASSUME: warpsize 32)
-		sdata[threadIdx.x] = sum;
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x + 16]; __syncthreads(); 
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  8]; __syncthreads();
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  4]; __syncthreads();
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  2]; __syncthreads();
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
-	   
-
-		
-
-		// first thread writes warp result
-		if (thread_lane == 0){
-			
-			//results[row] = tex1Dfetch(labelsTexRef,row)*sdata[threadIdx.x];
-			W[row] =sdata[threadIdx.x];
-		}
-
-			
-	}
-}
-
-
-

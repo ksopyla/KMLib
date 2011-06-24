@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using KMLib.Helpers;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace KMLib.SVMSolvers
 {
@@ -18,7 +19,7 @@ namespace KMLib.SVMSolvers
     /// </summary>
     public class LinearSolver : Solver<SparseVec>
     {
-        public float bias=-1;
+        public float bias = -1;
 
         /// <summary>
         /// contains labels which has different weight
@@ -35,7 +36,7 @@ namespace KMLib.SVMSolvers
 
 
         protected SolverType solverType = SolverType.L2R_L2LOSS_SVC_DUAL;
-        protected double epsilon = 0.01;
+        protected double epsilon = 0.01; //original val 0.01;
 
         protected enum SolverType
         {
@@ -75,7 +76,8 @@ namespace KMLib.SVMSolvers
         {
         }
 
-        public LinearSolver(Problem<SparseVec> problem, float C,int[] weightedLabels,double[] weights):base(problem,C)
+        public LinearSolver(Problem<SparseVec> problem, float C, int[] weightedLabels, double[] weights)
+            : base(problem, C)
         {
             labelWithWeight = weightedLabels;
             penaltyWeights = weights;
@@ -137,7 +139,7 @@ namespace KMLib.SVMSolvers
             //model class
             model.Labels = new float[nr_class];
             for (int i = 0; i < nr_class; i++)
-                model.Labels[i] =(float) label[i];
+                model.Labels[i] = (float)label[i];
 
             // calculate weighted C
             double[] weighted_C = new double[nr_class];
@@ -224,7 +226,7 @@ namespace KMLib.SVMSolvers
                             sub_prob.Y[k] = -1;
 
                         //train_one(sub_prob, param, w, weighted_C[i], param.C);
-                        solve_l2r_l1l2_svc(sub_prob,w, epsilon, weighted_C[0], C, solverType);
+                        solve_l2r_l1l2_svc(sub_prob, w, epsilon, weighted_C[0], C, solverType);
 
                         for (j = 0; j < n; j++)
                             model.W[j * nr_class + i] = w[j];
@@ -235,7 +237,7 @@ namespace KMLib.SVMSolvers
             return model;
         }
 
-       
+
 
         protected void SetClassWeights(int nr_class, int[] label, double[] weighted_C)
         {
@@ -332,7 +334,7 @@ namespace KMLib.SVMSolvers
             return y[i] + 1;
         }
 
-        
+
         /// <summary>
         /// A coordinate descent algorithm for L1-loss and L2-loss SVM dual problems
         /// </summary>
@@ -366,9 +368,9 @@ namespace KMLib.SVMSolvers
         /// <param name="Cp">penalty for positive elements</param>
         /// <param name="Cn">penalty for negative elements</param>
         /// <param name="solver_type"></param>
-        protected void solve_l2r_l1l2_svc(Problem<SparseVec> sub_prob,double[] w, double eps, double Cp, double Cn, SolverType solver_type)
+        protected void solve_l2r_l1l2_svc(Problem<SparseVec> sub_prob, double[] w, double eps, double Cp, double Cn, SolverType solver_type)
         {
-          
+
             Random rand = new Random();
 
             int l = sub_prob.ElementsCount;// prob.l;
@@ -378,7 +380,7 @@ namespace KMLib.SVMSolvers
 
             //diagonal cache QD=Qii+diag (for different  formulation L1 or L2 diag is different)
             double[] QD = new double[l];
-            
+
             int[] index = new int[l];
             double[] alpha = new double[l];
             sbyte[] y = new sbyte[l];
@@ -390,9 +392,9 @@ namespace KMLib.SVMSolvers
             double PGmax_old = Double.PositiveInfinity;
             double PGmin_old = Double.NegativeInfinity;
             double PGmax_new, PGmin_new;
-            
+
             double obj = Double.PositiveInfinity;
-            
+
             // default solver_type: L2R_L2LOSS_SVC_DUAL
             double[] diag = new double[] { 0.5 / Cn, 0, 0.5 / Cp };
 
@@ -436,25 +438,47 @@ namespace KMLib.SVMSolvers
                 index[i] = i;
             }
             #endregion
-            int max_iter = 2000;
+
+            //0.4510    0.1770    0.4570
+            //alpha[0] = 0.4510f; alpha[1] = 0.1770f; alpha[2] = 0.4570f;
+
+
+            //for (int p = 0; p < sub_prob.ElementsCount; p++)
+            //{
+            //    var spVec = sub_prob.Elements[p];
+            //    float y_i = sub_prob.Y[p];
+            //    for (int k = 0; k < spVec.Count; k++)
+            //    {
+
+            //        w[spVec.Indices[k] - 1] += alpha[p] * y_i * spVec.Values[k];
+            //    }
+            //}
+
+            Stopwatch st = Stopwatch.StartNew();
+            int max_iter = 5000;
             while (iter < max_iter)
             {
                 PGmax_new = Double.NegativeInfinity;
                 PGmin_new = Double.PositiveInfinity;
+
+
 
                 for (i = 0; i < active_size; i++)
                 {
                     int j = i + rand.Next(active_size - i);// .nextInt(active_size - i);
 
                     //swap(index, i, j);
-                   //todo: uncoment it in original code
-                     index.SwapIndex(i, j);
+
+                    index.SwapIndex(i, j);
                 }
 
                 for (s = 0; s < active_size; s++)
                 {
+
+
+
                     i = index[s];
-                    
+
                     G = 0;
                     sbyte yi = y[i];
 
@@ -479,10 +503,10 @@ namespace KMLib.SVMSolvers
                     {
                         if (G > PGmax_old)
                         {
-                            active_size--;
-                            //swap(index, s, active_size);
-                            index.SwapIndex(s, active_size);
-                            s--;
+                            //active_size--;
+                            ////swap(index, s, active_size);
+                            //index.SwapIndex(s, active_size);
+                            //s--;
                             continue;
                         }
                         else if (G < 0)
@@ -494,10 +518,10 @@ namespace KMLib.SVMSolvers
                     {
                         if (G < PGmin_old)
                         {
-                            active_size--;
-                            //swap(index, s, active_size);
-                            index.SwapIndex(s, active_size);
-                            s--;
+                            //active_size--;
+                            ////swap(index, s, active_size);
+                            //index.SwapIndex(s, active_size);
+                            //s--;
                             continue;
                         }
                         else if (G > 0)
@@ -530,10 +554,15 @@ namespace KMLib.SVMSolvers
                         //    w[xi.index - 1] += d * xi.value;
                         //}
                     }
-                    obj= ComputeObj(w, alpha, sub_prob, diag);
+                    // obj= ComputeObj(w, alpha, sub_prob, diag);
                 }
+                //st.Stop();
+#if DEBUG
 
-                ComputeObj(w, alpha, sub_prob, diag);
+                //  obj= ComputeObj(w, alpha, sub_prob, diag);
+                // Debug.WriteLine("obj = {0}, time = {1}",obj,st.Elapsed);
+
+#endif
                 iter++;
                 //if (iter % 10 == 0) info(".");
 
@@ -564,13 +593,16 @@ namespace KMLib.SVMSolvers
             }
 
             // calculate objective value
-            
-            ComputeObj(w, alpha, sub_prob, diag);
+
+            st.Stop();
+
+            obj = ComputeObj(w, alpha, sub_prob, diag);
+            Console.WriteLine("obj = {0}, time = {1} ms={2} iter={3}", obj, st.Elapsed,st.ElapsedMilliseconds,iter);
         }
 
-        private double ComputeObj(double[] w, double[] alpha, Problem<SparseVec> sub_prob, double[] diag)
+        protected double ComputeObj(double[] w, double[] alpha, Problem<SparseVec> sub_prob, double[] diag)
         {
-        
+
             double v = 0;
             int nSV = 0;
             for (int i = 0; i < w.Length; i++)
@@ -581,13 +613,40 @@ namespace KMLib.SVMSolvers
 
                 //original line
                 //v += alpha[i] * (alpha[i] * diag[GETI(y_i, i)] - 2);
-                v += alpha[i] * (alpha[i] * diag[y_i+1] - 2);
+                v += alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
                 if (alpha[i] > 0) ++nSV;
             }
 
             v = v / 2;
-            Console.WriteLine("Objective value = {0}", v);
-            Debug.WriteLine("nSV = {0}", nSV);
+            // Console.WriteLine("Objective value = {0}", v);
+            // Debug.WriteLine("nSV = {0}", nSV);
+            return v;
+        }
+
+        protected double ComputeObj(float[] w, float[] alpha, Problem<SparseVec> sub_prob, float[] diag)
+        {
+            double v = 0, v1 = 0;
+            int nSV = 0;
+            for (int i = 0; i < w.Length; i++)
+            {
+                v += w[i] * w[i];
+                //v1 += 0.5 * w[i] * w[i];
+            }
+            for (int i = 0; i < alpha.Length; i++)
+            {
+                sbyte y_i = (sbyte)sub_prob.Y[i];
+
+                //original line
+                //v += alpha[i] * (alpha[i] * diag[GETI(y_i, i)] - 2);
+                v += alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
+                // v1 += 0.5 * alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
+                if (alpha[i] > 0) ++nSV;
+            }
+
+            v = v / 2;
+            //  Debug.WriteLine("Objective value = {0}", v);
+            //  Debug.WriteLine("nSV = {0}", nSV);
+
             return v;
         }
 

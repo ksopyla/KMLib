@@ -9,8 +9,9 @@ using GASS.CUDA;
 using GASS.CUDA.Types;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Globalization;
 
-namespace KMLib.GPU
+namespace KMLib.GPU.Solvers
 {
     /// <summary>
     /// Solver for linear SVM based on LIBLINEAR package
@@ -198,6 +199,7 @@ namespace KMLib.GPU
         /// </summary>
         protected int blocksPerGrid = -1;
         private float[] diag;
+        private float stepScaling;
 
 
         /// <summary>
@@ -367,10 +369,6 @@ namespace KMLib.GPU
 
             cuda.CopyHostToDevice(diagPtr, diag);
 
-
-            //todo: remov it, only for testing
-            w[0] = 0.5f;
-            w[1] = -0.5f;
             cuda.CopyHostToDevice(mainVecPtr, w);
         }
 
@@ -410,8 +408,7 @@ namespace KMLib.GPU
             //indexes will be zero, but cuda computation is faster
             mainVector = new float[vecDim];
 
-            //todo: remove line below, set only for testing
-            // mainVector[0] = 1; mainVector[1] = 1;
+           
             //move W wector
             //CudaHelpers.FillDenseVector(problemElements[0], mainVector);
             SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
@@ -464,10 +461,12 @@ namespace KMLib.GPU
             CUdeviceptr deltaScalingPtr = cuda.GetModuleGlobal(cuModule, "stepScaling");
 
             //two ways of computing scaling param, should be the same, but it depends on rounding.
-            float scaling = (float)(1.0 / Math.Sqrt(vecDim));
+            //stepScaling = (float)(1.0 / Math.Sqrt(sub_prob.ElementsCount));
+
+            stepScaling = 0.0002f;// (float)(1.0 / sub_prob.ElementsCount);
 
             //set scaling constant
-            float[] scArr = new float[] { scaling };
+            float[] scArr = new float[] { stepScaling };
             cuda.CopyHostToDevice(deltaScalingPtr, scArr);
             //cuda.Memset(deltaScalingPtr, (uint) scaling,sizeof(float));
 
@@ -642,13 +641,30 @@ namespace KMLib.GPU
             int bpgUpdateW = (sub_prob.Elements[0].Dim + threadsPerBlock - 1) / threadsPerBlock;
 
             double obj = Double.PositiveInfinity;
-            int maxIter = 200;
+            int maxIter = 2000;
 
 
             float[] deltasCu = new float[sub_prob.ElementsCount];
             float[]alphaCu = new float[sub_prob.ElementsCount];
 
+            float[] alpha_i = new float[sub_prob.ElementsCount];
+            float[] w1 = new float[sub_prob.Elements[0].Dim];
+            float[] w2 = new float[sub_prob.Elements[0].Dim];
+
+            for (int i = 0; i < w.Length; i++)
+            {
+                w1[i]=w2[i] = w[i];
+            }
+
+            //inverted hessian for toy_2d_3 problem
+            //float[,] invHessian = new float[3, 3]{  
+            //    {5.05f, -0.96f, -3.5f},
+            //    {-0.96f, 0.9f, 1},
+            //    {-3.59f , 1f, 2.8f}
+            //};
+
             int iter = 0;
+
             while (iter<maxIter)
             {
 
@@ -660,20 +676,56 @@ namespace KMLib.GPU
                 float[] grad = new float[sub_prob.ElementsCount];
                 Marshal.Copy(gradIntPtr, grad, 0, grad.Length);
 
-                float[] dots = new float[sub_prob.ElementsCount];
-                for (int i = 0; i < dots.Length; i++)
-                {
+                #region test host code
+                
+                //float[] dots = new float[sub_prob.ElementsCount];
+                //float[] dots1 = new float[sub_prob.ElementsCount];
+                //for (int i = 0; i < dots.Length; i++)
+                //{
 
-                    var element = sub_prob.Elements[i];
-                    for (int k = 0; k < element.Count; k++)
-                    {
-                        dots[i] += w[element.Indices[k] - 1] * element.Values[k];
+                //    var element = sub_prob.Elements[i];
+                //    for (int k = 0; k < element.Count; k++)
+                //    {
+                //        dots[i] += w[element.Indices[k] - 1] * element.Values[k];
+                //        dots1[i] += w1[element.Indices[k] - 1] * element.Values[k];
+                //    }
+                //    dots[i] *= sub_prob.Y[i];
+                //    dots1[i] *= sub_prob.Y[i];
 
-                    }
-                    dots[i] *= sub_prob.Y[i];
+                //}
 
-                }
+                //float[] grad_i = new float[sub_prob.ElementsCount];
+                //for (int i = 0; i < grad_i.Length; i++)
+                //{
 
+                //    float dot = 0;
+                    
+                //    var vec_i = sub_prob.Elements[i];
+                //    sbyte y_i = (sbyte)sub_prob.Y[i];
+                //    for (int j = 0; j < sub_prob.ElementsCount; j++)
+                //    {
+                //        var vec_j = sub_prob.Elements[j];
+                //        sbyte y_j = (sbyte)sub_prob.Y[j];
+                //        float part_dot = 0;
+                //        for (int k = 0; k < vec_i.Dim; k++)
+                //        {
+                //            part_dot += vec_i.Values[k] * vec_j.Values[k];
+                //        }
+                //        if (i == j)
+                //        {
+                //            part_dot += diag[y_i + 1] ;
+                //        }
+
+                //        part_dot = part_dot * y_i * y_j;
+                //        part_dot *= alpha_i[j];
+                //        dot += part_dot;
+                       
+                //    }
+                //    grad_i[i] = dot - 1;
+
+                //}
+
+                #endregion
 
                 cuda.Launch(cuFuncSolver, bpgSolver, 1);
 
@@ -681,35 +733,35 @@ namespace KMLib.GPU
                 float[] grad2 = new float[sub_prob.ElementsCount];
                 Marshal.Copy(gradIntPtr, grad2, 0, grad2.Length);
 
-                float[] grad3 = new float[sub_prob.ElementsCount];
-                float[] projGrad = new float[sub_prob.ElementsCount];
-                for (int i = 0; i < grad3.Length; i++)
-                {
-                    sbyte y_i = (sbyte)sub_prob.Y[i];
-                    grad3[i] = dots[i] - 1 + alphaCu[i] * diag[y_i + 1];
+                //float[] grad3 = new float[sub_prob.ElementsCount];
+               
+                //float[] projGrad = new float[sub_prob.ElementsCount];
+                //float[] projGrad_i = new float[sub_prob.ElementsCount];
+                //for (int i = 0; i < grad3.Length; i++)
+                //{
+                //    sbyte y_i = (sbyte)sub_prob.Y[i];
+                //    grad3[i] = dots1[i] - 1 + alpha[i] * diag[y_i + 1];
 
-                    if (alphaCu[i] == 0)
-                    {
-                        projGrad[i] = Math.Min(0, grad3[i]);
-                    }
-                    else
-                        projGrad[i] = grad3[i];
+                //    if (alpha[i] == 0)
+                //    {
+                //        projGrad[i] = Math.Min(0, grad3[i]);
+                //       // projGrad_i[i] = Math.Min(0, grad_i[i]);
+                //    }
+                //    else
+                //    {
+                //        projGrad[i] = grad3[i];
+                //       // projGrad_i[i] = grad_i[i];
+                //    }
 
-                    
-                }
-
-
+                //}
 
                 
-                cuda.CopyDeviceToHost(deltasPtr, deltasCu);
 
-               
+                cuda.CopyDeviceToHost(deltasPtr, deltasCu);
                 cuda.CopyDeviceToHost(alphaPtr, alphaCu);
 
 
                 cuda.Launch(cuFuncUpdateW, bpgUpdateW, 1);
-
-                //cuda.UseRuntimeExceptions = false;
                 
                 cuda.SynchronizeContext();
 
@@ -718,20 +770,65 @@ namespace KMLib.GPU
                 //take grad and check stop condition
                 //Marshal.Copy(gradIntPtr, , 0, results.Length);
 
-                float[] w1 = new float[sub_prob.Elements[0].Dim];
+                
                 //compute w1
-                for (int p = 0; p < sub_prob.ElementsCount; p++)
-                {
-                    float d = deltasCu[p];
-                    var spVec = sub_prob.Elements[p];
-                    for (int k = 0; k < spVec.Count; k++)
-                    {
-                        w1[spVec.Indices[k] - 1] += d * spVec.Values[k];
-                    }
-                    
-                }
+                
+                //double su = 0;
+                //float[] wAll = new float[sub_prob.Elements[0].Dim];
+                //for (int p = 0; p < sub_prob.ElementsCount; p++)
+                //{
+                //    sbyte y_i = (sbyte)sub_prob.Y[p];
+                //    float old_alpha = alpha[p];
 
-              obj =  ComputeObj(w, alphaCu, sub_prob, diag);
+                //    float alphaStep = 0;
+
+                //    //for (int k = 0; k < alpha_i.Length; k++)
+                //    //{
+                //    //    alphaStep += invHessian[p,k] * projGrad_i[k];
+                //    //}
+
+
+                //    alpha[p] = Math.Max(alpha[p] -stepScaling* projGrad[p] / (QD[p] + diag[y_i + 1]), 0);
+
+                //    alpha_i[p] = Math.Max(alpha_i[p] - stepScaling* projGrad_i[p] / (QD[p] + diag[y_i + 1]), 0);
+                //   // alpha_i[p] = Math.Max(alpha_i[p] - 0.01f* projGrad_i[p] , 0);
+                //    //alpha_i[p] = Math.Max(alpha_i[p] - alphaStep, 0);
+
+                //    float d = deltasCu[p];
+                //    float d2 =(alpha[p] - old_alpha) * y_i;
+                //    var spVec = sub_prob.Elements[p];
+                //    for (int k = 0; k < spVec.Count; k++)
+                //    {
+                //        w1[spVec.Indices[k] - 1] += d2 * spVec.Values[k];
+                //        w2[spVec.Indices[k] - 1] += d2 * spVec.Values[k];
+                //        wAll[spVec.Indices[k] - 1] += alpha[p]*y_i * spVec.Values[k];
+                //    }
+                //    su += y_i * alpha[p];
+                // }
+
+#if DEBUG
+                obj = ComputeObj(w, alphaCu, sub_prob, diag);
+
+               
+               
+              Debug.WriteLine(obj.ToString(CultureInfo.GetCultureInfo("pl-PL").NumberFormat));
+
+#endif
+
+              float minPG = float.PositiveInfinity;
+              float maxPG = float.NegativeInfinity;
+              for (int i = 0; i < grad2.Length; i++)
+              {
+                  minPG = Math.Min(minPG, grad2[i]);
+                  maxPG = Math.Max(maxPG, grad2[i]);
+              }
+              if (maxPG < 0)
+                  maxPG = float.NegativeInfinity;
+              if (minPG > 0)
+                  minPG = float.PositiveInfinity;
+
+              if (Math.Abs( maxPG - minPG) <= epsilon)
+                  break;
 
                 iter++;
             }
@@ -765,28 +862,32 @@ namespace KMLib.GPU
 
         }
 
-        private double ComputeObj(float[] w, float[] alpha, Problem<SparseVec> sub_prob, float[] diag)
-        {
-            double v = 0;
-            int nSV = 0;
-            for (int i = 0; i < w.Length; i++)
-                v += w[i] * w[i];
-            for (int i = 0; i < alpha.Length; i++)
-            {
-                sbyte y_i = (sbyte)sub_prob.Y[i];
+        //private double ComputeObj(float[] w, float[] alpha, Problem<SparseVec> sub_prob, float[] diag)
+        //{
+        //    double v = 0, v1=0;
+        //    int nSV = 0;
+        //    for (int i = 0; i < w.Length; i++)
+        //    {
+        //        v += w[i] * w[i];
+        //        v1 += 0.5*w[i] * w[i];
+        //    }
+        //    for (int i = 0; i < alpha.Length; i++)
+        //    {
+        //        sbyte y_i = (sbyte)sub_prob.Y[i];
 
-                //original line
-                //v += alpha[i] * (alpha[i] * diag[GETI(y_i, i)] - 2);
-                v += alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
-                if (alpha[i] > 0) ++nSV;
-            }
+        //        //original line
+        //        //v += alpha[i] * (alpha[i] * diag[GETI(y_i, i)] - 2);
+        //        v += alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
+        //        v1 += 0.5* alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
+        //        if (alpha[i] > 0) ++nSV;
+        //    }
 
-            v = v / 2;
-            Debug.WriteLine("Objective value = {0}", v);
-            Debug.WriteLine("nSV = {0}", nSV);
+        //    v = v / 2;
+        //  //  Debug.WriteLine("Objective value = {0}", v);
+        //  //  Debug.WriteLine("nSV = {0}", nSV);
 
-            return v;
-        }
+        //    return v;
+        //}
 
 
 

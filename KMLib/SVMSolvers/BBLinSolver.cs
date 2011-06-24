@@ -22,10 +22,12 @@ namespace KMLib.SVMSolvers
         private int maxInnerIter;
         private Random rnd;
 
+        int maxIter = 100000;
+
         /// <summary>
         /// probability of choosing step2 in BB step
         /// </summary>
-        private double probStep2=0.6;
+        private double probStep2=0.5;
         
         
         
@@ -112,7 +114,7 @@ namespace KMLib.SVMSolvers
             if (nr_class == 2)
             {
 
-                float[] w = new float[w_size];
+                double[] w = new double[w_size];
                 //for (int z = 0; z < w.Length; z++)
                 //{
                 //    w[z] = 1.0f;
@@ -128,7 +130,8 @@ namespace KMLib.SVMSolvers
 
 
 
-                solve_l2r_l2_svc_bb(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
+               // solve_l2r_l2_svc_bb(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
+                solve_l2r_l2_svc_nm_bb(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
                 //solve_l2r_l1l2_svc(model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
 
                 model.W = new double[w_size];
@@ -140,7 +143,7 @@ namespace KMLib.SVMSolvers
             else
             {
                 model.W = new double[w_size * nr_class];
-                float[] w = new float[w_size];
+                double[] w = new double[w_size];
 
 
                 ///one against many
@@ -170,47 +173,46 @@ namespace KMLib.SVMSolvers
             return model;
         }
 
-        private void solve_l2r_l2_svc_bb(Problem<SparseVec> sub_prob, float[] w, double epsilon, double Cp, double Cn)
+        private void solve_l2r_l2_svc_bb(Problem<SparseVec> sub_prob, double[] w, double epsilon, double Cp, double Cn)
         {
 
 
             double obj = Double.PositiveInfinity;
-            int maxIter = 200000;
+           
           
-            float[] alpha = new float[sub_prob.ElementsCount];
+            double[] alpha = new double[sub_prob.ElementsCount];
 
-            float[] alphaOld = new float[sub_prob.ElementsCount];
+            double[] alphaOld = new double[sub_prob.ElementsCount];
 
 
             //float[] deltas = new float[sub_prob.ElementsCount];
             //float[] vals = new float[sub_prob.ElementsCount];
 
-            float[] diag = new float[] { (float)(0.5 / Cn), 0, (float)(0.5 / Cp) };
+            double[] diag = new double[] { (double)(0.5 / Cn), 0, (double)(0.5 / Cp) };
 
             //gradient and previous gradient
-            float[] projGrad = new float[sub_prob.ElementsCount];
-            float[] oldGrad = new float[sub_prob.ElementsCount];
+            double[] projGrad = new double[sub_prob.ElementsCount];
+            double[] oldGrad = new double[sub_prob.ElementsCount];
 
-            float gradNorm = float.MaxValue; 
+            double gradNorm = double.MaxValue; 
             gradNorm = ComputeGradient(sub_prob, w, alpha, diag, ref projGrad);
                        
             iter = 0;
-            float step = 0.1f;
+            double step = 0.01f;
            
             Stopwatch st = new Stopwatch();
             st.Start();
 
-            //we do as many steps
-            maxIter = 10000;
 
           //  obj = ComputeObj(w, alpha, sub_prob, diag);
           
 
             while (iter <= maxIter)
             {
+                
 
                 //remember old alpha
-                Buffer.BlockCopy(alpha, 0, alphaOld, 0, alpha.Length * sizeof(float));
+                Buffer.BlockCopy(alpha, 0, alphaOld, 0, alpha.Length * sizeof(double));
 
                 //do  projected sep step
                 //x_new = Proj( x_old-step*grad)
@@ -220,7 +222,7 @@ namespace KMLib.SVMSolvers
 
                 obj = ComputeObj(w, alpha, sub_prob, diag);
 #endif
-                Buffer.BlockCopy(projGrad, 0, oldGrad, 0, projGrad.Length * sizeof(float));
+                Buffer.BlockCopy(projGrad, 0, oldGrad, 0, projGrad.Length * sizeof(double));
                 //computes -gradient
                 //grad = b-A*xtemp, 
                 gradNorm= ComputeGradient(sub_prob, w, alpha, diag,ref projGrad);
@@ -232,22 +234,152 @@ namespace KMLib.SVMSolvers
                 }
 
                 step = ComputeBBStep(alpha, alphaOld, projGrad, oldGrad);
-
-                
+              
                 iter++;
             }
 
             st.Stop();
            obj= ComputeObj(w, alpha, sub_prob, diag);
            
-
-            Console.WriteLine("Objective value = {0} time={1} ms={2} iter={3}", obj,st.Elapsed, st.ElapsedMilliseconds,iter);
+             Console.WriteLine("Objective value = {0} time={1} ms={2} iter={3}", obj,st.Elapsed, st.ElapsedMilliseconds,iter);
             //Debug.WriteLine("nSV = {0}", nSV);
-
-
 
         }
 
+        private void solve_l2r_l2_svc_nm_bb(Problem<SparseVec> sub_prob, double[] w, double epsilon, double Cp, double Cn)
+        {
+
+
+            double obj = Double.PositiveInfinity;
+            
+
+            double[] alpha = new double[sub_prob.ElementsCount];
+
+            double[] alphaOld = new double[sub_prob.ElementsCount];
+
+            double[] alpha_tmp = new double[sub_prob.ElementsCount];
+            double[] w_tmp = new double[sub_prob.FeaturesCount];
+            
+            double[] diag = new double[] { (double)(0.5 / Cn), 0, (double)(0.5 / Cp) };
+
+            //gradient and previous gradient
+            double[] projGrad = new double[sub_prob.ElementsCount];
+            double[] oldGrad = new double[sub_prob.ElementsCount];
+
+            double gradNorm = double.MaxValue;
+            gradNorm = ComputeGradient(sub_prob, w, alpha, diag, ref projGrad);
+
+            iter = 0;
+            double step = 0.01f;
+
+            int M = 10;
+            double sig1 = 0.1;
+            double sig2 = 0.9;
+            double gamma = 10e-4;
+            double lambda = 0;
+            double l_min = 10e-20;
+            double l_max = 10e20;
+
+            double[] func_vals = new double[M];
+            double max_funcVal = 0;
+            Stopwatch st = new Stopwatch();
+            st.Start();
+
+           
+
+            //  obj = ComputeObj(w, alpha, sub_prob, diag);
+
+
+            while (iter <= maxIter)
+            {
+
+                max_funcVal = func_vals.Max();
+
+                lambda = step;
+
+                for (int i = 0; i < 10; i++)
+                {
+                    Buffer.BlockCopy(alpha, 0, alpha_tmp, 0, alpha.Length * sizeof(double));
+                    Buffer.BlockCopy(w, 0, w_tmp, 0, w.Length * sizeof(double));
+
+                    UpdateWandAlpha(alpha_tmp, w_tmp, -lambda, projGrad, sub_prob);
+
+                    obj = ComputeObj(w_tmp, alpha_tmp, sub_prob, diag);
+
+                    double linPart = gamma * ComputeDiff(alpha_tmp, alpha, projGrad);
+                    if (obj <= (max_funcVal + linPart))
+                    {
+                        int idx = (iter+1) % M;
+                        func_vals[idx] = obj;
+                        break;
+
+                    }
+                    lambda = (sig1 * lambda + sig2 * lambda) / 2;
+
+                }
+
+
+                //remember old alpha
+
+                //Buffer.BlockCopy(alpha, 0, alphaOld, 0, alpha.Length * sizeof(double));
+                //Buffer.BlockCopy(alpha_tmp, 0, alpha, 0, alpha.Length * sizeof(double));
+                var tmpPtr = alphaOld;
+                alphaOld = alpha;
+                alpha = alpha_tmp;
+                alpha_tmp = tmpPtr;
+
+                //Buffer.BlockCopy(w_tmp, 0, w, 0, w.Length * sizeof(double));
+                var w_tmpPtr = w;
+                w = w_tmp;
+                w_tmp = w_tmpPtr;
+
+               
+               // Buffer.BlockCopy(projGrad, 0, oldGrad, 0, projGrad.Length * sizeof(double));
+                var grad_tmpPtr = oldGrad;
+                oldGrad = projGrad;
+                projGrad = grad_tmpPtr;
+
+
+                //computes -gradient
+                //grad = b-A*xtemp, 
+                gradNorm = ComputeGradient(sub_prob, w, alpha, diag, ref projGrad);
+
+                //stop condition
+                if (gradNorm < epsilon)
+                {
+                    break;
+                }
+
+                step = ComputeBBStep(alpha, alphaOld, projGrad, oldGrad);
+
+                iter++;
+            }
+
+            st.Stop();
+            obj = ComputeObj(w, alpha, sub_prob, diag);
+
+            Console.WriteLine("Objective value = {0} time={1} ms={2} iter={3}", obj, st.Elapsed, st.ElapsedMilliseconds, iter);
+            //Debug.WriteLine("nSV = {0}", nSV);
+
+        }
+
+        /// <summary>
+        /// computes dot product = (vec1-vec2)*mulVec
+        /// </summary>
+        /// <param name="vec1"></param>
+        /// <param name="vec2"></param>
+        /// <param name="mullVec"></param>
+        /// <returns></returns>
+        private double ComputeDiff(double[] vec1, double[] vec2, double[] mullVec)
+        {
+            double diff = 0;
+            for (int i = 0; i < vec1.Length; i++)
+            {
+                diff += (vec1[i] - vec2[i]) * mullVec[i];
+                
+            }
+            return diff;
+        }
       
         /// <summary>
         /// Computes Barzilai-Borwein step
@@ -260,7 +392,7 @@ namespace KMLib.SVMSolvers
         /// <param name="grad"></param>
         /// <param name="gradOld"></param>
         /// <returns></returns>
-        private float ComputeBBStep(float[] xNew, float[] xOld, float[] grad, float[] gradOld)
+        private double ComputeBBStep(double[] xNew, double[] xOld, double[] grad, double[] gradOld)
         {
            
 
@@ -269,26 +401,24 @@ namespace KMLib.SVMSolvers
             if (!check)
                 throw new ArgumentException("Arrays have different sizes");
 
-            float step1=0;
-            float step2 = 0;
-            float step =0;
-
+            double step1=0;
+            double step2 = 0;
+            double step =0;
 
             //contains partial results for each parts in BB formula
-
             //(x_new - x_old)'*(x_new - x_old)
-            float xxPart = 0;
+            double xxPart = 0;
 
             //(x_new - x_old)'*(grad-grad_old)
-            float xgPart = 0;
+            double xgPart = 0;
 
             //grad-grad part (grad-grad_old)'*(grad-grad_old) 
-            float ggPart = 0;
+            double ggPart = 0;
 
             for (int i = 0; i < xNew.Length; i++)
             {
-                float xi = xNew[i] - xOld[i];
-                float gi = grad[i] - gradOld[i];
+                double xi = xNew[i] - xOld[i];
+                double gi = grad[i] - gradOld[i];
 
                 xxPart += xi * xi;
 
@@ -302,14 +432,18 @@ namespace KMLib.SVMSolvers
 
             step = step1;
             //todo: try different schemes for choosing step
-            //if (iter % 3 == 0)
-            //    step = step2;
+            if (iter % 2 == 0)
+            {
+                step = step2;
+            }
 
             //random step works better then modulo step (alternating iter%2)
-            if (rnd.NextDouble() > probStep2)
-                step = step2;
 
-
+            double rndProb = rnd.NextDouble();
+            if (rndProb > probStep2)
+            {
+                //step = step2;
+            }
 
 
             return step;
@@ -327,39 +461,40 @@ namespace KMLib.SVMSolvers
         /// <param name="w">vector to update</param>
         /// <param name="step">update step</param>
         /// <param name="dir">step in dir direction</param>
-        private void UpdateWandAlpha(float[] alpha, float[] w, float step, float[] dir, Problem<SparseVec> sub_prob)
+        private void UpdateWandAlpha(double[] alpha, double[] w, double step, double[] dir, Problem<SparseVec> sub_prob)
         {
 
             for (int p = 0; p < alpha.Length; p++)
             {
                 
-                float old_alpha = alpha[p];
-
-                float alphaStep = step*dir[p];
+                double old_alpha = alpha[p];
+                double alphaStep = step*dir[p];
 
                 //projected update, all alphas>=0
-                alpha[p] = Math.Max(alpha[p] + alphaStep, 0);// base_alpha[p] + alphaStep;// 
-                
-                var spVec = sub_prob.Elements[p];
+                double alpha_new = Math.Max(alpha[p] + alphaStep, 0);// base_alpha[p] + alphaStep;// 
                 
                 //real alpha update
-                float d = (alpha[p] - old_alpha); // we multiply by *y_i  4 lines lower
+                double d = (alpha_new - old_alpha); // we multiply by *y_i  4 lines lower
                 
                 //if update is small
-                if (Math.Abs(d) < 1e-10)
+                if (Math.Abs(d) < 1e-12)
                     continue;
 
                 sbyte y_i = (sbyte)sub_prob.Y[p];
                 d *= y_i;
                 int idx=-1;
 
+                var spVec = sub_prob.Elements[p];
                 //if alpha[p] has changed then we should 
                 //change w- vector
+               
                 for (int k = 0; k < spVec.Count; k++)
                 {
                     idx = spVec.Indices[k] - 1;
-                    w[idx] +=d * spVec.Values[k];
+                    w[idx] +=(double) d * spVec.Values[k];
                 }
+
+                alpha[p] = (double)alpha_new;
 
             }
 
@@ -376,10 +511,10 @@ namespace KMLib.SVMSolvers
         /// <param name="alpha"></param>
         /// <param name="diag"></param>
         /// <param name="grad"></param>
-        private static float ComputeGradient(Problem<SparseVec> sub_prob, float[] w, float[] alpha, float[] diag,ref float[] grad)
+        private static double ComputeGradient(Problem<SparseVec> sub_prob, double[] w, double[] alpha, double[] diag,ref double[] grad)
         {
 
-            float max = float.NegativeInfinity;
+            double max = double.NegativeInfinity;
 
             for (int i = 0; i < grad.Length; i++)
             {
@@ -388,10 +523,10 @@ namespace KMLib.SVMSolvers
 
                 var element = sub_prob.Elements[i];
                 //computes dot product between W and all elements
+                double dot = 0;
                 for (int k = 0; k < element.Count; k++)
                 {
-                    grad[i] += w[element.Indices[k] - 1] * element.Values[k];
-
+                    dot += w[element.Indices[k] - 1] * element.Values[k];
                 }
 
                 sbyte y_i = (sbyte)sub_prob.Y[i];
@@ -399,15 +534,14 @@ namespace KMLib.SVMSolvers
                 //grad[i] =1- grad[i] * y_i - alpha[i]*diag[y_i+1];
 
                 //normal gradient
-                grad[i] = grad[i] * y_i + alpha[i] * diag[y_i + 1] - 1;
 
-
-
+                grad[i] =(double) (dot * y_i + alpha[i] * diag[y_i + 1] - 1);
+                
 
                 //projection
                 if (alpha[i] == 0)
                 {
-                    grad[i] = Math.Min(0, grad[i]);
+                   // grad[i] = Math.Min(0, grad[i]);
                 }
                 //else
                 //{
@@ -418,8 +552,12 @@ namespace KMLib.SVMSolvers
                 //minus gradient - descent direction
                // grad[i] = -grad[i];
 
-                //maximum norm
-                max = Math.Max(max, Math.Abs(grad[i]));
+                //projected maximum norm
+                if (Math.Abs(alpha[i]) > 10e-10)
+                {
+                    max = Math.Max(max, Math.Abs(grad[i]));
+                }
+                
             }
 
             return max;
