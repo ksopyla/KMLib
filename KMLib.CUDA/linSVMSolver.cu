@@ -147,7 +147,41 @@ extern "C" __global__ void GradientFinalize(float * partGrad,
 											const int size)
 {
 
+	int i =  blockDim.x * blockIdx.x + threadIdx.x;
 
+	if(i>=size){
+		return;	
+	}
+	
+	
+	float grad =partGrad[i];
+	
+	float yi = tex1Dfetch(labelsTexRef,i);
+	float alpha_i = alpha[i];
+
+	//in LibLinear we have to compute
+	//G=W*element*yi-1+alpah[i]*Dii
+	grad = grad-1;
+	
+	grad+=alpha_i*diag_shift[(int)yi+1];
+	
+/*  
+	!!!!!!!!!!!!1 Uwaga testowo mnoże przez yi, normalnie nie powinno tego być
+*/
+	partGrad[i]=grad;
+	
+/*  Projected gradient
+	float PG=grad;
+	
+	int signG = signbit(PG);
+	int isPosAlpha = isPositive(alpha_i);
+	PG=PG*ceilf((signG+isPosAlpha+0.0f)/(signG+isPosAlpha+1.0f));
+
+	//if PG< 1e-12, to znaczy że już jesteśmy w optimum,
+	//lecz to powinno zachodzić dla wszystkich
+	//we store 
+	partGrad[i]=PG;
+*/
 	
 }
 
@@ -166,8 +200,19 @@ extern "C" __global__ void UpdateAlpha(const float * grad,
 									   const int size)
 {
 
+	int i =  blockDim.x * blockIdx.x + threadIdx.x;
 
-	
+	if(i>=size){
+		return;	
+	}
+
+	float old_alpha = alpha[i];
+
+	//stepBB is module constant, see at beginning this file
+	float new_alpha = fmaxf(old_alpha+ stepBB*grad[i],0.0f);
+
+	deltas[i]=(new_alpha-old_alpha)*tex1Dfetch(labelsTexRef,i);
+	alpha[i] = new_alpha;
 }
 
 
@@ -178,11 +223,74 @@ extern "C" __global__ void UpdateAlpha(const float * grad,
 	obj =0.5*[ w*w+ alpha'*(C*alpha-2)]
 	and compute second part alpha'*(C*alpha-2)
 
+	w- aray
+	reducted - array for reducted results
+	n - size of w array
+
 */
-extern "C" __global__ void VectorSquareW(float * w, float* reducted, const int vecDim)
+extern "C" __global__ void VectorSquareW(float * w, float* reducted, const int n)
 {
+	__shared__ float sdata[BLOCK_SIZE + 16];        
+	
+
+// perform first level of reduction,
+    // reading from global memory, writing to shared memory
+    unsigned int tid = threadIdx.x;
+    //unsigned int i = blockIdx.x*BLOCK_SIZE*2 + threadIdx.x;
+    //unsigned int gridSize = BLOCK_SIZE*2*gridDim.x;
+
+	unsigned int blockSize = blockDim.x;
+	unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
+    unsigned int gridSize = blockDim.x*2*gridDim.x;
+    
+    float mySum = 0;
+
+    // we reduce multiple elements per thread.  The number is determined by the 
+    // number of active thread blocks (via gridDim).  More blocks will result
+    // in a larger gridSize and therefore fewer elements per thread
+    float w_i=0;
+	while (i < n)
+    {   
+		w_i = w[i];
+      
+        mySum += w_i*w_i;
+        // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
+        if (i + blockSize < n) {
+			w_i= w[i+blockSize];
+            mySum += w_i*w_i;  
+		}
+        i += gridSize;
+    } 
+
+    // each thread puts its local sum into shared memory 
+    sdata[tid] = mySum;
+    __syncthreads();
 
 
+    // do reduction in shared mem
+    if (blockSize >= 512) { if (tid < 256) { sdata[tid] = mySum = mySum + sdata[tid + 256]; } __syncthreads(); }
+    if (blockSize >= 256) { if (tid < 128) { sdata[tid] = mySum = mySum + sdata[tid + 128]; } __syncthreads(); }
+    if (blockSize >= 128) { if (tid <  64) { sdata[tid] = mySum = mySum + sdata[tid +  64]; } __syncthreads(); }
+    
+#ifndef __DEVICE_EMULATION__
+    if (tid < 32)
+#endif
+    {
+        // now that we are using warp-synchronous programming (below)
+        // we need to declare our shared memory volatile so that the compiler
+        // doesn't reorder stores to it and induce incorrect behavior.
+        volatile float* smem = sdata;
+        if (blockSize >=  64) { smem[tid] = mySum = mySum + smem[tid + 32]; __syncthreads(); }
+        if (blockSize >=  32) { smem[tid] = mySum = mySum + smem[tid + 16]; __syncthreads(); }
+        if (blockSize >=  16) { smem[tid] = mySum = mySum + smem[tid +  8]; __syncthreads(); }
+        if (blockSize >=   8) { smem[tid] = mySum = mySum + smem[tid +  4]; __syncthreads(); }
+        if (blockSize >=   4) { smem[tid] = mySum = mySum + smem[tid +  2]; __syncthreads(); }
+        if (blockSize >=   2) { smem[tid] = mySum = mySum + smem[tid +  1]; __syncthreads(); }
+    }
+    
+    // write result for this block to global mem 
+    if (tid == 0) 
+        reducted[blockIdx.x] = sdata[0];
 	
 }
 

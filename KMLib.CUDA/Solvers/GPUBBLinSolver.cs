@@ -45,12 +45,12 @@ namespace KMLib.GPU.Solvers
         /// <summary>
         /// cuda function name for computing gradient
         /// </summary>
-        protected string cudaGradFinalizeName = "ComputeGradient";
+        protected string cudaGradFinalizeName = "GradientFinalize";
 
         /// <summary>
         /// cuda function name for computing BB step
         /// </summary>
-        protected string cudaComputeBBStepName = "ComputeBBstep";
+        protected string cudaComputeBBStepName = "ComputeBBSteps";
 
 
 
@@ -207,6 +207,10 @@ namespace KMLib.GPU.Solvers
         private CUdeviceptr reduceObjAlphaPtr;
         private CUdeviceptr reduceObjWPtr;
 
+
+        
+        private CUdeviceptr reduceLinPartPtr;
+
         /// <summary>
         /// cuda device pointer for diag, needed for coping to constant array on device
         /// </summary>
@@ -255,7 +259,13 @@ namespace KMLib.GPU.Solvers
 
 
 
-
+        /// <summary>
+        /// Number of threads in one block, default 128
+        /// </summary>
+        /// <remarks>
+        /// Remember when you change this value you have to also change BLOCK_SIZE constant in linSVMSolcer.cu
+        /// </remarks>
+        /// 
         protected int threadsPerBlock = CUDAConfig.XBlockSize;
 
         /// <summary>
@@ -287,6 +297,15 @@ namespace KMLib.GPU.Solvers
         private int alphaParamOffsetInLinPart;
         private int alphaOldParamOffsetInLinPart;
         private int gradParamOffsetInLinPart;
+        private float[] alphaPartReduce;
+        private float[] gradPartReduce;
+        private float[] alphaGradPartReduce;
+        private float[] reduceLinPart;
+        private int bpgReduceW;
+        private int bpgReduceAlpha;
+        private int threadsForReduceObjW;
+        private int threadsForReduceObjAlpha;
+        
         
 
         /// <summary>
@@ -451,11 +470,7 @@ namespace KMLib.GPU.Solvers
         private void solve_l2r_l2_bb_svc_cuda(Problem<SparseVec> sub_prob, float[] w, double epsilon, double Cp, double Cn)
         {
           
-            //blocks per Grid for solver kernel
-            int bpgSolver = (sub_prob.Elements.Length + threadsPerBlock - 1) / threadsPerBlock;
-            //blocks per Grid for update_W kernel
-            int bpgUpdateW = (sub_prob.Elements[0].Dim + threadsPerBlock - 1) / threadsPerBlock;
-
+            
             float obj = float.PositiveInfinity;
             float step = 0.01f;
 
@@ -479,7 +494,6 @@ namespace KMLib.GPU.Solvers
                 
                 maxFuncVal = func_vals.Max();
 
-
                 lambda = step;
                 //nonemonotone line search
                 for (int i = 0; i < 10; i++)
@@ -487,7 +501,7 @@ namespace KMLib.GPU.Solvers
                     DoBBstep(-lambda,sub_prob);
 
                     //compute Obj
-                    obj = ComputeObjGPU();
+                    obj = ComputeObjGPU(wTempVecPtr,alphaTmpPtr);
 
                     //compute linpart
                     float linPart = ComputeLinPart(gamma,lambda); //* (alpha_tmp-alpha)'*grad
@@ -525,6 +539,8 @@ namespace KMLib.GPU.Solvers
             }
         }
 
+        
+
 
         /// <summary>
         /// Do BB step, updates alpha and "w" vector
@@ -534,7 +550,7 @@ namespace KMLib.GPU.Solvers
         private void DoBBstep(float step, Problem<SparseVec> sub_prob)
         {
        
-            throw new NotImplementedException();
+           
 
             int blocks = (sub_prob.Elements.Length + threadsPerBlock - 1) / threadsPerBlock;
 
@@ -554,6 +570,14 @@ namespace KMLib.GPU.Solvers
             cuda.SetParameter(cuFuncUpdateAlpha, alphaParamOffsetInUpdateAlpha, alphaTmpPtr.Pointer);
             cuda.Launch(cuFuncUpdateAlpha, blocks, 1);
 
+            float[] updatedAlpha = new float[sub_prob.ElementsCount];
+            cuda.CopyDeviceToHost(alphaTmpPtr, updatedAlpha);
+            
+            float[] updatedDeltas = new float[sub_prob.ElementsCount];
+            cuda.CopyDeviceToHost(deltasPtr, updatedDeltas);
+
+
+
             /*
              * Update w - based on aplha deltas
              * 
@@ -561,17 +585,37 @@ namespace KMLib.GPU.Solvers
             int bpgUpdateW = (sub_prob.Elements[0].Dim + threadsPerBlock - 1) / threadsPerBlock;
 
             cuda.CopyDeviceToDevice(wVecPtr, wTempVecPtr, wVecMemSize);
+            cuda.SetParameter(cuFuncUpdateW, wVecParamOffsetInUpdateW, wTempVecPtr.Pointer);
+
             cuda.Launch(cuFuncUpdateW, bpgUpdateW, 1);
 
+            float[] wTest = new float[sub_prob.FeaturesCount];
+            cuda.CopyDeviceToHost(wTempVecPtr, wTest);
 
         }
 
-        private float ComputeLinPart(double gamma, double lambda)
+        private float ComputeLinPart(float gamma, float lambda)
         {
             throw new NotImplementedException();
 
+            int bpgLinPart = -1;
 
-            cuda.SetParameter(cuFunc )
+            cuda.SetParameter(cuFuncLinPart, alphaParamOffsetInLinPart, alphaPtr.Pointer);
+            cuda.SetParameter(cuFuncLinPart, alphaOldParamOffsetInLinPart, alphaOldPtr.Pointer);
+            cuda.SetParameter(cuFuncLinPart, gradParamOffsetInLinPart, gradPtr.Pointer);
+
+            cuda.Launch(cuFuncLinPart, bpgLinPart, 1);
+
+            cuda.CopyDeviceToHost(reduceLinPartPtr,reduceLinPart);
+            float val = 0;
+            for (int k = 0; k < reduceLinPart.Length; k++)
+            {
+                val += reduceLinPart[k];
+            }
+
+            val = gamma * lambda * val;
+
+            return val;
         }
 
 
@@ -579,25 +623,31 @@ namespace KMLib.GPU.Solvers
         /// compute objective value on GPU
         /// </summary>
         /// <returns></returns>
-        private float ComputeObjGPU()
+        private float ComputeObjGPU(CUdeviceptr wGPUPtr, CUdeviceptr alphaGPUPtr)
         {
-            int bpgReduceObj = -1;
-            int bpgReduceAlphaObj = -1;
+          
             /*
              * compute w'*w
+             * 
+             * wTempVecPtr has computed value
              */
-            cuda.SetParameter(cuFuncObjSquareW, wVecParamOffsetInObjSquareW, wVecPtr.Pointer);
-            cuda.Launch(cuFuncObjSquareW, bpgReduceObj, 1);
+            cuda.SetParameter(cuFuncObjSquareW, wVecParamOffsetInObjSquareW, wGPUPtr.Pointer);
+            cuda.Launch(cuFuncObjSquareW, bpgReduceW, 1);
+
+            //todo: remove it?
+            cuda.SynchronizeContext();
 
             cuda.CopyDeviceToHost(reduceObjWPtr, reduceObjW);
 
             /*
              * compute alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
              */
-            cuda.SetParameter(cuFuncObjSquareAlpha, alphaParamOffsetInObjSquareAlpha, alphaPtr.Pointer);
-            cuda.Launch(cuFuncObjSquareAlpha, bpgReduceAlphaObj, 1);
+            cuda.SetParameter(cuFuncObjSquareAlpha, alphaParamOffsetInObjSquareAlpha, alphaGPUPtr.Pointer);
+            cuda.Launch(cuFuncObjSquareAlpha, bpgReduceAlpha, 1);
 
             cuda.CopyDeviceToHost(reduceObjAlphaPtr, reduceObjAlpha);
+
+            //cuda.SynchronizeContext();
 
             /*
              * Do reduction on CPU
@@ -635,9 +685,7 @@ namespace KMLib.GPU.Solvers
             cuda.Launch(cuFuncComputeBBstep, bpgBBstep, 1);
 
 
-            float[] alphaPartReduce = new float[bpgBBstep];
-            float[] gradPartReduce = new float[bpgBBstep];
-            float[] alphaGradPartReduce = new float[bpgBBstep];
+           
             //copy from device partial reduce sums
             cuda.CopyDeviceToHost(reduceBBAlphaPtr, alphaPartReduce);
             cuda.CopyDeviceToHost(reduceBBGradPtr, gradPartReduce);
@@ -678,7 +726,6 @@ namespace KMLib.GPU.Solvers
         /// <param name="sub_prob"></param>
         private void ComputeGradient(Problem<SparseVec> sub_prob)
         {
-            throw new NotImplementedException();
 
             //blocks per Grid for compuing dot prod
             int bpgDotProd = (sub_prob.Elements.Length + threadsPerBlock - 1) / threadsPerBlock;
@@ -689,14 +736,30 @@ namespace KMLib.GPU.Solvers
             gradOldPtr.Pointer =  gradPtr.Pointer;
             gradPtr.Pointer = gradTmpPtr;
 
+            /*
+             * set params for DotProd
+             */ 
             cuda.SetParameter(cuFuncDotProd, gradParamOffsetInCudaDotProd, gradPtr.Pointer);
-
             //set wVec tex ref
             cuda.SetTextureAddress(cuWVecTexRef, wVecPtr, wVecMemSize);
+            /*
+             * Set param for GradFinalize
+             */ 
+            cuda.SetParameter(cuFuncGradFinalize, gradParamOffsetInGradFinalize, gradPtr.Pointer);
+            cuda.SetParameter(cuFuncGradFinalize, alphaParamOffsetInGradFinalize, alphaPtr.Pointer);
 
             cuda.Launch(cuFuncDotProd, bpgDotProd, 1);
-            
+
+
+            cuda.SynchronizeContext();
+            float[] testGrad = new float[sub_prob.ElementsCount];
+            cuda.CopyDeviceToHost(gradPtr, testGrad);
+
             cuda.Launch(cuFuncGradFinalize, bpgGradFin, 1);
+
+            cuda.SynchronizeContext();
+            float[] testGrad2 = new float[sub_prob.ElementsCount];
+            cuda.CopyDeviceToHost(gradPtr, testGrad2);
 
             cuda.SynchronizeContext();
 
@@ -704,7 +767,7 @@ namespace KMLib.GPU.Solvers
 
         private void SetCudaData(Problem<SparseVec> sub_prob)
         {
-            int vecDim = sub_prob.Elements[0].Dim;
+            int vecDim = sub_prob.FeaturesCount;//.Elements[0].Dim;
 
             /* 
              * copy vectors to CUDA device
@@ -735,18 +798,60 @@ namespace KMLib.GPU.Solvers
             gradPtr = cuda.Allocate(alphaMemSize);
             gradOldPtr = cuda.Allocate(alphaMemSize);
 
-
             alphaPtr = cuda.Allocate(alphaMemSize);
             alphaOldPtr = cuda.Allocate(alphaMemSize);
             alphaTmpPtr = cuda.Allocate(alphaMemSize);
 
-            uint wReductionBlocks = 0;
-            reduceObjW = new float[wReductionBlocks];
-            reduceObjWPtr = cuda.Allocate(wReductionBlocks);
 
-            uint alphaReductionBlocks = 0;
-            reduceObjAlpha = new float[alphaReductionBlocks];
-            reduceObjAlphaPtr = cuda.Allocate(alphaReductionBlocks);
+            /*
+             * reduction blocks for computing Obj
+             */
+
+           
+
+
+            GetNumThreadsAndBlocks(vecDim, 64, threadsPerBlock, ref threadsForReduceObjW, ref bpgReduceW);
+
+            reduceObjW = new float[bpgReduceW];
+            uint reduceWBytes =(uint) bpgReduceW * sizeof(float);
+            reduceObjWPtr = cuda.Allocate(reduceWBytes);
+
+            /* 
+             * reduction size for kernels which operate on alpha
+             */ 
+            int reductionSize = problem.ElementsCount;
+            threadsForReduceObjAlpha = 0;
+
+            GetNumThreadsAndBlocks(problem.ElementsCount, 64, threadsPerBlock, ref threadsForReduceObjAlpha, ref bpgReduceAlpha);
+
+            uint alphaReductionBytes =(uint)bpgReduceAlpha*sizeof(float);
+            
+            /*
+             * reduction array for computing objective function value
+             */
+
+            reduceObjAlpha = new float[bpgReduceAlpha];
+            reduceObjAlphaPtr = cuda.Allocate(alphaReductionBytes);
+
+
+            /*
+             * reduction arrays for computing BB step
+             */
+            alphaPartReduce = new float[bpgReduceAlpha];
+            gradPartReduce = new float[bpgReduceAlpha];
+            alphaGradPartReduce = new float[bpgReduceAlpha];
+
+            reduceBBAlphaGradPtr = cuda.Allocate(alphaReductionBytes);
+            reduceBBAlphaPtr = cuda.Allocate(alphaReductionBytes);
+            reduceBBGradPtr = cuda.Allocate(alphaReductionBytes);
+
+            /*
+             * reduction arrays for comuting lin part
+             */
+            reduceLinPart = new float[bpgReduceAlpha];
+            reduceLinPartPtr = cuda.Allocate(alphaReductionBytes);
+
+            
 
             //float[] wVec = new float[vecDim];
             wVecMemSize = (uint)vecDim * sizeof(float);
@@ -770,6 +875,8 @@ namespace KMLib.GPU.Solvers
             SetCudaParameters(sub_prob);
 
         }
+
+       
 
         private void SetCudaParameters(Problem<SparseVec> sub_prob)
         {
@@ -889,7 +996,7 @@ namespace KMLib.GPU.Solvers
             /*
              * Set parameters for computing alpha square
              */ 
-            cuda.SetFunctionBlockShape(cuFuncObjSquareAlpha, threadsPerBlock, 1, 1);
+            cuda.SetFunctionBlockShape(cuFuncObjSquareAlpha, threadsForReduceObjAlpha, 1, 1);
             offset = 0;
             alphaParamOffsetInObjSquareAlpha = offset;
             cuda.SetParameter(cuFuncObjSquareAlpha, offset, alphaPtr.Pointer);
@@ -900,10 +1007,15 @@ namespace KMLib.GPU.Solvers
             offset += sizeof(int);
             cuda.SetParameterSize(cuFuncObjSquareAlpha, (uint)offset);
 
-            
-            
 
-            cuda.SetFunctionBlockShape(cuFuncObjSquareW, threadsPerBlock, 1, 1);
+
+            /*
+            * Set parameters for computing "w" square
+            */
+            //threads = (n < maxThreads * 2) ? nextPow2((n + 1) / 2) : maxThreads;
+
+            
+            cuda.SetFunctionBlockShape(cuFuncObjSquareW, threadsForReduceObjW, 1, 1);
             offset = 0;
             wVecParamOffsetInObjSquareW = offset;
             cuda.SetParameter(cuFuncObjSquareW, offset, wVecPtr.Pointer);
@@ -931,7 +1043,7 @@ namespace KMLib.GPU.Solvers
             cuda.SetParameter(cuFuncLinPart, offset, gradPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFuncLinPart, offset, reduceObjAlphaPtr.Pointer);
+            cuda.SetParameter(cuFuncLinPart, offset, reduceLinPartPtr.Pointer);
             offset += IntPtr.Size;
 
             cuda.SetParameter(cuFuncLinPart, offset, (uint)sub_prob.ElementsCount);
@@ -1040,10 +1152,32 @@ namespace KMLib.GPU.Solvers
             float[] diag = new float[] { (float)(0.5 / Cn), 0, (float)(0.5 / Cp) };
 
             cuda.CopyHostToDevice(diagPtr, diag);
+        }
+        private void GetNumThreadsAndBlocks(int size, int maxBlock, int maxThreadsPerBlock, ref int threads, ref int blocks)
+        {
 
-            //cuda.CopyHostToDevice(mainVecPtr, w);
+            //threads = (n < maxThreads * 2) ? nextPow2((n + 1) / 2) : maxThreads;
+            //blocks = (n + (threads * 2 - 1)) / (threads * 2);
+            //blocks = MIN(maxBlocks, blocks);
+            threads = (size < 2 * maxThreadsPerBlock) ? nextPow2((size + 1) / 2) : maxThreadsPerBlock;
+
+            blocks = (size + (threads * 2 - 1)) / (threads * 2);
+            blocks = Math.Min(blocks, maxBlock);
         }
 
+        private int nextPow2(int x)
+        {
+            if (x < 0)
+                throw new ArgumentException("x should be grateher than 0");
+
+            --x;
+            x |= x >> 1;
+            x |= x >> 2;
+            x |= x >> 4;
+            x |= x >> 8;
+            x |= x >> 16;
+            return ++x;
+        }
 
         private void DisposeCuda()
         {
