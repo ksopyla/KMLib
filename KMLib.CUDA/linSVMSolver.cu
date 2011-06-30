@@ -296,16 +296,80 @@ extern "C" __global__ void VectorSquareW(float * w, float* reducted, const int n
 
 
 /*
-	Computes vector square norm using parallel reduction
+	Computes alpha square part in computing value for objective function using parallel reduction
 
 	This kernel is needed for computing objective function value
 	obj =0.5*[ w*w+ alpha'*(C*alpha-2)]
-	and compute firs part w*w
+	and compute second part alpha'*(C*alpha-2)
 
 */
-extern "C" __global__ void VectorSquareAlpha(float * alpha,float* reducted, const int size)
+extern "C" __global__ void VectorSquareAlpha(float * alpha,float* reducted, const int n)
 {
 
+__shared__ float sdata[BLOCK_SIZE + 16];        
+	
+
+// perform first level of reduction,
+    // reading from global memory, writing to shared memory
+    unsigned int tid = threadIdx.x;
+    //unsigned int i = blockIdx.x*BLOCK_SIZE*2 + threadIdx.x;
+    //unsigned int gridSize = BLOCK_SIZE*2*gridDim.x;
+
+	unsigned int blockSize = blockDim.x;
+	unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
+    unsigned int gridSize = blockDim.x*2*gridDim.x;
+    
+    float mySum = 0;
+
+    // we reduce multiple elements per thread.  The number is determined by the 
+    // number of active thread blocks (via gridDim).  More blocks will result
+    // in a larger gridSize and therefore fewer elements per thread
+    float alhpa_i=0;
+	float yi=0;
+	while (i < n)
+    {   
+		alhpa_i = alpha[i];
+		yi = tex1Dfetch(labelsTexRef,i);
+      
+        mySum += alhpa_i*(alhpa_i* diag_shift[(int)yi+1]-2);
+        // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
+        if (i + blockSize < n) {
+            alhpa_i = alpha[i+blockSize];
+			yi = tex1Dfetch(labelsTexRef,i+blockSize);      
+			mySum += alhpa_i*(alhpa_i* diag_shift[(int)yi+1]-2);
+		}
+        i += gridSize;
+    } 
+
+    // each thread puts its local sum into shared memory 
+    sdata[tid] = mySum;
+    __syncthreads();
+
+
+    // do reduction in shared mem
+    if (blockSize >= 512) { if (tid < 256) { sdata[tid] = mySum = mySum + sdata[tid + 256]; } __syncthreads(); }
+    if (blockSize >= 256) { if (tid < 128) { sdata[tid] = mySum = mySum + sdata[tid + 128]; } __syncthreads(); }
+    if (blockSize >= 128) { if (tid <  64) { sdata[tid] = mySum = mySum + sdata[tid +  64]; } __syncthreads(); }
+    
+#ifndef __DEVICE_EMULATION__
+    if (tid < 32)
+#endif
+    {
+        // now that we are using warp-synchronous programming (below)
+        // we need to declare our shared memory volatile so that the compiler
+        // doesn't reorder stores to it and induce incorrect behavior.
+        volatile float* smem = sdata;
+        if (blockSize >=  64) { smem[tid] = mySum = mySum + smem[tid + 32]; __syncthreads(); }
+        if (blockSize >=  32) { smem[tid] = mySum = mySum + smem[tid + 16]; __syncthreads(); }
+        if (blockSize >=  16) { smem[tid] = mySum = mySum + smem[tid +  8]; __syncthreads(); }
+        if (blockSize >=   8) { smem[tid] = mySum = mySum + smem[tid +  4]; __syncthreads(); }
+        if (blockSize >=   4) { smem[tid] = mySum = mySum + smem[tid +  2]; __syncthreads(); }
+        if (blockSize >=   2) { smem[tid] = mySum = mySum + smem[tid +  1]; __syncthreads(); }
+    }
+    
+    // write result for this block to global mem 
+    if (tid == 0) 
+        reducted[blockIdx.x] = sdata[0];
 
 	
 }
