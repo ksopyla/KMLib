@@ -374,10 +374,86 @@ __shared__ float sdata[BLOCK_SIZE + 16];
 	
 }
 
-extern "C" __global__ void ComputeLinPart(float * alpha,float* alphaOld,float* grad, float* reducted, const int size)
+/*
+	Computes lin part in constraint for nonemonotonous line search
+	
+	do
+	 (alphaNew-alphaOld)*grad
+	Partial reduction sums are stored in reducted array, final reduction is performed on CPU
+
+*/
+extern "C" __global__ void ComputeLinPart(float * alphaNew,float* alphaOld,float* grad, float* reducted, const int n)
 {
 
+	__shared__ float sdata[BLOCK_SIZE + 16];        
+	
 
+// perform first level of reduction,
+    // reading from global memory, writing to shared memory
+    unsigned int tid = threadIdx.x;
+    //unsigned int i = blockIdx.x*BLOCK_SIZE*2 + threadIdx.x;
+    //unsigned int gridSize = BLOCK_SIZE*2*gridDim.x;
+
+	unsigned int blockSize = blockDim.x;
+	unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
+    unsigned int gridSize = blockDim.x*2*gridDim.x;
+    
+    float mySum = 0;
+
+    // we reduce multiple elements per thread.  The number is determined by the 
+    // number of active thread blocks (via gridDim).  More blocks will result
+    // in a larger gridSize and therefore fewer elements per thread
+    float alphaNew_i=0;
+	float alphaOld_i=0;
+	float grad_i=0;
+		
+
+	while (i < n)
+    {   
+		alphaNew_i = alphaNew[i];
+		alphaOld_i = alphaOld[i];
+		grad_i = grad[i];
+      
+        mySum += (alphaNew_i-alphaOld_i)*grad_i;
+        // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
+        if (i + blockSize < n) {
+            alphaNew_i = alphaNew[i+ blockSize];
+			alphaOld_i = alphaOld[i+ blockSize];
+			grad_i = grad[i+ blockSize];      
+			mySum += (alphaNew_i-alphaOld_i)*grad_i;
+		}
+        i += gridSize;
+    } 
+
+    // each thread puts its local sum into shared memory 
+    sdata[tid] = mySum;
+    __syncthreads();
+
+
+    // do reduction in shared mem
+    if (blockSize >= 512) { if (tid < 256) { sdata[tid] = mySum = mySum + sdata[tid + 256]; } __syncthreads(); }
+    if (blockSize >= 256) { if (tid < 128) { sdata[tid] = mySum = mySum + sdata[tid + 128]; } __syncthreads(); }
+    if (blockSize >= 128) { if (tid <  64) { sdata[tid] = mySum = mySum + sdata[tid +  64]; } __syncthreads(); }
+    
+#ifndef __DEVICE_EMULATION__
+    if (tid < 32)
+#endif
+    {
+        // now that we are using warp-synchronous programming (below)
+        // we need to declare our shared memory volatile so that the compiler
+        // doesn't reorder stores to it and induce incorrect behavior.
+        volatile float* smem = sdata;
+        if (blockSize >=  64) { smem[tid] = mySum = mySum + smem[tid + 32]; __syncthreads(); }
+        if (blockSize >=  32) { smem[tid] = mySum = mySum + smem[tid + 16]; __syncthreads(); }
+        if (blockSize >=  16) { smem[tid] = mySum = mySum + smem[tid +  8]; __syncthreads(); }
+        if (blockSize >=   8) { smem[tid] = mySum = mySum + smem[tid +  4]; __syncthreads(); }
+        if (blockSize >=   4) { smem[tid] = mySum = mySum + smem[tid +  2]; __syncthreads(); }
+        if (blockSize >=   2) { smem[tid] = mySum = mySum + smem[tid +  1]; __syncthreads(); }
+    }
+    
+    // write result for this block to global mem 
+    if (tid == 0) 
+        reducted[blockIdx.x] = sdata[0];
 	
 }
 
@@ -388,17 +464,155 @@ extern "C" __global__ void ComputeLinPart(float * alpha,float* alphaOld,float* g
 	step1 = (x_new-x_old)'*(x_new-x_old)/ (x_new-x_old)'*(grad_new - grad_old)
 	step2 = (grad_new - grad_old)'*(grad_new - grad_old)/ (x_new-x_old)'*(grad_new - grad_old)
 */
- extern "C" __global__ void ComputeBBSteps(const float * alpha, 
-											const float* alpha_old,
-											const float* grad,
+ extern "C" __global__ void ComputeBBSteps(const float * x_new, 
+											const float* x_old,
+											const float* grad_new,
 											const float* grad_old,
-											float* reductedAlphaPart,
-											float* reductedGradPart,
-											float* reductedAlphaGradPart,
-											const int size)
+											float* reductedXXPart,
+											float* reductedGGPart,
+											float* reductedXGPart,
+											const int n)
 {
 
+//shared mem for (x_new-x_old part)*(x_new-x_old) part
+__shared__ float smXX[BLOCK_SIZE + 16];        
+//shared mem for (grad_new-grad_old)*(grad_new-grad_old) part
+__shared__ float smGG[BLOCK_SIZE + 16];        
+//shared mem for (x_new-x_old part)*(grad_new-grad_old) part
+__shared__ float smXG[BLOCK_SIZE + 16];        
+	
 
+// perform first level of reduction,
+    // reading from global memory, writing to shared memory
+    unsigned int tid = threadIdx.x;
+    //unsigned int i = blockIdx.x*BLOCK_SIZE*2 + threadIdx.x;
+    //unsigned int gridSize = BLOCK_SIZE*2*gridDim.x;
+
+	unsigned int blockSize = blockDim.x;
+	unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
+    unsigned int gridSize = blockDim.x*2*gridDim.x;
+    
+    float xxPart = 0;
+	float ggPart = 0;
+	float xgPart = 0;
+
+    // we reduce multiple elements per thread.  The number is determined by the 
+    // number of active thread blocks (via gridDim).  More blocks will result
+    // in a larger gridSize and therefore fewer elements per thread
+    float xi=0;
+	float gi=0;
+		
+
+	while (i < n)
+    {   
+		xi= x_new[i]-x_old[i];
+		gi= grad_new[i]-grad_old[i];
+		
+		xxPart+= xi*xi;
+		xgPart+= xi*gi;
+		ggPart+= gi*gi;      
+        
+        // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
+        if (i + blockSize < n) {
+            xi= x_new[i+ blockSize]-x_old[i+ blockSize];
+			gi= grad_new[i+ blockSize]-grad_old[i+ blockSize];
+		
+			xxPart+= xi*xi;
+			xgPart+= xi*gi;
+			ggPart+= gi*gi;   
+		}
+        i += gridSize;
+    } 
+
+    // each thread puts its local sum into shared memory 
+    smXX[tid] = xxPart;
+	smXG[tid] = xgPart;
+	smGG[tid] = ggPart;
+    __syncthreads();
+
+
+    // do reduction in shared mem
+    if (blockSize >= 512) { if (tid < 256) { 
+		//sdata[tid] = mySum = mySum + sdata[tid + 256]; 
+		smXX[tid]= xxPart = xxPart+ smXX[tid+256];
+		smXG[tid]= xgPart = xgPart+ smXG[tid+256];
+		smGG[tid]= ggPart = ggPart+ smGG[tid+256];
+		} __syncthreads(); }
+    if (blockSize >= 256) { if (tid < 128) { 
+		//sdata[tid] = mySum = mySum + sdata[tid + 128]; 
+		smXX[tid]= xxPart = xxPart+ smXX[tid+128];
+		smXG[tid]= xgPart = xgPart+ smXG[tid+128];
+		smGG[tid]= ggPart = ggPart+ smGG[tid+128];
+
+		} __syncthreads(); }
+    if (blockSize >= 128) { if (tid <  64) { 
+		//sdata[tid] = mySum = mySum + sdata[tid +  64]; 
+		smXX[tid]= xxPart = xxPart+ smXX[tid+64];
+		smXG[tid]= xgPart = xgPart+ smXG[tid+64];
+		smGG[tid]= ggPart = ggPart+ smGG[tid+64];
+
+		} __syncthreads(); }
+    
+#ifndef __DEVICE_EMULATION__
+    if (tid < 32)
+#endif
+    {
+        // now that we are using warp-synchronous programming (below)
+        // we need to declare our shared memory volatile so that the compiler
+        // doesn't reorder stores to it and induce incorrect behavior.
+        volatile float* smPtrXX = smXX;
+		volatile float* smPtrXG = smXG;
+		volatile float* smPtrGG = smGG;
+        if (blockSize >=  64) { 
+			//smem[tid] = mySum = mySum + smem[tid + 32];
+			smPtrXX[tid]= xxPart = xxPart+ smPtrXX[tid+32];
+			smPtrXG[tid]= xgPart = xgPart+ smPtrXG[tid+32];
+			smPtrGG[tid]= ggPart = ggPart+ smPtrGG[tid+32];
+			 __syncthreads(); }
+        if (blockSize >=  32) { 
+			//smem[tid] = mySum = mySum + smem[tid + 16]; 
+			smPtrXX[tid]= xxPart = xxPart+ smPtrXX[tid+16];
+			smPtrXG[tid]= xgPart = xgPart+ smPtrXG[tid+16];
+			smPtrGG[tid]= ggPart = ggPart+ smPtrGG[tid+16];
+
+			__syncthreads(); }
+        if (blockSize >=  16) { 
+			//smem[tid] = mySum = mySum + smem[tid +  8]; 
+			smPtrXX[tid]= xxPart = xxPart+ smPtrXX[tid+8];
+			smPtrXG[tid]= xgPart = xgPart+ smPtrXG[tid+8];
+			smPtrGG[tid]= ggPart = ggPart+ smPtrGG[tid+8];
+
+			__syncthreads(); }
+        if (blockSize >=   8) { 
+			//smem[tid] = mySum = mySum + smem[tid +  4]; 
+			smPtrXX[tid]= xxPart = xxPart+ smPtrXX[tid+4];
+			smPtrXG[tid]= xgPart = xgPart+ smPtrXG[tid+4];
+			smPtrGG[tid]= ggPart = ggPart+ smPtrGG[tid+4];
+
+			__syncthreads(); }
+        if (blockSize >=   4) { 
+			//smem[tid] = mySum = mySum + smem[tid +  2]; 
+			smPtrXX[tid]= xxPart = xxPart+ smPtrXX[tid+2];
+			smPtrXG[tid]= xgPart = xgPart+ smPtrXG[tid+2];
+			smPtrGG[tid]= ggPart = ggPart+ smPtrGG[tid+2];
+			
+			__syncthreads(); }
+        if (blockSize >=   2) { 
+			//smem[tid] = mySum = mySum + smem[tid +  1]; 
+			smPtrXX[tid]= xxPart = xxPart+ smPtrXX[tid+1];
+			smPtrXG[tid]= xgPart = xgPart+ smPtrXG[tid+1];
+			smPtrGG[tid]= ggPart = ggPart+ smPtrGG[tid+1];
+			
+			__syncthreads(); }
+    }
+    
+    // write result for this block to global mem 
+    if (tid == 0) {
+        //reducted[blockIdx.x] = sdata[0];
+		reductedXXPart[blockIdx.x] = smXX[0];
+		reductedGGPart[blockIdx.x] = smGG[0];
+		reductedXGPart[blockIdx.x] = smXG[0];
+	}
 	
 }
 

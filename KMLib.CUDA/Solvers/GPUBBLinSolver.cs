@@ -305,6 +305,8 @@ namespace KMLib.GPU.Solvers
         private int bpgReduceAlpha;
         private int threadsForReduceObjW;
         private int threadsForReduceObjAlpha;
+        private int iter;
+       
         
         
 
@@ -485,7 +487,7 @@ namespace KMLib.GPU.Solvers
             float maxFuncVal = 0;
 
             int maxIter = 20000;
-            int iter = 0;
+            iter = 0;
 
             ComputeGradient(sub_prob);
 
@@ -517,15 +519,15 @@ namespace KMLib.GPU.Solvers
                 }
 
                 //change alpha's pointers
-                //tmpPtr = alphaOldPtr;
-                //alphaOldPtr = alphaPtr;
-                //alphaPtr = alphaTmpPtr;
+                //var tmpPtr = alphaOldPtr;
+                alphaOldPtr.Pointer = alphaPtr.Pointer;
+                alphaPtr.Pointer = alphaTmpPtr.Pointer;
                 //alphaTmpPtr = tmpPtr;
 
                 //change w - pointers
-                //tempPtr= w
-                //w = w_tmp
-                //w_tmp = w
+                var tempPtr= wVecPtr.Pointer;
+                wVecPtr.Pointer = wTempVecPtr.Pointer;
+                wTempVecPtr.Pointer = tempPtr;
 
                 //change gradients
                 //gradOldPtr = grad
@@ -545,13 +547,16 @@ namespace KMLib.GPU.Solvers
         /// <summary>
         /// Do BB step, updates alpha and "w" vector
         /// </summary>
+        /// <remarks>
+        /// This method has many side effects:
+        /// 1. copies data on device from alphaPtr to alphaTmpPtr
+        /// 2. sets values in deltas array, which are differences between new alpha and old alphas
+        /// 3. alphaTmpPtr stores new updated alphas
+        /// </remarks>
         /// <param name="step"></param>
         /// <param name="sub_prob"></param>
         private void DoBBstep(float step, Problem<SparseVec> sub_prob)
         {
-       
-           
-
             int blocks = (sub_prob.Elements.Length + threadsPerBlock - 1) / threadsPerBlock;
 
             /*
@@ -570,13 +575,11 @@ namespace KMLib.GPU.Solvers
             cuda.SetParameter(cuFuncUpdateAlpha, alphaParamOffsetInUpdateAlpha, alphaTmpPtr.Pointer);
             cuda.Launch(cuFuncUpdateAlpha, blocks, 1);
 
-            float[] updatedAlpha = new float[sub_prob.ElementsCount];
-            cuda.CopyDeviceToHost(alphaTmpPtr, updatedAlpha);
+            //float[] updatedAlpha = new float[sub_prob.ElementsCount];
+            //cuda.CopyDeviceToHost(alphaTmpPtr, updatedAlpha);
             
-            float[] updatedDeltas = new float[sub_prob.ElementsCount];
-            cuda.CopyDeviceToHost(deltasPtr, updatedDeltas);
-
-
+            //float[] updatedDeltas = new float[sub_prob.ElementsCount];
+            //cuda.CopyDeviceToHost(deltasPtr, updatedDeltas);
 
             /*
              * Update w - based on aplha deltas
@@ -589,22 +592,29 @@ namespace KMLib.GPU.Solvers
 
             cuda.Launch(cuFuncUpdateW, bpgUpdateW, 1);
 
-            float[] wTest = new float[sub_prob.FeaturesCount];
-            cuda.CopyDeviceToHost(wTempVecPtr, wTest);
+            //float[] wTest = new float[sub_prob.FeaturesCount];
+            //cuda.CopyDeviceToHost(wTempVecPtr, wTest);
 
         }
 
+
+
+        /// <summary>
+        /// Computes constraints for nonmonotonus line search
+        /// 
+        ///  lambda*gamma* (alpha_new-alpha_old)*grad
+        ///  
+        /// </summary>
+        /// <param name="gamma"></param>
+        /// <param name="lambda"></param>
+        /// <returns></returns>
         private float ComputeLinPart(float gamma, float lambda)
         {
-            throw new NotImplementedException();
-
-            int bpgLinPart = -1;
-
-            cuda.SetParameter(cuFuncLinPart, alphaParamOffsetInLinPart, alphaPtr.Pointer);
-            cuda.SetParameter(cuFuncLinPart, alphaOldParamOffsetInLinPart, alphaOldPtr.Pointer);
+            cuda.SetParameter(cuFuncLinPart, alphaParamOffsetInLinPart, alphaTmpPtr.Pointer);
+            cuda.SetParameter(cuFuncLinPart, alphaOldParamOffsetInLinPart, alphaPtr.Pointer);
             cuda.SetParameter(cuFuncLinPart, gradParamOffsetInLinPart, gradPtr.Pointer);
 
-            cuda.Launch(cuFuncLinPart, bpgLinPart, 1);
+            cuda.Launch(cuFuncLinPart, bpgReduceAlpha, 1);
 
             cuda.CopyDeviceToHost(reduceLinPartPtr,reduceLinPart);
             float val = 0;
@@ -613,7 +623,9 @@ namespace KMLib.GPU.Solvers
                 val += reduceLinPart[k];
             }
 
-            val = gamma * lambda * val;
+            val = gamma *  val;
+
+            //val = gamma * lambda * val;
 
             return val;
         }
@@ -622,6 +634,13 @@ namespace KMLib.GPU.Solvers
         /// <summary>
         /// compute objective value on GPU
         /// </summary>
+        /// <remarks>
+        /// Do parallel reduction twice, ones for comuting square of "w" vector elements and second for
+        /// computing "alpha part" in equation for objective function value
+        /// Final reducion is on CPU.
+        /// Cuda kernels used by this method needs alternate threads per block and blocks per grid,
+        /// it's computed in SetCudaData method
+        /// </remarks>
         /// <returns></returns>
         private float ComputeObjGPU(CUdeviceptr wGPUPtr, CUdeviceptr alphaGPUPtr)
         {
@@ -635,7 +654,7 @@ namespace KMLib.GPU.Solvers
             cuda.Launch(cuFuncObjSquareW, bpgReduceW, 1);
 
             //todo: remove it?
-            cuda.SynchronizeContext();
+            //cuda.SynchronizeContext();
 
             cuda.CopyDeviceToHost(reduceObjWPtr, reduceObjW);
 
@@ -672,9 +691,7 @@ namespace KMLib.GPU.Solvers
 
         private float ComputeBBStep()
         {
-            throw new NotImplementedException();
-
-            int bpgBBstep =0;
+            
 
             cuda.SetParameter(cuFuncComputeBBstep, alphaParamOffsetInBBStep, alphaPtr.Pointer);
             cuda.SetParameter(cuFuncComputeBBstep, alphaOldParamOffsetInBBStep, alphaOldPtr.Pointer);
@@ -682,7 +699,7 @@ namespace KMLib.GPU.Solvers
             cuda.SetParameter(cuFuncComputeBBstep, gradOldParamOffsetInBBStep, gradOldPtr.Pointer);
 
             //partial reduction on CPU
-            cuda.Launch(cuFuncComputeBBstep, bpgBBstep, 1);
+            cuda.Launch(cuFuncComputeBBstep, bpgReduceAlpha, 1);
 
 
            
@@ -696,7 +713,7 @@ namespace KMLib.GPU.Solvers
             float alphaPart = 0, gradPart = 0, alphaGradPart = 0;
             
             //final reduction on CPU
-            for (int i = 0; i < bpgBBstep; i++)
+            for (int i = 0; i < bpgReduceAlpha; i++)
             {
                 alphaPart += alphaPartReduce[i];
                 gradPart += gradPartReduce[i];
@@ -707,13 +724,19 @@ namespace KMLib.GPU.Solvers
             float step2 = alphaGradPart / gradPart;
 
             float step = step1;
-            
+
+           
+            //todo: try different schemes for choosing step
+            if (iter  % 2 == 0)
+            {
+                step = step2;
+            }
             //random step works better then modulo step (alternating iter%2)
 
             double rndProb = rnd.NextDouble();
             if (rndProb > 0.5f)
             {
-                step = step2;
+               // step = step2;
             }
 
 
@@ -751,15 +774,15 @@ namespace KMLib.GPU.Solvers
             cuda.Launch(cuFuncDotProd, bpgDotProd, 1);
 
 
-            cuda.SynchronizeContext();
-            float[] testGrad = new float[sub_prob.ElementsCount];
-            cuda.CopyDeviceToHost(gradPtr, testGrad);
+            //cuda.SynchronizeContext();
+           // float[] testGrad = new float[sub_prob.ElementsCount];
+           // cuda.CopyDeviceToHost(gradPtr, testGrad);
 
             cuda.Launch(cuFuncGradFinalize, bpgGradFin, 1);
 
-            cuda.SynchronizeContext();
-            float[] testGrad2 = new float[sub_prob.ElementsCount];
-            cuda.CopyDeviceToHost(gradPtr, testGrad2);
+           // cuda.SynchronizeContext();
+           // float[] testGrad2 = new float[sub_prob.ElementsCount];
+           // cuda.CopyDeviceToHost(gradPtr, testGrad2);
 
             cuda.SynchronizeContext();
 
@@ -958,7 +981,7 @@ namespace KMLib.GPU.Solvers
             /********************/
             #region Set cuda function param for comuting BB step
 
-            cuda.SetFunctionBlockShape(cuFuncComputeBBstep, threadsPerBlock, 1, 1);
+            cuda.SetFunctionBlockShape(cuFuncComputeBBstep, threadsForReduceObjAlpha, 1, 1);
             offset = 0;
             alphaParamOffsetInBBStep = offset;
             cuda.SetParameter(cuFuncComputeBBstep, offset, alphaPtr.Pointer);
@@ -1031,7 +1054,7 @@ namespace KMLib.GPU.Solvers
 
             #region set function parameters for computing lin part in nonemonotonus line search
 
-            cuda.SetFunctionBlockShape(cuFuncLinPart, threadsPerBlock, 1, 1);
+            cuda.SetFunctionBlockShape(cuFuncLinPart, threadsForReduceObjAlpha, 1, 1);
             offset = 0;
             alphaParamOffsetInLinPart = offset;
             cuda.SetParameter(cuFuncLinPart, offset, alphaPtr.Pointer);
