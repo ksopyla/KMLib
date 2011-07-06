@@ -15,11 +15,11 @@ namespace KMLib.GPU.Solvers
 
 
     /// <summary>
-    /// Solver for linear SVM, use Barzilai-Borwein formula for computing optimialization step 
+    /// Solver for linear SVM, use nonemonotonus line search with Barzilai-Borwein formula for computing optimialization step 
     /// version for computing on CUDA devices
     /// author: Krzysztof Sopyła (krzysztofsopyla@gmail.com)
     /// </summary>
-    public class GPUBBLinSolver : LinearSolver
+    public class GPUnmBBLinSolver : LinearSolver
     {
         #region cuda names
         /// <summary>
@@ -315,12 +315,12 @@ namespace KMLib.GPU.Solvers
         /// </summary>
         /// <param name="problem">trainning problem</param>
         /// <param name="C">penalty parameter</param>
-        public GPUBBLinSolver(Problem<SparseVec> problem, float C)
+        public GPUnmBBLinSolver(Problem<SparseVec> problem, float C)
             : base(problem, C)
         {
         }
 
-        public GPUBBLinSolver(Problem<SparseVec> problem, float C, int[] weightedLabels, double[] weights)
+        public GPUnmBBLinSolver(Problem<SparseVec> problem, float C, int[] weightedLabels, double[] weights)
             : base(problem, C, weightedLabels, weights)
         {
         }
@@ -412,8 +412,11 @@ namespace KMLib.GPU.Solvers
                 //Fill data on CUDA
                 FillDataOnCuda(sub_prob, w, weighted_C[0], weighted_C[1]);
 
+                Stopwatch solverTime = Stopwatch.StartNew();
                 solve_l2r_l2_bb_svc_cuda(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
                 //solve_l2r_l1l2_svc(model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
+                solverTime.Stop();
+                Console.WriteLine("------ solver time {0}", solverTime.Elapsed);
 
                 model.W = new double[w_size];
                 for (int s = 0; s < w.Length; s++)
@@ -486,7 +489,7 @@ namespace KMLib.GPU.Solvers
             float[] func_vals = new float[M];
             float maxFuncVal = 0;
 
-            int maxIter = 20000;
+            int maxIter = 600;
             iter = 0;
 
             ComputeGradient(sub_prob);
@@ -519,10 +522,10 @@ namespace KMLib.GPU.Solvers
                 }
 
                 //change alpha's pointers
-                //var tmpPtr = alphaOldPtr;
+                var tmpPtr = alphaOldPtr.Pointer;
                 alphaOldPtr.Pointer = alphaPtr.Pointer;
                 alphaPtr.Pointer = alphaTmpPtr.Pointer;
-                //alphaTmpPtr = tmpPtr;
+                alphaTmpPtr.Pointer = tmpPtr;
 
                 //change w - pointers
                 var tempPtr= wVecPtr.Pointer;
@@ -532,13 +535,21 @@ namespace KMLib.GPU.Solvers
                 //change gradients
                 //gradOldPtr = grad
                 //compute new grad
+                float gradNorm = float.PositiveInfinity;
                 ComputeGradient(sub_prob);
+                if (gradNorm < epsilon)
+                {
+                    break;
+                }
 
                 //compute BB step
                 step = ComputeBBStep();
 
                 iter++;
             }
+
+            cuda.CopyDeviceToHost(wVecPtr, w);
+            
         }
 
         
@@ -654,7 +665,7 @@ namespace KMLib.GPU.Solvers
             cuda.Launch(cuFuncObjSquareW, bpgReduceW, 1);
 
             //todo: remove it?
-            //cuda.SynchronizeContext();
+            cuda.SynchronizeContext();
 
             cuda.CopyDeviceToHost(reduceObjWPtr, reduceObjW);
 
@@ -666,7 +677,7 @@ namespace KMLib.GPU.Solvers
 
             cuda.CopyDeviceToHost(reduceObjAlphaPtr, reduceObjAlpha);
 
-            //cuda.SynchronizeContext();
+           // cuda.SynchronizeContext();
 
             /*
              * Do reduction on CPU
@@ -691,7 +702,13 @@ namespace KMLib.GPU.Solvers
 
         private float ComputeBBStep()
         {
-            
+            /*
+            float[] test1 = new float[problem.ElementsCount];
+            cuda.CopyDeviceToHost(alphaPtr,test1);
+
+            float[] test2 = new float[problem.ElementsCount];
+            cuda.CopyDeviceToHost(alphaOldPtr, test2);
+            */
 
             cuda.SetParameter(cuFuncComputeBBstep, alphaParamOffsetInBBStep, alphaPtr.Pointer);
             cuda.SetParameter(cuFuncComputeBBstep, alphaOldParamOffsetInBBStep, alphaOldPtr.Pointer);
@@ -708,7 +725,7 @@ namespace KMLib.GPU.Solvers
             cuda.CopyDeviceToHost(reduceBBGradPtr, gradPartReduce);
             cuda.CopyDeviceToHost(reduceBBAlphaGradPtr, alphaGradPartReduce);
 
-            cuda.SynchronizeContext();
+           // cuda.SynchronizeContext();
 
             float alphaPart = 0, gradPart = 0, alphaGradPart = 0;
             
@@ -727,14 +744,14 @@ namespace KMLib.GPU.Solvers
 
            
             //todo: try different schemes for choosing step
-            if (iter  % 2 == 0)
+            if ( (iter+1)  % 2 == 0)
             {
                 step = step2;
             }
             //random step works better then modulo step (alternating iter%2)
 
             double rndProb = rnd.NextDouble();
-            if (rndProb > 0.5f)
+            if (rndProb > 0.6f)
             {
                // step = step2;
             }
@@ -783,6 +800,8 @@ namespace KMLib.GPU.Solvers
            // cuda.SynchronizeContext();
            // float[] testGrad2 = new float[sub_prob.ElementsCount];
            // cuda.CopyDeviceToHost(gradPtr, testGrad2);
+
+
 
             cuda.SynchronizeContext();
 
@@ -1204,7 +1223,7 @@ namespace KMLib.GPU.Solvers
 
         private void DisposeCuda()
         {
-            throw new NotImplementedException();
+           // throw new NotImplementedException();
         }
     }
 }

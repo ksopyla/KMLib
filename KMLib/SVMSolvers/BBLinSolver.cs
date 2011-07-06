@@ -27,7 +27,7 @@ namespace KMLib.SVMSolvers
         /// <summary>
         /// probability of choosing step2 in BB step
         /// </summary>
-        private double probStep2=0.5;
+        private double probStep2=0.6;
         
         
         
@@ -432,17 +432,17 @@ namespace KMLib.SVMSolvers
 
             step = step1;
             //todo: try different schemes for choosing step
-            if (iter % 2 == 0)
-            {
-                step = step2;
-            }
+            //if ((iter + 1) % 2 == 0)
+            //{
+            //    step = step2;
+            //}
 
             //random step works better then modulo step (alternating iter%2)
 
             double rndProb = rnd.NextDouble();
             if (rndProb > probStep2)
             {
-                //step = step2;
+                step = step2;
             }
 
 
@@ -535,13 +535,13 @@ namespace KMLib.SVMSolvers
 
                 //normal gradient
 
-                grad[i] =(double) (dot * y_i + alpha[i] * diag[y_i + 1] - 1);
-                
+                grad[i] = (double)(dot * y_i + alpha[i] * diag[y_i + 1] - 1);
+
 
                 //projection
                 if (alpha[i] == 0)
                 {
-                   // grad[i] = Math.Min(0, grad[i]);
+                    // grad[i] = Math.Min(0, grad[i]);
                 }
                 //else
                 //{
@@ -550,14 +550,17 @@ namespace KMLib.SVMSolvers
                 //}
 
                 //minus gradient - descent direction
-               // grad[i] = -grad[i];
+                // grad[i] = -grad[i];
 
                 //projected maximum norm
                 if (Math.Abs(alpha[i]) > 10e-10)
                 {
                     max = Math.Max(max, Math.Abs(grad[i]));
                 }
-                
+                //else
+                //{
+                //    max = Math.Max(max, Math.Abs(grad[i]));
+                //}
             }
 
             return max;

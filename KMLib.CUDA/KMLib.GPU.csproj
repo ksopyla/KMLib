@@ -149,7 +149,8 @@
     <Compile Include="CudaLinearEvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
     <Compile Include="CudaLinearKernel.cs" />
-    <Compile Include="Solvers\GPUBBLinSolver.cs" />
+    <Compile Include="Solvers\GPUstdBBLinSolver.cs" />
+    <Compile Include="Solvers\GPUnmBBLinSolver.cs" />
     <Compile Include="Solvers\CUDALinSolver.cs" />
     <Compile Include="CudaRBFEvaluator.cs" />
     <Compile Include="CudaRBFKernel.cs" />

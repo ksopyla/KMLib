@@ -39,6 +39,7 @@ __device__ __constant__ float stepScaling=0.0f;
 
 #define WARP_SIZE 32
 
+#define NEG_INFINITY_F __int_as_float(0xff800000)
 
 
 /*
@@ -213,6 +214,97 @@ extern "C" __global__ void UpdateAlpha(const float * grad,
 
 	deltas[i]=(new_alpha-old_alpha)*tex1Dfetch(labelsTexRef,i);
 	alpha[i] = new_alpha;
+}
+
+extern "C" __global__ void UpdateAlpha2(const float * grad,
+									   float* alpha,
+									   float* alpha_old,
+									   float* deltas,
+									   const int size)
+{
+
+	int i =  blockDim.x * blockIdx.x + threadIdx.x;
+
+	if(i>=size){
+		return;	
+	}
+
+	float old_alpha = alpha_old[i];
+
+	//stepBB is module constant, see at beginning this file
+	float new_alpha = fmaxf(old_alpha+ stepBB*grad[i],0.0f);
+
+	deltas[i]=(new_alpha-old_alpha)*tex1Dfetch(labelsTexRef,i);
+	alpha[i] = new_alpha;
+}
+
+
+/*
+	Computes projected vector max norm
+*/
+extern "C" __global__ void VectorMaxNorm(float * vec,float* alpha, float* reducted, const int n)
+{
+	__shared__ float sdata[BLOCK_SIZE + 16];        
+	
+
+// perform first level of reduction,
+    // reading from global memory, writing to shared memory
+    unsigned int tid = threadIdx.x;
+    //unsigned int i = blockIdx.x*BLOCK_SIZE*2 + threadIdx.x;
+    //unsigned int gridSize = BLOCK_SIZE*2*gridDim.x;
+
+	unsigned int blockSize = blockDim.x;
+	unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
+    unsigned int gridSize = blockDim.x*2*gridDim.x;
+    
+   
+    // we reduce multiple elements per thread.  The number is determined by the 
+    // number of active thread blocks (via gridDim).  More blocks will result
+    // in a larger gridSize and therefore fewer elements per thread
+    float maxVec=NEG_INFINITY_F ;
+	
+	
+	while (i < n)
+    {   
+		maxVec = fmaxf(maxVec, isPositive(alpha[i])*fabs(vec[i]));
+      
+        // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
+        if (i + blockSize < n) {
+			maxVec = fmaxf(maxVec, isPositive(alpha[i+blockSize])*fabs(vec[i+blockSize]));
+		}
+        i += gridSize;
+    } 
+
+    // each thread puts its local sum into shared memory 
+    sdata[tid] = maxVec;
+    __syncthreads();
+
+
+    // do reduction in shared mem
+    if (blockSize >= 512) { if (tid < 256) { sdata[tid] = maxVec = fmaxf(maxVec,sdata[tid + 256]); } __syncthreads(); }
+    if (blockSize >= 256) { if (tid < 128) { sdata[tid] = maxVec = fmaxf(maxVec,sdata[tid + 128]); } __syncthreads(); }
+    if (blockSize >= 128) { if (tid <  64) { sdata[tid] = maxVec = fmaxf(maxVec,sdata[tid + 64]); } __syncthreads(); }
+    
+#ifndef __DEVICE_EMULATION__
+    if (tid < 32)
+#endif
+    {
+        // now that we are using warp-synchronous programming (below)
+        // we need to declare our shared memory volatile so that the compiler
+        // doesn't reorder stores to it and induce incorrect behavior.
+        volatile float* smem = sdata;
+        if (blockSize >=  64) { smem[tid] = maxVec = fmaxf(maxVec,smem[tid + 32]); __syncthreads(); }
+        if (blockSize >=  32) { smem[tid] = maxVec = fmaxf(maxVec,smem[tid + 16]); __syncthreads(); }
+        if (blockSize >=  16) { smem[tid] = maxVec = fmaxf(maxVec,smem[tid +  8]); __syncthreads(); }
+        if (blockSize >=   8) { smem[tid] = maxVec = fmaxf(maxVec,smem[tid +  4]); __syncthreads(); }
+        if (blockSize >=   4) { smem[tid] = maxVec = fmaxf(maxVec,smem[tid +  2]); __syncthreads(); }
+        if (blockSize >=   2) { smem[tid] = maxVec = fmaxf(maxVec,smem[tid +  1]); __syncthreads(); }
+    }
+    
+    // write result for this block to global mem 
+    if (tid == 0) 
+        reducted[blockIdx.x] = sdata[0];
+	
 }
 
 
@@ -618,6 +710,8 @@ __shared__ float smXG[BLOCK_SIZE + 16];
 
 
 
+
+#define BLOCK_SIZE_UW 64
 //cuda kernel funtion for updating  W-vector in method of solving linear SVM,
 //the idea is almost the same as in CudaDotProd function, 
 //each warp computes multiplication between step vector (D) and each column
@@ -653,15 +747,15 @@ extern "C" __global__ void update_W(const float * vals,
 {
 
 //todo: change all  "*rows" into columns
-	__shared__ float sdata[BLOCK_SIZE + 16];                          // padded to avoid reduction ifs
-	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
+	__shared__ float sdata[BLOCK_SIZE_UW + 16];                          // padded to avoid reduction ifs
+	__shared__ int ptrs[BLOCK_SIZE_UW/WARP_SIZE][2];
 		
 
-	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
+	const int thread_id   = BLOCK_SIZE_UW * blockIdx.x + threadIdx.x;  // global thread index
 	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
 	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
 	const int warp_lane   = threadIdx.x / WARP_SIZE;                // warp index within the CTA
-	const int num_warps   = (BLOCK_SIZE / WARP_SIZE) * gridDim.x;   // total number of active warps
+	const int num_warps   = (BLOCK_SIZE_UW / WARP_SIZE) * gridDim.x;   // total number of active warps
 
 	for(int row = warp_id; row < num_rows; row += num_warps){
 		// use two threads to fetch vecPointers[row] and vecPointers[row+1]
@@ -689,8 +783,6 @@ extern "C" __global__ void update_W(const float * vals,
 
 		// first thread writes warp result
 		if (thread_lane == 0){
-			
-			//results[row] = tex1Dfetch(labelsTexRef,row)*sdata[threadIdx.x];
 			W[row] +=sdata[threadIdx.x];
 		}
 
