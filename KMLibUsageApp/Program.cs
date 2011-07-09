@@ -12,13 +12,14 @@ using System.Diagnostics;
 using KMLib.Evaluate;
 using KMLib.SVMSolvers;
 using System.IO;
+using KMLib.GPU.Solvers;
 
 
 namespace KMLibUsageApp
 {
     internal class Program
     {
-        private static float C = 4f;
+        private static float C =0.01f;//0.001f;// 4f;
         static float gamma = 0.5f;
         private static int folds=5;
         private static void Main(string[] args)
@@ -26,7 +27,7 @@ namespace KMLibUsageApp
             if (args.Length < 1)
                 throw new ArgumentException("to liitle arguments");
 
-           // Debug.Listeners.Add(new ConsoleTraceListener());
+           Debug.Listeners.Add(new ConsoleTraceListener());
 
             string dataFolder = args[0];// @"D:\UWM\praca naukowa\doktorat\code\KMLib\KMLibUsageApp\Data";
 
@@ -491,14 +492,40 @@ t.Stop();
         /// <param name="numberOfFeatures"></param>
         private static void ChooseDataSet(string dataFolder, out string trainningFile, out string testFile, out int numberOfFeatures)
         {
-
+            #region grant
+            
             //trainningFile = dataFolder + "/zegarki_meskie_damskie_sift_kmeans_5_50_headers.svm.libsvm";
             //testFile = dataFolder + "/zegarki_meskie_damskie_sift_kmeans_5_50_headers.svm.libsvm";
             //numberOfFeatures = 5;
 
+            //trainningFile = dataFolder + "/SVMzegarki_md_kmenas_w1000_i920.txt";
+            //testFile = dataFolder + "/SVMzegarki_md_kmenas_w1000_i920.txt";
+            //numberOfFeatures = 1000;
+            #endregion
+
+            #region toy samples
+            //testFile = trainningFile = dataFolder + "/a1a.small.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
+
+            //trainningFile = dataFolder + "/toy_2d.train";
+           // trainningFile = dataFolder + "/toy_2d_16.train";
+           // trainningFile = dataFolder + "/toy_2d_3.train";
+           // testFile = dataFolder + "/toy_2d.test";
+           // numberOfFeatures = 2;
+
+
+
+            //trainningFile = dataFolder + "/toy_10d_10.train";
+            //testFile = dataFolder + "/toy_10d_10.train";
+            //numberOfFeatures = 10;
+            #endregion
+
+
             //trainningFile = dataFolder + "/a1a.train";
             //testFile = dataFolder + "/a1a.test";
             ////testFile = dataFolder + "/a1a.train";
+            ////testFile= trainningFile = dataFolder + "/a1a.small.train";
             ////in a1a problem max index is 123
             //numberOfFeatures = 123;
 
@@ -507,25 +534,25 @@ t.Stop();
             //testFile = dataFolder + "/a9a";
             numberOfFeatures = 123;
 
-            //trainningFile = dataFolder + "/w8a";
-            //testFile = dataFolder + "/w8a.t";
-            //numberOfFeatures = 300;
+            trainningFile = dataFolder + "/w8a";
+            testFile = dataFolder + "/w8a.t";
+            numberOfFeatures = 300;
 
-            //string trainningFile = dataFolder + "/colon-cancer.train";
-            //string testFile = dataFolder + "/colon-cancer.train";
-            //int numberOfFeatures = 2000;
+            //trainningFile = dataFolder + "/colon-cancer.train";
+            //testFile = dataFolder + "/colon-cancer.train";
+            //numberOfFeatures = 2000;
 
-            //string trainningFile = dataFolder + "/leu";
-            //string testFile = dataFolder + "/leu.t";
-            //int numberOfFeatures = 7129;
+            //trainningFile = dataFolder + "/leu";
+            //testFile = dataFolder + "/leu.t";
+            //numberOfFeatures = 7129;
 
-            //string trainningFile = dataFolder + "/duke";
-            //string testFile = dataFolder + "/duke.tr";
-            //int numberOfFeatures = 7129;
+            //trainningFile = dataFolder + "/duke";
+            //testFile = dataFolder + "/duke.tr";
+            //numberOfFeatures = 7129;
 
             //trainningFile = dataFolder + "/rcv1_train.binary";
             //testFile = dataFolder + "/rcv1_test.binary";
-            //trainningFile = dataFolder + "/rcv1_test.binary";
+            ////trainningFile = dataFolder + "/rcv1_test.binary";
             ////testFile = dataFolder + "/rcv1_train.binary";
             //////string testFile = dataFolder + "/rcv1_train_test.binary";
             //numberOfFeatures = 47236;
@@ -539,10 +566,10 @@ t.Stop();
             //numberOfFeatures = 784;
 
 
-            //string trainningFile = dataFolder + "/real-sim_small_3K";
-            //string trainningFile = dataFolder + "/real-sim_med_6K";
-            //string trainningFile = dataFolder + "/real-sim_med_10K";
-            //trainningFile = dataFolder + "/real-sim";
+            //trainningFile = dataFolder + "/real-sim_small_3K";
+            ////string trainningFile = dataFolder + "/real-sim_med_6K";
+            ////string trainningFile = dataFolder + "/real-sim_med_10K";
+            ////trainningFile = dataFolder + "/real-sim";
             //testFile = dataFolder + "/real-sim";
             //numberOfFeatures = 20958;
 
@@ -664,20 +691,21 @@ t.Stop();
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
 
-
             EvaluatorBase<SparseVec> evaluator = new LinearPrimalEvaluator();
             Model<SparseVec> model;
-
 
             Console.WriteLine("read vectors");
             Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
             Console.WriteLine("end read vectors");
 
+            //C = train.FeaturesCount* 1.0f / train.ElementsCount;
+            //var Solver = new CUDALinSolver(train, C);
+            //var Solver = new ConjugateLinSolver(train, C);
 
-            //
-            //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
-            //this solver works a bit faster and use less memory
-            var Solver = new LinearSolver(train, C);
+            //var Solver = new BBLinSolver(train, C);
+            //var Solver = new GPUnmBBLinSolver(train, C);
+            var Solver = new GPUstdBBLinSolver(train, C);
+            //var Solver = new LinearSolver(train, C);
 
             Console.WriteLine("User solver {0}", Solver.ToString());
 
