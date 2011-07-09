@@ -94,6 +94,146 @@ namespace KMLib.GPU
             vecValsL = null;
         }
 
+
+
+        /// <summary>
+        /// Convert sparse vectors into compact sparse column(CSC) fromat (three array, one for values, one for indexes and one for vector pointers)
+        /// 
+        /// 
+        /// </summary>
+        /// <param name="vecVals"></param>
+        /// <param name="vecIdx"></param>
+        /// <param name="vecLenght"></param>
+        /// <param name="problemElements"></param>
+        public static void TransformToCSCFormat(out float[] vecVals, out int[] vecIdx, out int[] vecLenght, SparseVec[] problemElements)
+        {
+            //transform elements to specific array format -> CSR http://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR_or_CRS.29
+            int avgVectorLenght = problemElements[0].Count;
+            //list for all vectors values
+            List<float> vecValsL = new List<float>(problemElements.Length * avgVectorLenght);
+
+            //list for all vectors indexes
+            List<int> vecIdxL = new List<int>(problemElements.Length * avgVectorLenght);
+
+
+            int Dim = problemElements[0].Dim;
+            //list of lenght of each vector, list of pointers
+            List<int> vecLenghtL = new List<int>(Dim+1 );
+
+            //arrays for values, indexes and lenght
+            int[] elementsCheckedDims = new int[problemElements.Length];
+            int vecStartIdx = 0;
+            int curColSize = 0;
+            
+            for (int i = 1; i <= Dim; i++)
+            {
+                curColSize = 0;
+                for (int k = 0; k < problemElements.Length; k++)
+                {
+                    var vec = problemElements[k];
+
+                    int s=elementsCheckedDims[k];
+                    
+                    //find max index 
+                    while (s < vec.Indices.Length && vec.Indices[s] < i)
+                    {
+                        s++;
+                    }
+
+                   // int val = Array.BinarySearch(vec.Indices, s, vec.Indices.Length, i);
+
+                    elementsCheckedDims[k] = s;
+                    if (s<vec.Indices.Length && vec.Indices[s] == i)
+                    {
+                        //insert in to vals and idx
+                        vecValsL.Add(vec.Values[s]);
+                        vecIdxL.Add(k);//k-th vector in k- column
+                        curColSize++;
+
+                    }
+
+                }
+                vecLenghtL.Add(vecStartIdx);
+                vecStartIdx += curColSize;
+            }
+             
+            //for last index
+            vecLenghtL.Add(vecStartIdx);
+
+            //convert list to arrays
+            vecVals = vecValsL.ToArray();
+            vecIdx = vecIdxL.ToArray();
+            vecLenght = vecLenghtL.ToArray();
+
+            //set list reference to null to free memeory
+            vecIdxL = null;
+            vecLenghtL = null;
+            vecValsL = null;
+        }
+
+        public static void TransformToCSCFormat2(out float[] vecVals, out int[] vecIdx, out int[] vecLenght, SparseVec[] problemElements)
+        {
+            //transform elements to specific array format -> CSR http://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR_or_CRS.29
+            int avgVectorLenght = problemElements[0].Count;
+            int Dim = problemElements[0].Dim;
+
+            List<int>[] colIdx = new List<int>[Dim+1];
+            List<float>[] colVals = new List<float>[Dim+1];
+            for (int i = 1; i <= Dim; i++)
+            {
+                colIdx[i] = new List<int>();
+                colVals[i] = new List<float>();
+            }
+            
+            //list for all vectors values
+            List<float> vecValsL = new List<float>(problemElements.Length * avgVectorLenght);
+            //list for all vectors indexes
+            List<int> vecIdxL = new List<int>(problemElements.Length * avgVectorLenght);
+            //list of lenght of each vector, list of pointers
+            List<int> vecLenghtL = new List<int>(Dim + 1);
+            
+            for (int k = 0; k < problemElements.Length; k++)
+            {
+                var vec = problemElements[k];
+
+                for (int s = 0; s < vec.Count; s++)
+                {
+                    int idx = vec.Indices[s];
+                    float val = vec.Values[s];
+
+                    colIdx[idx].Add(k);
+                    colVals[idx].Add(val);
+                }
+            }
+
+
+            int curColSize = 0;
+
+            vecLenghtL.Add(curColSize);
+            for (int i = 1; i <= Dim; i++)
+            {
+                curColSize+= colIdx[i].Count;
+                vecLenghtL.Add(curColSize);
+                vecIdxL.AddRange(colIdx[i]);
+                vecValsL.AddRange(colVals[i]);
+
+                colIdx[i] = null;
+                colVals[i] = null;
+            }
+
+            
+            
+            //convert list to arrays
+            vecVals = vecValsL.ToArray();
+            vecIdx = vecIdxL.ToArray();
+            vecLenght = vecLenghtL.ToArray();
+
+            //set list reference to null to free memeory
+            vecIdxL = null;
+            vecLenghtL = null;
+            vecValsL = null;
+        }
+
         /// <summary>
         ///  sets the values from one row of matrix, 
         ///  matrix is in sparse matrix in CSR format

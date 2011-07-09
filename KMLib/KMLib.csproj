@@ -144,6 +144,8 @@
     <Compile Include="MultiClassSVM.cs" />
     <Compile Include="SVMSolvers\AlphaPair.cs" />
     <Compile Include="Helpers\ByValueComparer.cs" />
+    <Compile Include="SVMSolvers\ConjugateLinSolver.cs" />
+    <Compile Include="SVMSolvers\BBLinSolver.cs" />
     <Compile Include="SVMSolvers\LinearSolver.cs" />
     <Compile Include="SVMSolvers\ParallelSmoFanSolver2.cs" />
     <Compile Include="SVMSolvers\ParallelSmoFanSolver.cs" />

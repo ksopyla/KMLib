@@ -98,6 +98,9 @@ namespace KMLib
             Elements = null;
             Y = null;
             ElementsCount = -1;
+            FeaturesCount = -1;
+            ElementLabels = null;
+            NumberOfClasses = -1;
         }
     }
 

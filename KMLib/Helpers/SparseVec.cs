@@ -64,7 +64,16 @@ namespace KMLib.Helpers
         {
 
             if (SelfDotProd < 0)
-                throw new ArgumentOutOfRangeException("SelfDotProd is not computed");
+            {
+                //throw new ArgumentOutOfRangeException("SelfDotProd is not computed");
+                float sum = 0;
+                for (int i = 0; i < Values.Length; i++)
+                {
+                    sum += Values[i] * Values[i];
+                }
+                SelfDotProd = sum;
+
+            }
 
             return SelfDotProd;
 
@@ -225,7 +234,52 @@ namespace KMLib.Helpers
         }
 
 
-       
-        
+
+
+
+        public SparseVec Subtract(SparseVec otherVec)
+        {
+           
+
+            int v1 = 0;
+            int v2 = 0;
+
+            List<float> vals = new List<float>();
+            List<int> idx = new List<int>();
+
+            while (v1 < this.Count || v2 < otherVec.Count  )
+            {
+                int v1Idx = this.Indices[v1];
+                int v2Idx = otherVec.Indices[v2];
+                if (v1Idx == v2Idx)
+                {
+                    float sub = this.Values[v1] - otherVec.Values[v2];
+                    if (sub != 0)
+                    {
+                        vals.Add(sub);
+                        idx.Add(v1Idx);
+                    } 
+                    v1++; v2++;
+                    
+                }
+                else if (v1Idx < v2Idx)
+                {
+                    // this.Values[v1] - 0.0
+                    vals.Add(this.Values[v1]);
+                    idx.Add(v1Idx);
+                    v1++;
+                }
+                else
+                {
+                    vals.Add(0.0f-otherVec.Values[v2]);
+                    idx.Add(v2Idx);
+                    v2++;
+                }
+            }
+
+            SparseVec sp = new SparseVec(this.Dim, idx, vals);
+            return sp;
+
+        }
     }
 }

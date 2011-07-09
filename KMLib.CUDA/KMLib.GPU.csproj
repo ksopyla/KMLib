@@ -149,6 +149,9 @@
     <Compile Include="CudaLinearEvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
     <Compile Include="CudaLinearKernel.cs" />
+    <Compile Include="Solvers\GPUstdBBLinSolver.cs" />
+    <Compile Include="Solvers\GPUnmBBLinSolver.cs" />
+    <Compile Include="Solvers\CUDALinSolver.cs" />
     <Compile Include="CudaRBFEvaluator.cs" />
     <Compile Include="CudaRBFKernel.cs" />
     <Compile Include="CudaVectorEvaluator.cs" />
@@ -163,13 +166,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cudaSVMKernels.cu">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="linSVMSolver.cu">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>nvcc cudaSVMKernels.cu --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32
-xcopy "$(TargetDir)cudaSVMKernels.cubin" "$(SolutionDir)Libs" /Y
+    <PostBuildEvent>nvcc cudaSVMKernels.cu linSVMSolver.cu -g -G --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32
+xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
