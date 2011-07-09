@@ -47,10 +47,10 @@ namespace KMLibUsageApp
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-           SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
 
             //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
+            SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
             Console.WriteLine("Press any button");
             Console.ReadKey();
 
@@ -325,11 +325,11 @@ t.Stop();
         {
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.test";
-            //testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a";
             //testFile = dataFolder + "/a9a.t";
@@ -353,10 +353,10 @@ t.Stop();
 
             //trainningFile = dataFolder + "/rcv1_train.binary";
             //testFile = dataFolder + "/rcv1_test.binary";
-            //trainningFile = dataFolder + "/rcv1_test.binary";
-            //testFile = dataFolder + "/rcv1_train.binary";
-            ////string testFile = dataFolder + "/rcv1_train_test.binary";
-            //numberOfFeatures = 47236;
+            trainningFile = dataFolder + "/rcv1_test.binary";
+            testFile = dataFolder + "/rcv1_train.binary";
+            //string testFile = dataFolder + "/rcv1_train_test.binary";
+            numberOfFeatures = 47236;
 
             //trainningFile = dataFolder + "/news20.binary";
             //testFile = dataFolder + "/news20.binary";
@@ -436,15 +436,17 @@ t.Stop();
             Solver = null;
 
             train.Dispose();
-            
 
+            var disKernel = kernel as IDisposable;
+            if (disKernel != null)
+                disKernel.Dispose();
 
             Console.WriteLine("Start Testing");
 
             
 
             Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
-           // evaluator.Kernel = kernel;
+            evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
            
             evaluator.Init();
@@ -456,9 +458,7 @@ t.Stop();
             //toremove: only for tests
             Console.WriteLine("prediction takes {0}  ms={1}",t.Elapsed, t.ElapsedMilliseconds);
 
-            var disKernel = kernel as IDisposable;
-            if (disKernel != null)
-                disKernel.Dispose();
+           
            
             //todo: Free evaluator memories
             var disposeEvaluator = evaluator as IDisposable;

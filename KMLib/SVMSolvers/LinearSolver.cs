@@ -376,7 +376,7 @@ namespace KMLib.SVMSolvers
 
             //diagonal cache QD=Qii+diag (for different  formulation L1 or L2 diag is different)
             double[] QD = new double[l];
-            int max_iter = 1000;
+            int max_iter = 5000; //original val=1000;
             int[] index = new int[l];
             double[] alpha = new double[l];
             sbyte[] y = new sbyte[l];
@@ -459,7 +459,6 @@ namespace KMLib.SVMSolvers
                     for (int k = 0; k < element.Count; k++)
                     {
                         G += w[element.Indices[k] - 1] * element.Values[k];
-
                     }
 
                     G = G * yi - 1;
@@ -523,7 +522,7 @@ namespace KMLib.SVMSolvers
                         //    w[xi.index - 1] += d * xi.value;
                         //}
                     }
-                }
+                }//end for active_set
 
                 iter++;
                 //if (iter % 10 == 0) info(".");
