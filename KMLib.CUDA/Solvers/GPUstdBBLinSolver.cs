@@ -71,10 +71,7 @@ namespace KMLib.GPU.Solvers
         /// </summary>
         private string cudaObjAlphaName="VectorSquareAlpha";
 
-        /// <summary>
-        /// cuda function name for compuing Lin part in nonmonotonus line search
-        /// </summary>
-        private string cudaLinPartName = "ComputeLinPart";
+       
 
         /// <summary>
         /// cuda function name for compuing maximum norm
@@ -133,8 +130,6 @@ namespace KMLib.GPU.Solvers
 
         protected CUfunction cuFuncObjSquareAlpha;
 
-
-        private CUfunction cuFuncLinPart;
 
         private CUfunction cuFuncMaxNorm;
 
@@ -217,7 +212,6 @@ namespace KMLib.GPU.Solvers
 
         private CUdeviceptr reduceGradMaxNormPtr;
         
-        private CUdeviceptr reduceLinPartPtr;
 
         /// <summary>
         /// cuda device pointer for diag, needed for coping to constant array on device
@@ -308,7 +302,7 @@ namespace KMLib.GPU.Solvers
         private float[] alphaPartReduce;
         private float[] gradPartReduce;
         private float[] alphaGradPartReduce;
-        private float[] reduceLinPart;
+       
         private int bpgReduceW;
         private int bpgReduceAlpha;
         private int threadsForReduceObjW;
@@ -633,36 +627,7 @@ namespace KMLib.GPU.Solvers
 
 
 
-        /// <summary>
-        /// Computes constraints for nonmonotonus line search
-        /// 
-        ///  lambda*gamma* (alpha_new-alpha_old)*grad
-        ///  
-        /// </summary>
-        /// <param name="gamma"></param>
-        /// <param name="lambda"></param>
-        /// <returns></returns>
-        private float ComputeLinPart(float gamma, float lambda)
-        {
-            cuda.SetParameter(cuFuncLinPart, alphaParamOffsetInLinPart, alphaTmpPtr.Pointer);
-            cuda.SetParameter(cuFuncLinPart, alphaOldParamOffsetInLinPart, alphaPtr.Pointer);
-            cuda.SetParameter(cuFuncLinPart, gradParamOffsetInLinPart, gradPtr.Pointer);
-
-            cuda.Launch(cuFuncLinPart, bpgReduceAlpha, 1);
-
-            cuda.CopyDeviceToHost(reduceLinPartPtr,reduceLinPart);
-            float val = 0;
-            for (int k = 0; k < reduceLinPart.Length; k++)
-            {
-                val += reduceLinPart[k];
-            }
-
-            val = gamma *  val;
-
-            //val = gamma * lambda * val;
-
-            return val;
-        }
+       
 
 
         /// <summary>
@@ -772,16 +737,16 @@ namespace KMLib.GPU.Solvers
 
            
             //todo: try different schemes for choosing step
-            if ( (iter+1)  % 2 == 0)
-            {
-                step = step2;
-            }
+            //if ( (iter+1)  % 2 == 0)
+            //{
+            //    step = step2;
+            //}
             //random step works better then modulo step (alternating iter%2)
 
             double rndProb = rnd.NextDouble();
             if (rndProb > 0.6f)
             {
-               // step = step2;
+                step = step2;
             }
 
 
@@ -826,10 +791,10 @@ namespace KMLib.GPU.Solvers
             cuda.Launch(cuFuncGradFinalize, bpgGradFin, 1);
 
             //cuda.SynchronizeContext();
-            float[] testGrad2 = new float[sub_prob.ElementsCount];
-            cuda.CopyDeviceToHost(gradPtr, testGrad2);
+            //float[] testGrad2 = new float[sub_prob.ElementsCount];
+            //cuda.CopyDeviceToHost(gradPtr, testGrad2);
 
-            var maxTest = testGrad2.Max(x => Math.Abs(x));
+            //var maxTest = testGrad2.Max(x => Math.Abs(x));
 
             cuda.SetParameter(cuFuncMaxNorm, gradParamOffsetInMaxNorm, gradPtr.Pointer);
             cuda.SetParameter(cuFuncMaxNorm, alphaParamOffsetInMaxNorm, alphaPtr.Pointer);
@@ -948,13 +913,6 @@ namespace KMLib.GPU.Solvers
             reduceBBAlphaGradPtr = cuda.Allocate(alphaReductionBytes);
             reduceBBAlphaPtr = cuda.Allocate(alphaReductionBytes);
             reduceBBGradPtr = cuda.Allocate(alphaReductionBytes);
-
-            /*
-             * reduction arrays for comuting lin part
-             */
-            reduceLinPart = new float[bpgReduceAlpha];
-            reduceLinPartPtr = cuda.Allocate(alphaReductionBytes);
-
             
 
             //float[] wVec = new float[vecDim];
@@ -1137,28 +1095,7 @@ namespace KMLib.GPU.Solvers
 
             #endregion
 
-            #region set function parameters for computing lin part in nonemonotonus line search
-
-            cuda.SetFunctionBlockShape(cuFuncLinPart, threadsForReduceObjAlpha, 1, 1);
-            offset = 0;
-            alphaParamOffsetInLinPart = offset;
-            cuda.SetParameter(cuFuncLinPart, offset, alphaPtr.Pointer);
-            offset += IntPtr.Size;
-            alphaOldParamOffsetInLinPart = offset;
-            cuda.SetParameter(cuFuncLinPart, offset, alphaOldPtr.Pointer);
-            offset += IntPtr.Size;
-            gradParamOffsetInLinPart = offset;
-            cuda.SetParameter(cuFuncLinPart, offset, gradPtr.Pointer);
-            offset += IntPtr.Size;
-
-            cuda.SetParameter(cuFuncLinPart, offset, reduceLinPartPtr.Pointer);
-            offset += IntPtr.Size;
-
-            cuda.SetParameter(cuFuncLinPart, offset, (uint)sub_prob.ElementsCount);
-            offset += sizeof(int);
-            cuda.SetParameterSize(cuFuncLinPart, (uint)offset);
-
-            #endregion
+            
             /*
              * Set cuda function parameters for updating W vector
              */
@@ -1231,8 +1168,6 @@ namespace KMLib.GPU.Solvers
             cuFuncUpdateW = cuda.GetModuleFunction(cudaUpdateW);
 
             cuFuncUpdateAlpha = cuda.GetModuleFunction(cudaUpdateAlphaName);
-
-            cuFuncLinPart = cuda.GetModuleFunction(cudaLinPartName);
 
             cuFuncMaxNorm = cuda.GetModuleFunction(cudaMaxNormName);
         }
@@ -1315,6 +1250,82 @@ namespace KMLib.GPU.Solvers
         private void DisposeCuda()
         {
            // throw new NotImplementedException();
+
+            if (cuda != null)
+            {
+                //free all resources
+                cuda.Free(valsCSRPtr);
+                cuda.Free(valsCSCPtr);
+                valsCSRPtr.Pointer = 0;
+                valsCSCPtr.Pointer = 0;
+
+                cuda.Free(idxCSRPtr);
+                cuda.Free(idxCSCPtr);
+                idxCSRPtr.Pointer = 0;
+                idxCSCPtr.Pointer = 0;
+
+                cuda.Free(vecLenghtCSRPtr);
+                cuda.Free(vecLenghtCSCPtr);
+                vecLenghtCSRPtr.Pointer = 0;
+                vecLenghtCSCPtr.Pointer = 0;
+
+
+
+                cuda.Free(gradPtr);
+                gradPtr.Pointer = 0;
+                cuda.Free(gradOldPtr);
+                gradOldPtr.Pointer = 0;
+
+                cuda.Free(alphaPtr);
+                alphaPtr.Pointer = 0;
+                cuda.Free(alphaTmpPtr);
+                alphaTmpPtr.Pointer = 0;
+                cuda.Free(alphaOldPtr);
+                alphaOldPtr.Pointer = 0;
+
+                cuda.Free(wVecPtr);
+                wVecPtr.Pointer = 0;
+                cuda.Free(wTempVecPtr);
+                wTempVecPtr.Pointer = 0;
+
+
+                cuda.Free(reduceBBAlphaPtr);
+                reduceBBAlphaPtr.Pointer = 0;
+                cuda.Free(reduceBBGradPtr);
+                reduceBBGradPtr.Pointer = 0;
+                cuda.Free(reduceBBAlphaGradPtr);
+                reduceBBAlphaGradPtr.Pointer = 0;
+
+                cuda.Free(reduceObjAlphaPtr);
+                reduceObjAlphaPtr.Pointer = 0;
+                cuda.Free(reduceObjWPtr);
+                reduceObjWPtr.Pointer = 0;
+
+                cuda.Free(reduceGradMaxNormPtr);
+                reduceGradMaxNormPtr.Pointer = 0;
+
+
+                //cuda.Free(diagPtr);
+                //diagPtr.Pointer = 0;
+                //cuda.Free(stepBBPtr);
+                //stepBBPtr.Pointer = 0;
+
+                cuda.Free(deltasPtr);
+                deltasPtr.Pointer = 0;
+                cuda.DestroyTexture(cuDeltasTexRef);
+
+                cuda.Free(labelsPtr);
+                labelsPtr.Pointer = 0;
+                cuda.DestroyTexture(cuLabelsTexRef);
+
+               
+
+                cuda.DestroyTexture(cuWVecTexRef);
+
+                cuda.UnloadModule(cuModule);
+                cuda.Dispose();
+                cuda = null;
+            }
         }
     }
 }
