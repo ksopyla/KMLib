@@ -612,8 +612,15 @@ namespace KMLib.GPU.Solvers
              * 
              */
             //int bpgUpdateW = (sub_prob.Elements[0].Dim + threadsPerBlock - 1) / threadsPerBlock;
-            int bpgUpdateW = (sub_prob.Elements[0].Dim + tpbUpdateW - 1) / tpbUpdateW;
-
+            int bpgUpdateW = -1;
+            if (sub_prob.FeaturesCount > 10000)
+            {
+                bpgUpdateW = (sub_prob.Elements[0].Dim + tpbUpdateW - 1) / tpbUpdateW;
+            }
+            else
+            {
+                bpgUpdateW = (sub_prob.Elements[0].Dim * 32 + tpbUpdateW) / tpbUpdateW;
+            }
             //cuda.CopyDeviceToDevice(wVecPtr, wTempVecPtr, wVecMemSize);
             cuda.SetParameter(cuFuncUpdateW, wVecParamOffsetInUpdateW, wVecPtr.Pointer);
 
@@ -1102,7 +1109,7 @@ namespace KMLib.GPU.Solvers
             #region Set cuda function parameters for updating W vector
 
             //todo: is threads per block for updates W corect?
-            tpbUpdateW = 64;
+            tpbUpdateW =  64;
             cuda.SetFunctionBlockShape(cuFuncUpdateW, tpbUpdateW, 1, 1);
 
             int offset3 = 0;
