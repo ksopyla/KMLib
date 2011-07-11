@@ -534,9 +534,9 @@ t.Stop();
             //testFile = dataFolder + "/a9a";
             numberOfFeatures = 123;
 
-            trainningFile = dataFolder + "/w8a";
-            testFile = dataFolder + "/w8a.t";
-            numberOfFeatures = 300;
+            //trainningFile = dataFolder + "/w8a";
+            //testFile = dataFolder + "/w8a.t";
+            //numberOfFeatures = 300;
 
             //trainningFile = dataFolder + "/colon-cancer.train";
             //testFile = dataFolder + "/colon-cancer.train";
