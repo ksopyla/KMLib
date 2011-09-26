@@ -380,7 +380,7 @@ namespace KMLib.SVMSolvers
 
             //diagonal cache QD=Qii+diag (for different  formulation L1 or L2 diag is different)
             double[] QD = new double[l];
-            int max_iter = 1000;
+           
             int[] index = new int[l];
             double[] alpha = new double[l];
             sbyte[] y = new sbyte[l];
@@ -554,6 +554,7 @@ namespace KMLib.SVMSolvers
                         //}
                     }
                     // obj= ComputeObj(w, alpha, sub_prob, diag);
+                }
                 //st.Stop();
 #if DEBUG
 

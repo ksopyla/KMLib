@@ -195,7 +195,12 @@ namespace KMLib.GPU
         protected void InitCudaModule()
         {
             cuda = new CUDA(0, true);
-            cuModule = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, cudaModuleName));
+
+            string modluePath = Path.Combine(Environment.CurrentDirectory, cudaModuleName);
+            if (!File.Exists(modluePath))
+                throw new ArgumentException("Failed access to cuda module" + modluePath);
+
+            cuModule = cuda.LoadModule(modluePath);
             cuFunc = cuda.GetModuleFunction(cudaProductKernelName);
         }
 

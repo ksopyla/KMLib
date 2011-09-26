@@ -44,6 +44,7 @@ namespace KMLib.SVMSolvers
             public float upper_bound_p;
             public float upper_bound_n;
             public float r;	// for Solver_NU
+            public int iter;
         }
 
         #region variables from LibSVM
@@ -67,7 +68,7 @@ namespace KMLib.SVMSolvers
 
 
         private float[] QD;
-        private bool Shrinking = true;
+        private bool Shrinking = false;
         protected const float INF = float.PositiveInfinity;
         #endregion
 
@@ -137,7 +138,8 @@ namespace KMLib.SVMSolvers
             model.NumberOfClasses = 2;
             model.Alpha = alphaResult;
             model.Bias = si.rho;
-
+            model.Obj = si.obj;
+            model.Iter = si.iter;
 
             List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
             List<int> suporrtIndexes = new List<int>(alpha.Length);
@@ -428,6 +430,7 @@ namespace KMLib.SVMSolvers
 
                 si.obj = v / 2;
             }
+            si.iter = iter;
 
             // put back the solution
             {

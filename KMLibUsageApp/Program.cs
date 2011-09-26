@@ -19,8 +19,8 @@ namespace KMLibUsageApp
 {
     internal class Program
     {
-        private static float C =0.01f;//0.001f;// 4f;
-        static float gamma = 0.5f;
+        private static float C = 64f;
+        static float gamma = 7.8125f;
         private static int folds=5;
         private static void Main(string[] args)
         {
@@ -37,7 +37,7 @@ namespace KMLibUsageApp
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
            // GroupedTestingLowLevelDataSets(dataSetsToTest);
-            //TestOneDataSet(dataFolder);
+           // TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -53,14 +53,14 @@ namespace KMLibUsageApp
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
             //SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
             
-           SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+           //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
             
            // PerformCrossValidation(dataFolder, folds);
 
             SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
             Console.WriteLine("Press any button");
-            Console.ReadKey();
+           // Console.ReadKey();
 
         }
 
@@ -523,17 +523,17 @@ t.Stop();
             #endregion
 
 
-            //trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            ////testFile= trainningFile = dataFolder + "/a1a.small.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
-
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
-            //testFile = dataFolder + "/a9a";
+            trainningFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.test";
+            //testFile = dataFolder + "/a1a.train";
+            //testFile= trainningFile = dataFolder + "/a1a.small.train";
+            //in a1a problem max index is 123
             numberOfFeatures = 123;
+
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            ////testFile = dataFolder + "/a9a";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -555,7 +555,6 @@ t.Stop();
             //testFile = dataFolder + "/rcv1_test.binary";
             //trainningFile = dataFolder + "/rcv1_test.binary";
             //testFile = dataFolder + "/rcv1_train.binary";
-            ////string testFile = dataFolder + "/rcv1_train_test.binary";
             //numberOfFeatures = 47236;
 
             //trainningFile = dataFolder + "/news20.binary";
@@ -567,10 +566,10 @@ t.Stop();
             //numberOfFeatures = 784;
 
 
-            //trainningFile = dataFolder + "/real-sim_small_3K";
+            ////trainningFile = dataFolder + "/real-sim_small_3K";
             ////string trainningFile = dataFolder + "/real-sim_med_6K";
             ////string trainningFile = dataFolder + "/real-sim_med_10K";
-            ////trainningFile = dataFolder + "/real-sim";
+            //trainningFile = dataFolder + "/real-sim";
             //testFile = dataFolder + "/real-sim";
             //numberOfFeatures = 20958;
 
@@ -598,11 +597,13 @@ t.Stop();
             Console.WriteLine();
             
             
-            EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
-            IKernel<SparseVec> kernel = new CudaLinearKernel();
+            //IKernel<SparseVec> kernel = new CudaLinearKernel();
+            IKernel<SparseVec> kernel = new CudaRBFKernel(gamma );
             //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
             Model<SparseVec> model;
@@ -620,12 +621,13 @@ t.Stop();
             //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             //this solver works a bit faster and use less memory
             var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
 
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 
             Stopwatch timer = Stopwatch.StartNew();
             model = Solver.ComputeModel();
-            Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
+            Console.WriteLine("Model computed {0}  miliseconds={1} obj={2} iter={3}", timer.Elapsed, timer.ElapsedMilliseconds,model.Obj,model.Iter);
 
             var disKernel = kernel as IDisposable;
             if (disKernel != null)
@@ -637,11 +639,7 @@ t.Stop();
                 disSolver.Dispose();
             Solver = null;
 
-            train.Dispose();
-
-            var disKernel = kernel as IDisposable;
-            if (disKernel != null)
-                disKernel.Dispose();
+            train.Dispose();    
 
             Console.WriteLine("Start Testing");
 
@@ -655,6 +653,7 @@ t.Stop();
 
             Stopwatch t = Stopwatch.StartNew();
             float[] predictions = evaluator.Predict(test.Elements);
+
             t.Stop();
             //toremove: only for tests
             Console.WriteLine("prediction takes {0}  ms={1}",t.Elapsed, t.ElapsedMilliseconds);

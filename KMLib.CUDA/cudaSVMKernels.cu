@@ -227,21 +227,33 @@ extern "C" __global__ void rbfCsrFormatKernel(const float * vals,
 		// compute local sum
 		float sum = 0;
 		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
+		{
 			sum += vals[jj] * tex1Dfetch(mainVectorTexRef,idx[jj]);
+			//__syncthreads();
+		}
 
 		// reduce local sums to row sum (ASSUME: warpsize 32)
-		sdata[threadIdx.x] = sum;
+/*		 old code not working on fermi card
+sdata[threadIdx.x] = sum;
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x + 16]; __syncthreads(); 
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  8]; __syncthreads();
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  4]; __syncthreads();
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  2]; __syncthreads();
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
+*/
+		volatile float* smem = sdata;
+		smem[threadIdx.x] = sum; __syncthreads(); 
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x + 16]; //__syncthreads(); 
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x +  8]; //__syncthreads();
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x +  4]; //__syncthreads();
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x +  2]; //__syncthreads();
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x +  1]; //__syncthreads();
 
 		// first thread writes warp result
 		if (thread_lane == 0){
 			//results[row]=tex1Dfetch(labelsTexRef,row)*tex1Dfetch(labelsTexRef,shMainVecIdx)*expf(-shGamma*(selfDot[row]+selfDot[shMainVecIdx]-2*sdata[threadIdx.x]));
 			
-			results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*sdata[threadIdx.x]));
+			results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*smem[threadIdx.x]));
 		}
 	}
 }
@@ -388,13 +400,21 @@ extern "C" __global__ void rbfCSREvaluatorDenseVector(const float * AVals,
 		}
 
 		// reduce local sums to row sum (ASSUME: warpsize 32)
+/*		
 		sdata[threadIdx.x] = sum;
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x + 16]; __syncthreads(); 
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  8]; __syncthreads();
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  4]; __syncthreads();
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  2]; __syncthreads();
 		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
-	   
+	   */
+		volatile float* smem = sdata;
+		smem[threadIdx.x] = sum; __syncthreads(); 
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x + 16]; //__syncthreads(); 
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x +  8]; //__syncthreads();
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x +  4]; //__syncthreads();
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x +  2]; //__syncthreads();
+		smem[threadIdx.x] = sum = sum + smem[threadIdx.x +  1]; //__syncthreads();
 
 
 		// first thread writes warp result
@@ -402,7 +422,7 @@ extern "C" __global__ void rbfCSREvaluatorDenseVector(const float * AVals,
 		{
 			//remeber that we use result memory for stroing partial result
 			//so the size of array is the same as number of elements
-			result[row]+=expf(-Gamma*(elSelfDot[row]+svSelfDot[ColumnIndex]-2*sdata[threadIdx.x]))*svLabels[ColumnIndex]*svAlphas[ColumnIndex];
+			result[row]+=expf(-Gamma*(elSelfDot[row]+svSelfDot[ColumnIndex]-2*smem[threadIdx.x]))*svLabels[ColumnIndex]*svAlphas[ColumnIndex];
 
 			//results[row]+=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*sdata[threadIdx.x]));
 			
