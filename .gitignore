@@ -52,3 +52,4 @@ KMLib/ClassDiagram1.cd
 KMLibUsageApp/Data/a9a.zip
 KMLibUsageApp/Data/a9a.zip
 *.cubin
+Libs/cudaSVMKernels.cubin
