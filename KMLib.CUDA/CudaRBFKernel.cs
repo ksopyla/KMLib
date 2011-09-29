@@ -216,9 +216,10 @@ namespace KMLib.GPU
 
                 cuda.Free(selfLinDotPtr);
                 selfLinDotPtr.Pointer = 0;
-               
 
-                cuda.Free(outputPtr);
+
+                cuda.FreeHost(outputIntPtr);
+                //cuda.Free(outputPtr);
                 outputPtr.Pointer = 0;
                 cuda.Free(labelsPtr);
                 labelsPtr.Pointer = 0;

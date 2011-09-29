@@ -44,6 +44,7 @@ namespace KMLib
         /// </summary>
         public double[] W;
         public float Obj;
+        public int Iter;
 
         public override string ToString()
         {

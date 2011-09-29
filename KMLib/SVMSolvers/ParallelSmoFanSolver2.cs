@@ -99,6 +99,7 @@ namespace KMLib.SVMSolvers
             public float upper_bound_p;
             public float upper_bound_n;
             public float r;	// for Solver_NU
+            public int iter;
         }
 
         #region variables from LibSVM
@@ -294,6 +295,7 @@ namespace KMLib.SVMSolvers
             model.Alpha = alphaResult;
             model.Bias = si.rho;
             model.Obj = si.obj;
+            model.Iter = si.iter;
 
             List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
             List<int> suporrtIndexes = new List<int>(alpha.Length);
@@ -578,6 +580,7 @@ namespace KMLib.SVMSolvers
             // calculate rho
 
             si.rho = calculate_rho();
+            si.iter = iter;
 
             // calculate objective value
             {
