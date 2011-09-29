@@ -19,7 +19,7 @@ namespace KMLibUsageApp
 {
     internal class Program
     {
-        private static float C =0.01f;//0.001f;// 4f;
+        private static float C = 4f;
         static float gamma = 0.5f;
         private static int folds=5;
         private static void Main(string[] args)
@@ -51,15 +51,15 @@ namespace KMLibUsageApp
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-            //SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
+            SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
             
-           SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+           //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
             
            // PerformCrossValidation(dataFolder, folds);
 
             Console.WriteLine("Press any button");
-            Console.ReadKey();
+           // Console.ReadKey();
 
         }
 
@@ -554,7 +554,6 @@ t.Stop();
             //testFile = dataFolder + "/rcv1_test.binary";
             ////trainningFile = dataFolder + "/rcv1_test.binary";
             ////testFile = dataFolder + "/rcv1_train.binary";
-            //////string testFile = dataFolder + "/rcv1_train_test.binary";
             //numberOfFeatures = 47236;
 
             //trainningFile = dataFolder + "/news20.binary";
@@ -564,6 +563,10 @@ t.Stop();
             //trainningFile = dataFolder + "/mnist.scale";
             //testFile = dataFolder + "/mnist.scale";
             //numberOfFeatures = 784;
+
+            trainningFile = dataFolder + "/kdda";
+            testFile = dataFolder + "/kdda.t";
+            numberOfFeatures = 20216830;
 
 
             //trainningFile = dataFolder + "/real-sim_small_3K";
@@ -597,11 +600,13 @@ t.Stop();
             Console.WriteLine();
             
             
-            EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
-            IKernel<SparseVec> kernel = new CudaLinearKernel();
+            //IKernel<SparseVec> kernel = new CudaLinearKernel();
+            IKernel<SparseVec> kernel = new CudaRBFKernel(gamma);
             //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
             Model<SparseVec> model;
@@ -624,7 +629,7 @@ t.Stop();
 
             Stopwatch timer = Stopwatch.StartNew();
             model = Solver.ComputeModel();
-            Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
+            Console.WriteLine("Model computed {0}  miliseconds={1} obj={2}", timer.Elapsed, timer.ElapsedMilliseconds, model.Obj);
 
             var disKernel = kernel as IDisposable;
             if (disKernel != null)
@@ -702,9 +707,9 @@ t.Stop();
             //var Solver = new CUDALinSolver(train, C);
             //var Solver = new ConjugateLinSolver(train, C);
 
-            //var Solver = new BBLinSolver(train, C);
+            var Solver = new BBLinSolver(train, C);
             //var Solver = new GPUnmBBLinSolver(train, C);
-            var Solver = new GPUstdBBLinSolver(train, C);
+            //var Solver = new GPUstdBBLinSolver(train, C);
             //var Solver = new LinearSolver(train, C);
 
             Console.WriteLine("User solver {0}", Solver.ToString());
