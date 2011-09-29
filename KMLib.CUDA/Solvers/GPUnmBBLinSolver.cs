@@ -19,7 +19,7 @@ namespace KMLib.GPU.Solvers
     /// version for computing on CUDA devices
     /// author: Krzysztof Sopyła (krzysztofsopyla@gmail.com)
     /// </summary>
-    public class GPUnmBBLinSolver : LinearSolver
+    public class GPUnmBBLinSolver : LinearSolver, IDisposable
     {
         #region cuda names
         /// <summary>
@@ -1224,6 +1224,11 @@ namespace KMLib.GPU.Solvers
         private void DisposeCuda()
         {
            // throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            DisposeCuda();
         }
     }
 }

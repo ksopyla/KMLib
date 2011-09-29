@@ -19,7 +19,7 @@ namespace KMLib.GPU.Solvers
     /// version for computing on CUDA devices
     /// author: Krzysztof Sopyła (krzysztofsopyla@gmail.com)
     /// </summary>
-    public class GPUstdBBLinSolver : LinearSolver
+    public class GPUstdBBLinSolver : LinearSolver, IDisposable
     {
         #region cuda names
         /// <summary>
@@ -378,9 +378,9 @@ namespace KMLib.GPU.Solvers
                 weighted_C[i] = C;
             }
 
-
+           
             SetClassWeights(nr_class, label, weighted_C);
-
+           
             // constructing the subproblem
             //permutated vectors
             SparseVec[] permVec = new SparseVec[problem.ElementsCount];
@@ -414,9 +414,10 @@ namespace KMLib.GPU.Solvers
                 for (; k < sub_prob.ElementsCount; k++)
                     sub_prob.Y[k] = -1;
 
+                Debug.WriteLine("init data on cuda");
                 //copy all needed data to CUDA device
                 SetCudaData(sub_prob);
-
+                Debug.WriteLine("set cuda data complete");
                 //Fill data on CUDA
                 FillDataOnCuda(sub_prob, w, weighted_C[0], weighted_C[1]);
 
@@ -1256,8 +1257,7 @@ namespace KMLib.GPU.Solvers
 
         private void DisposeCuda()
         {
-           // throw new NotImplementedException();
-
+           
             if (cuda != null)
             {
                 //free all resources
@@ -1333,6 +1333,11 @@ namespace KMLib.GPU.Solvers
                 cuda.Dispose();
                 cuda = null;
             }
+        }
+
+        public void Dispose()
+        {
+            DisposeCuda();
         }
     }
 }

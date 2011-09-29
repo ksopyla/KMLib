@@ -174,7 +174,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>nvcc cudaSVMKernels.cu linSVMSolver.cu -g -G --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32
+    <PostBuildEvent>nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 </PostBuildEvent>
   </PropertyGroup>
