@@ -260,6 +260,62 @@ sdata[threadIdx.x] = sum;
 
 
 
+//cuda kernel funtion for computing SVM RBF kernel, uses 
+// Ellpack-R fromat for storing sparse matrix, labels are in texture cache, 
+//Params:
+//vals - array of vectors values
+//colIdx  - array of column indexes in ellpack-r fromat
+//rowLength -array, contains number of nonzero elements in each row
+//selfDot - array of precomputed self linear product 
+//results - array of results Linear Kernel
+//num_rows -number of vectors
+//mainVecIndex - main vector index, needed for retriving its label
+//gamma - gamma parameter for RBF 
+extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength, 
+									   const float* selfDot,
+									   float * results,
+									   const int num_rows,
+									   const int mainVecIndex,
+									   const float gamma)
+{
+	
+
+	__shared__ float shGamma;
+	__shared__ int shMainVecIdx;
+	__shared__ float shMainSelfDot;
+	__shared__ float shLabel;
+	
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIndex;
+		shGamma = gamma;
+		shMainSelfDot = selfDot[shMainVecIdx];
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+	}
+	
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+
+	if(row<num_rows)
+	{
+		float dot=0;
+		int maxEl = rowLength[row];
+		int col=-1;
+		int val=0;
+		for(int i=0; i<maxEl;i++)
+		{
+			col=colIdx[num_rows*i+row];
+			val= vals[num_rows*i+row];
+			dot+=val*tex1Dfetch(mainVectorTexRef,col);
+		}
+		results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		
+	}	
+
+}
+
+
 /*******************************************************************************************/
 /*									
  *								Evaluator CUDA Kernels

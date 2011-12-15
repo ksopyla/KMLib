@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using KMLib.Helpers;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace KMLib.SVMSolvers
 {
@@ -130,8 +131,8 @@ namespace KMLib.SVMSolvers
 
 
 
-               // solve_l2r_l2_svc_bb(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
-                solve_l2r_l2_svc_nm_bb(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
+                solve_l2r_l2_svc_bb(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
+                //solve_l2r_l2_svc_nm_bb(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
                 //solve_l2r_l1l2_svc(model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
 
                 model.W = new double[w_size];
@@ -515,6 +516,11 @@ namespace KMLib.SVMSolvers
         {
 
             double max = double.NegativeInfinity;
+
+            Parallel.For(0, grad.Length, 
+                i => { 
+            
+            });
 
             for (int i = 0; i < grad.Length; i++)
             {

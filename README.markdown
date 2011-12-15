@@ -47,6 +47,19 @@ Second you can choose different SVM kernels: Linear, RBF, CudaLinear, CudaRbf or
 	IKernel<TProblemElements>
 interface and use your custom kernel.
 
+## Build procedure
+
+For Fermi card in post build events in KmLib.GPU use
+del *.cubin
+nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%VS90COMNTOOLS%../../VC/bin" -m32 -arch=sm_21  -use_fast_math
+xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
+
+For other Cuda device
+del *.cubin
+nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%VS90COMNTOOLS%../../VC/bin" -m32   -use_fast_math
+xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
+
+If you work on 64bit system you can also change -m32 to -m64
 
 ## How to extend
 //todo
@@ -54,5 +67,3 @@ interface and use your custom kernel.
 ## Solution description
 //todo
 
-## Build procedure
-//todo

@@ -15,10 +15,10 @@ namespace KMLib.GPU
 
     /// <summary>
     /// Class for computing RBF kernel using cuda.
-    /// Data are stored in CSR format.
+    /// Data are stored in Ellpack-R format.
     /// 
     /// </summary>
-    public class CudaRBFKernel : CUDAVectorKernel, IDisposable
+    public class CudaRBFEllpackKernel : CUDAVectorKernel, IDisposable
     {
      
         /// <summary>
@@ -39,11 +39,11 @@ namespace KMLib.GPU
 
        
 
-        public CudaRBFKernel(float gamma)
+        public CudaRBFEllpackKernel(float gamma)
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
-            cudaProductKernelName = "rbfCsrFormatKernel";
+            cudaProductKernelName = "rbfEllpackFormatKernel";
         }
 
 
@@ -115,10 +115,10 @@ namespace KMLib.GPU
             base.Init();
 
             float[] vecVals;
-            int[] vecIdx;
+            int[] vecColIdx;
             int[] vecLenght;
-           CudaHelpers.TransformToCSRFormat(out vecVals, out vecIdx, out vecLenght,problemElements);
 
+            CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
 
             selfLinDot = linKernel.DiagonalDotCache;
 
@@ -128,7 +128,7 @@ namespace KMLib.GPU
 
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
-            idxPtr = cuda.CopyHostToDevice(vecIdx);
+            idxPtr = cuda.CopyHostToDevice(vecColIdx);
             vecLenghtPtr = cuda.CopyHostToDevice(vecLenght);
 
             //!!!!!

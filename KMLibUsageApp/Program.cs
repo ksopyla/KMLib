@@ -19,8 +19,8 @@ namespace KMLibUsageApp
 {
     internal class Program
     {
-        private static float C = 64f;
-        static float gamma = 7.8125f;
+        private static float C = 4f;//1f;//4f;
+        static float gamma = 0.5f;//7.8125f;
         private static int folds=5;
         private static void Main(string[] args)
         {
@@ -53,12 +53,12 @@ namespace KMLibUsageApp
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
             SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
             
-           //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+            //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
             
            // PerformCrossValidation(dataFolder, folds);
 
-            SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+           // SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
             Console.WriteLine("Press any button");
            // Console.ReadKey();
 
@@ -523,17 +523,17 @@ t.Stop();
             #endregion
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.test";
-            //testFile = dataFolder + "/a1a.train";
-            //testFile= trainningFile = dataFolder + "/a1a.small.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
-
-            //trainningFile = dataFolder + "/a9a";
-            //testFile = dataFolder + "/a9a.t";
-            ////testFile = dataFolder + "/a9a";
+            //trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////testFile = dataFolder + "/a1a.train";
+            ////testFile= trainningFile = dataFolder + "/a1a.small.train";
+            ////in a1a problem max index is 123
             //numberOfFeatures = 123;
+
+            trainningFile = dataFolder + "/a9a";
+            testFile = dataFolder + "/a9a.t";
+            //testFile = dataFolder + "/a9a";
+            numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -565,9 +565,9 @@ t.Stop();
             //testFile = dataFolder + "/mnist.scale";
             //numberOfFeatures = 784;
 
-            trainningFile = dataFolder + "/kdda";
-            testFile = dataFolder + "/kdda.t";
-            numberOfFeatures = 20216830;
+            //trainningFile = dataFolder + "/kdda";
+            //testFile = dataFolder + "/kdda.t";
+            //numberOfFeatures = 20216830;
 
 
             ////trainningFile = dataFolder + "/real-sim_small_3K";
@@ -602,12 +602,13 @@ t.Stop();
             
             
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-            EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
-            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
-            IKernel<SparseVec> kernel = new CudaRBFKernel(gamma );
+            //IKernel<SparseVec> kernel = new CudaRBFKernel(gamma );
+            IKernel<SparseVec> kernel = new CudaRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
             Model<SparseVec> model;
@@ -704,14 +705,15 @@ t.Stop();
             Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
             Console.WriteLine("end read vectors");
 
-            //C = train.FeaturesCount* 1.0f / train.ElementsCount;
+            
             //var Solver = new CUDALinSolver(train, C);
             //var Solver = new ConjugateLinSolver(train, C);
 
-            var Solver = new BBLinSolver(train, C);
+            //C =(float) Math.Sqrt(C)*C / train.ElementsCount;
+            //var Solver = new BBLinSolver(train, C);
             //var Solver = new GPUnmBBLinSolver(train, C);
             //var Solver = new GPUstdBBLinSolver(train, C);
-            //var Solver = new LinearSolver(train, C);
+            var Solver = new LinearSolver(train, C);
 
             Console.WriteLine("User solver {0}", Solver.ToString());
 

@@ -234,6 +234,48 @@ namespace KMLib.GPU
             vecValsL = null;
         }
 
+
+
+        /// <summary>
+        /// Convert sparse vectors into ellpack-r format, all data has collumn majored ordering
+        /// 
+        /// </summary>
+        /// <param name="vecVals"></param>
+        /// <param name="vecCols"></param>
+        /// <param name="rowLength"></param>
+        /// <param name="problemElements"></param>
+        public static void TransformToEllpackRFormat(out float[] vecVals,out int[] vecCols,out int[] rowLength, SparseVec[] problemElements)
+        {
+            int maxEl = 1;
+            for (int i = 0; i < problemElements.Length; i++)
+			{
+                if(maxEl<problemElements[i].Count)
+                    maxEl=problemElements[i].Count;
+			}
+            maxEl = (from m in problemElements
+                     select m.Count).AsParallel().Max();
+
+            int numRows = problemElements.Length;
+            //2d array stored in 1d array
+            vecVals = new float[numRows * maxEl];
+            vecCols = new int[numRows * maxEl];
+            //1d array
+            rowLength = new int[numRows];
+
+            for (int i = 0; i < numRows; i++)
+            {
+                var vec = problemElements[i];
+                for (int j = 0; j < vec.Count; j++)
+                {
+                    vecVals[j * numRows + i] = vec.Values[j];
+                    vecCols[j * numRows + i] = vec.Indices[j];
+                }
+                rowLength[i] = vec.Count;
+            }
+
+        }
+
+
         /// <summary>
         ///  sets the values from one row of matrix, 
         ///  matrix is in sparse matrix in CSR format

@@ -145,6 +145,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CudaRBFEllpackKernel.cs" />
     <Compile Include="CUDAConfig.cs" />
     <Compile Include="CudaLinearEvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
@@ -175,7 +176,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>del *.cubin
-nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32 -arch=sm_21  -use_fast_math
+nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32  -use_fast_math
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 </PostBuildEvent>
   </PropertyGroup>
