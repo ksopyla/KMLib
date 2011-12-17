@@ -19,8 +19,8 @@ namespace KMLibUsageApp
 {
     internal class Program
     {
-        private static float C = 64f;
-        static float gamma = 7.8125f;
+        private static float C = 100f;
+        static float gamma = 0.5f;
         private static int folds=5;
         private static void Main(string[] args)
         {
@@ -523,17 +523,17 @@ t.Stop();
             #endregion
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.test";
-            //testFile = dataFolder + "/a1a.train";
-            //testFile= trainningFile = dataFolder + "/a1a.small.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
-
-            //trainningFile = dataFolder + "/a9a";
-            //testFile = dataFolder + "/a9a.t";
-            ////testFile = dataFolder + "/a9a";
+            //trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////testFile = dataFolder + "/a1a.train";
+            ////testFile= trainningFile = dataFolder + "/a1a.small.train";
+            ////in a1a problem max index is 123
             //numberOfFeatures = 123;
+
+            trainningFile = dataFolder + "/a9a";
+            testFile = dataFolder + "/a9a.t";
+            //testFile = dataFolder + "/a9a";
+            numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
