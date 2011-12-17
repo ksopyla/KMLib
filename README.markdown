@@ -47,8 +47,8 @@ Second you can choose different SVM kernels: Linear, RBF, CudaLinear, CudaRbf or
 	IKernel<TProblemElements>
 interface and use your custom kernel.
 
-## Build procedure
 
+## Build procedure
 For Fermi card in post build events in KmLib.GPU use
 del *.cubin
 nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%VS90COMNTOOLS%../../VC/bin" -m32 -arch=sm_21  -use_fast_math
