@@ -27,6 +27,7 @@ obj/
 _ReSharper*/
 [Tt]est[Rr]esult*
 
+KMLibUsageApp/Data/*.*
 KMLibUsageApp/Data/colon-cancer.bz2
 KMLibUsageApp.psess
 KMLibUsageApp/Data/real-sim.bz2
@@ -39,7 +40,6 @@ KMLibUsageApp/Data/mnist.scale.t
 KMLibUsageApp/Data/w8a
 KMLibUsageApp/Data/w8a.t
 KMLibUsageApp/Data/news20.binary.bz2
-KMLibUsageApp/Data/*.*
 *.bz2
 *.vsps
 Libs/NMathCoreKernelx86.dll
@@ -49,6 +49,6 @@ Libs/NMathCoreShared.dll
 Libs/NMathMatrixKernelx86.dll
 Libs/NMathMatrixMain.dll
 KMLib/ClassDiagram1.cd
-KMLibUsageApp/Data/a9a.zip
-KMLibUsageApp/Data/a9a.zip
-Libs/cudaSVMKernels.cubin
+*.zip
+
+*.cubin
