@@ -542,8 +542,6 @@ namespace KMLib.SVMSolvers
 
                 //  Parallel.ForEach(partition, UpdateGradient);
 
-
-
                 // update alpha_status and G_bar
 
                 {

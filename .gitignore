@@ -52,3 +52,4 @@ KMLib/ClassDiagram1.cd
 *.zip
 
 *.cubin
+Libs/cudaSVMKernels.cubin
