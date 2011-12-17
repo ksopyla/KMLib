@@ -151,8 +151,8 @@ namespace KMLib.GPU
 
                 base.ProblemElements = value;
 
-                //blocksPerGrid = (value.Length + threadsPerBlock - 1) / threadsPerBlock;
-                blocksPerGrid = (2*value.Length + threadsPerBlock - 1) / threadsPerBlock;
+                blocksPerGrid = (value.Length + threadsPerBlock - 1) / threadsPerBlock;
+                //blocksPerGrid = (2*value.Length + threadsPerBlock - 1) / threadsPerBlock;
             }
         }
 
