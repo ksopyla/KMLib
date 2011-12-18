@@ -50,13 +50,14 @@ namespace KMLib.Evaluate
             float[] predictions = new float[elements.Length];
 
 
-            //Parallel.For(0, elements.Length,
-            //    i =>
-            //    {
+            Parallel.For(0, elements.Length,
+                i =>
+                {
 
-                    for (int i = 0; i < elements.Length; i++)
-                    {
-                    float x1Squere = linKernel.Product(elements[i], elements[i]);
+                    //for (int i = 0; i < elements.Length; i++)
+                    //{
+                    float x1Squere = elements[i].DotProduct();// linKernel.Product(elements[i], elements[i]);//linKernel.DiagonalDotCache[i];
+                    
                     float sum = 0;
 
                     int index = -1;
@@ -77,7 +78,7 @@ namespace KMLib.Evaluate
                     sum -= TrainedModel.Bias;
                     predictions[i] = sum < 0 ? -1 : 1;
                 }
-            //);
+            );
 
             return predictions;
 
