@@ -530,10 +530,10 @@ t.Stop();
             ////in a1a problem max index is 123
             //numberOfFeatures = 123;
 
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
-            //testFile = dataFolder + "/a9a";
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            ////testFile = dataFolder + "/a9a";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -561,9 +561,9 @@ t.Stop();
             //testFile = dataFolder + "/news20.binary";
             //numberOfFeatures = 1335191;
 
-            //trainningFile = dataFolder + "/mnist.scale";
-            //testFile = dataFolder + "/mnist.scale";
-            //numberOfFeatures = 784;
+            trainningFile = dataFolder + "/mnist.scale";
+            testFile = dataFolder + "/mnist.scale";
+            numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/kdda";
             //testFile = dataFolder + "/kdda.t";
@@ -602,8 +602,8 @@ t.Stop();
             
             
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-            //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
-            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
