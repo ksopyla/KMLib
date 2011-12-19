@@ -36,7 +36,7 @@ namespace KMLibUsageApp
             //Console.WriteLine("press any key to start");
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
-            GroupedTestingLowLevelDataSets(dataSetsToTest);
+            //GroupedTestingLowLevelDataSets(dataSetsToTest);
            // TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
@@ -51,7 +51,7 @@ namespace KMLibUsageApp
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-            //SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
+            SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
             
             //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
@@ -530,10 +530,10 @@ t.Stop();
             ////in a1a problem max index is 123
             //numberOfFeatures = 123;
 
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
-            //testFile = dataFolder + "/a9a";
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            ////testFile = dataFolder + "/a9a";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -557,9 +557,9 @@ t.Stop();
             //testFile = dataFolder + "/rcv1_train.binary";
             //numberOfFeatures = 47236;
 
-            //trainningFile = dataFolder + "/news20.binary";
-            //testFile = dataFolder + "/news20.binary";
-            //numberOfFeatures = 1335191;
+            trainningFile = dataFolder + "/news20.binary";
+            testFile = dataFolder + "/news20.binary";
+            numberOfFeatures = 1335191;
 
             //trainningFile = dataFolder + "/mnist.scale";
             //testFile = dataFolder + "/mnist.scale";

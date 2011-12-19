@@ -247,13 +247,16 @@ namespace KMLib.GPU
         public static void TransformToEllpackRFormat(out float[] vecVals,out int[] vecCols,out int[] rowLength, SparseVec[] problemElements)
         {
             int maxEl = 1;
-            for (int i = 0; i < problemElements.Length; i++)
-			{
-                if(maxEl<problemElements[i].Count)
-                    maxEl=problemElements[i].Count;
-			}
+            //for (int i = 0; i < problemElements.Length; i++)
+            //{
+            //    if(maxEl<problemElements[i].Count)
+            //        maxEl=problemElements[i].Count;
+            //}
             maxEl = (from m in problemElements
                      select m.Count).AsParallel().Max();
+
+            double avgEl = (from t in problemElements
+                            select t.Count).Average();
 
             int numRows = problemElements.Length;
             //2d array stored in 1d array

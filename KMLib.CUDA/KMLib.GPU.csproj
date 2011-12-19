@@ -12,6 +12,8 @@
     <AssemblyName>KMLib.GPU</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -176,7 +178,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>del *.cubin
-nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32  -use_fast_math
+nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m64  -use_fast_math
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 </PostBuildEvent>
   </PropertyGroup>
