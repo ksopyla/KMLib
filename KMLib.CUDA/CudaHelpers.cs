@@ -280,6 +280,93 @@ namespace KMLib.GPU
 
 
         /// <summary>
+        /// Convert sparse vector into slice ellpack format, all data has column majored ordering, with group of <see cref="threadPerRow"/> elements
+        /// </summary>
+        /// <param name="vecVals">vector values</param>
+        /// <param name="vecCols"></param>
+        /// <param name="sliceStart"></param>
+        /// <param name="rowLenght"></param>
+        /// <param name="problemElements"></param>
+        /// <param name="threadsPerRow"></param>
+        /// <param name="sliceSize"></param>
+        public static void TransformToSlicedEllpack(out float[] vecVals, out int[] vecCols,out int[] sliceStart,out int[] rowLenght, SparseVec[] problemElements, int threadsPerRow, int sliceSize)
+        {
+            //int align = 128 *(int) Math.Ceiling((float)(sliceSize * threadsPerRow) / 128);
+
+            int align = (int)Math.Ceiling(0.0+sliceSize * threadsPerRow);
+
+            int numRows = problemElements.Length;
+            int numSlices = (int)Math.Ceiling( (numRows+0.0)/ sliceSize);
+
+            rowLenght = new int[numRows];
+
+            sliceStart = new int[numSlices+1];
+            //max non-zero in slice
+            int[] sliceMax = new int[numSlices];
+
+            int sliceNr = 0;
+            //find max in slice
+            for (int i = 0; i < numSlices; i++)
+            {
+                sliceMax[i] = -1;
+                int idx = -1;
+                for (int j = 0; j < sliceSize; j++)
+                {
+                    idx = j + i * sliceSize;
+                    if (idx < numRows)
+                    {
+                        rowLenght[idx] = problemElements[idx].Count;
+                        if (sliceMax[i] < rowLenght[idx])
+                        {
+                            sliceMax[i] = rowLenght[idx];
+                        }
+                    }
+                }
+                sliceStart[i + 1] = sliceStart[i] + (int)Math.Ceiling((sliceMax[i]+0.0) / threadsPerRow) * align;
+                var ttt = sliceStart[i] + sliceMax[i]*sliceSize ;
+
+            }
+
+            //
+            int nnzEl = sliceStart[numSlices];
+            vecCols = new int[nnzEl];
+            vecVals = new float[nnzEl];
+
+            sliceNr = 0;
+            int rowInSlice = 0;
+            //fill slice ellpack values and cols arrays
+            for (int i = 0; i < numRows; i++)
+            {
+                //slice number in whole dataset
+                sliceNr = i / sliceSize;
+                //row number  in particular slice
+                rowInSlice = i % sliceSize;
+                var vec = problemElements[i];
+
+                int threadNr = -1;
+                float value = 0;
+                int col = -1;
+
+                int rowSlice = -1;// (int)Math.Ceiling((0.0 + vec.Count) / threadsPerRow);
+                for (int k = 0; k < vec.Count; k++)
+                {
+                    threadNr = k % threadsPerRow;
+                    rowSlice = k / threadsPerRow;
+                    value = vec.Values[k];
+                    col = vec.Indices[k];
+                    //eg. if sliceSize=8, threadsPerRow=4, for first vector (i=0) with size 9
+                    //computed idx should be= [0 1 2 3 , 32,33,34,35, 64]
+                    int idx = sliceStart[sliceNr] + align * rowSlice + rowInSlice * threadsPerRow + threadNr;
+                    
+                    vecVals[idx]=value;
+                    vecCols[idx] = col;
+                }
+
+            }
+            
+        }
+
+        /// <summary>
         ///  sets the values from one row of matrix, 
         ///  matrix is in sparse matrix in CSR format
         /// </summary>

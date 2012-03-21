@@ -141,5 +141,23 @@ namespace KMLibTests
             Assert.AreEqual(vecLenghtExpected, vecLenght);
             Assert.Inconclusive("A method that does not return a value cannot be verified.");
         }
+
+        [TestMethod()]
+        public void TransformToSliceEllpackTest()
+        {
+            float[] vecVals = null; // TODO: Initialize to an appropriate value
+            int[] vecIdx = null; // TODO: Initialize to an appropriate value
+            int[] vecLenght = null; // TODO: Initialize to an appropriate value
+            int[] sliceStart=null;
+
+            int[] vecIdxExpected = new int[] { 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3 };
+            float[] vecValsExpected = new float[] { 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3 };
+            int[] vecLenghtExpected = new int[] { 0, 3, 5, 8, 10, 13, 15, 18, 20, 23, 25 };
+
+            CudaHelpers.TransformToSlicedEllpack(out vecVals, out vecIdx, out sliceStart,out vecLenght, problemElements,2,2);
+
+            Assert.Fail("not implemented yet");
+           
+        }
     }
 }
