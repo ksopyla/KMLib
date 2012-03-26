@@ -439,14 +439,20 @@ namespace KMLib.SVMSolvers
             //}
 
             //random step works better then modulo step (alternating iter%2)
-
             double rndProb = rnd.NextDouble();
             if (rndProb > probStep2)
             {
                 step = step2;
             }
 
+            //step from paper "Gradient Methods with Adaptive Step-Sizes"
+            //double kappa = step2 / step1;
+            //if (kappa < 0.4) //lub odwrotnie
+            //{
+            //    step = step2;
+            //}
 
+            //step = Math.Min(10e7, Math.Max(10e-7, step));
             return step;
         }
 

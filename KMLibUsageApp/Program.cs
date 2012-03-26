@@ -19,7 +19,7 @@ namespace KMLibUsageApp
 {
     internal class Program
     {
-        private static float C = 4f;//1f;//4f;
+        private static float C = 0.01f;//1f;//4f;
         static float gamma = 0.5f;//7.8125f;
         private static int folds=5;
         private static void Main(string[] args)
@@ -535,9 +535,9 @@ t.Stop();
             ////testFile = dataFolder + "/a9a";
             //numberOfFeatures = 123;
 
-            //trainningFile = dataFolder + "/w8a";
-            //testFile = dataFolder + "/w8a.t";
-            //numberOfFeatures = 300;
+            trainningFile = dataFolder + "/w8a";
+            testFile = dataFolder + "/w8a.t";
+            numberOfFeatures = 300;
 
             //trainningFile = dataFolder + "/colon-cancer.train";
             //testFile = dataFolder + "/colon-cancer.train";
@@ -557,9 +557,9 @@ t.Stop();
             //testFile = dataFolder + "/rcv1_train.binary";
             //numberOfFeatures = 47236;
 
-            trainningFile = dataFolder + "/news20.binary";
-            testFile = dataFolder + "/news20.binary";
-            numberOfFeatures = 1335191;
+            //trainningFile = dataFolder + "/news20.binary";
+            //testFile = dataFolder + "/news20.binary";
+            //numberOfFeatures = 1335191;
 
             //trainningFile = dataFolder + "/mnist.scale";
             //testFile = dataFolder + "/mnist.scale";
@@ -710,10 +710,10 @@ t.Stop();
             //var Solver = new ConjugateLinSolver(train, C);
 
             //C =(float) Math.Sqrt(C)*C / train.ElementsCount;
-            //var Solver = new BBLinSolver(train, C);
+            var Solver = new BBLinSolver(train, C);
             //var Solver = new GPUnmBBLinSolver(train, C);
             //var Solver = new GPUstdBBLinSolver(train, C);
-            var Solver = new LinearSolver(train, C);
+           // var Solver = new LinearSolver(train, C);
 
             Console.WriteLine("User solver {0}", Solver.ToString());
 
