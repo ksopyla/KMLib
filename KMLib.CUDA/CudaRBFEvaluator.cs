@@ -212,35 +212,35 @@ namespace KMLib.GPU
 
                 //free all resources
                 cuda.Free(valsPtr);
-                valsPtr.Pointer = 0;
+                valsPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(idxPtr);
-                idxPtr.Pointer = 0;
+                idxPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(vecLenghtPtr);
-                vecLenghtPtr.Pointer = 0;
+                vecLenghtPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(svSelf);
-                svSelf.Pointer = 0;
+                svSelf.Pointer =IntPtr.Zero;
 
                 cuda.Free(elSelf);
-                elSelf.Pointer = 0;
+                elSelf.Pointer =IntPtr.Zero;
 
 
                 cuda.FreeHost(outputIntPtr);
 
                 //cuda.Free(outputPtr);
-                outputPtr.Pointer = 0;
+                outputPtr.Pointer =IntPtr.Zero;
 
                 cuda.FreeHost(svVecIntPtrs[0]);
                 cuda.FreeHost(svVecIntPtrs[1]);
 
                 cuda.Free(mainVecPtr);
-                mainVecPtr.Pointer = 0;
+                mainVecPtr.Pointer =IntPtr.Zero;
                 cuda.DestroyTexture(cuSVTexRef);
 
                 cuda.Free(labelsPtr);
-                labelsPtr.Pointer = 0;
+                labelsPtr.Pointer =IntPtr.Zero;
                 if (cuLabelsTexRef.Pointer.ToInt32() != 0)
                     cuda.DestroyTexture(cuLabelsTexRef);
 

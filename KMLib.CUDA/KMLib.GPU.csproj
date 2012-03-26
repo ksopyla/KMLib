@@ -135,8 +135,8 @@
     <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CUDA.NET, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\Libs\CUDA.NET.dll</HintPath>
+    <Reference Include="Cudafy.NET">
+      <HintPath>..\Libs\Cudafy.NET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

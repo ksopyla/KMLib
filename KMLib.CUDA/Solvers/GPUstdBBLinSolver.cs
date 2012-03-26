@@ -1263,66 +1263,66 @@ namespace KMLib.GPU.Solvers
                 //free all resources
                 cuda.Free(valsCSRPtr);
                 cuda.Free(valsCSCPtr);
-                valsCSRPtr.Pointer = 0;
-                valsCSCPtr.Pointer = 0;
+                valsCSRPtr.Pointer =IntPtr.Zero;
+                valsCSCPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(idxCSRPtr);
                 cuda.Free(idxCSCPtr);
-                idxCSRPtr.Pointer = 0;
-                idxCSCPtr.Pointer = 0;
+                idxCSRPtr.Pointer =IntPtr.Zero;
+                idxCSCPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(vecLenghtCSRPtr);
                 cuda.Free(vecLenghtCSCPtr);
-                vecLenghtCSRPtr.Pointer = 0;
-                vecLenghtCSCPtr.Pointer = 0;
+                vecLenghtCSRPtr.Pointer =IntPtr.Zero;
+                vecLenghtCSCPtr.Pointer =IntPtr.Zero;
 
 
 
                 cuda.Free(gradPtr);
-                gradPtr.Pointer = 0;
+                gradPtr.Pointer =IntPtr.Zero;
                 cuda.Free(gradOldPtr);
-                gradOldPtr.Pointer = 0;
+                gradOldPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(alphaPtr);
-                alphaPtr.Pointer = 0;
+                alphaPtr.Pointer =IntPtr.Zero;
                 cuda.Free(alphaTmpPtr);
-                alphaTmpPtr.Pointer = 0;
+                alphaTmpPtr.Pointer =IntPtr.Zero;
                 cuda.Free(alphaOldPtr);
-                alphaOldPtr.Pointer = 0;
+                alphaOldPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(wVecPtr);
-                wVecPtr.Pointer = 0;
+                wVecPtr.Pointer =IntPtr.Zero;
                 cuda.Free(wTempVecPtr);
-                wTempVecPtr.Pointer = 0;
+                wTempVecPtr.Pointer =IntPtr.Zero;
 
 
                 cuda.Free(reduceBBAlphaPtr);
-                reduceBBAlphaPtr.Pointer = 0;
+                reduceBBAlphaPtr.Pointer =IntPtr.Zero;
                 cuda.Free(reduceBBGradPtr);
-                reduceBBGradPtr.Pointer = 0;
+                reduceBBGradPtr.Pointer =IntPtr.Zero;
                 cuda.Free(reduceBBAlphaGradPtr);
-                reduceBBAlphaGradPtr.Pointer = 0;
+                reduceBBAlphaGradPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(reduceObjAlphaPtr);
-                reduceObjAlphaPtr.Pointer = 0;
+                reduceObjAlphaPtr.Pointer =IntPtr.Zero;
                 cuda.Free(reduceObjWPtr);
-                reduceObjWPtr.Pointer = 0;
+                reduceObjWPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(reduceGradMaxNormPtr);
-                reduceGradMaxNormPtr.Pointer = 0;
+                reduceGradMaxNormPtr.Pointer =IntPtr.Zero;
 
 
                 //cuda.Free(diagPtr);
-                //diagPtr.Pointer = 0;
+                //diagPtr.Pointer =IntPtr.Zero;
                 //cuda.Free(stepBBPtr);
-                //stepBBPtr.Pointer = 0;
+                //stepBBPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(deltasPtr);
-                deltasPtr.Pointer = 0;
+                deltasPtr.Pointer =IntPtr.Zero;
                 cuda.DestroyTexture(cuDeltasTexRef);
 
                 cuda.Free(labelsPtr);
-                labelsPtr.Pointer = 0;
+                labelsPtr.Pointer =IntPtr.Zero;
                 cuda.DestroyTexture(cuLabelsTexRef);
 
                

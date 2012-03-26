@@ -166,25 +166,25 @@ namespace KMLib.GPU
                
               
                 cuda.Free(vecLenghtPtr);
-                vecLenghtPtr.Pointer = 0;
+                vecLenghtPtr.Pointer =IntPtr.Zero;
                 cuda.Free(idxPtr);
-                idxPtr.Pointer = 0;
+                idxPtr.Pointer =IntPtr.Zero;
                 cuda.Free(valsPtr);
-                valsPtr.Pointer = 0;
+                valsPtr.Pointer =IntPtr.Zero;
                 
                 
                
                 cuda.FreeHost(outputIntPtr);
                // cuda.Free(outputPtr);
-                outputPtr.Pointer = 0;
+                outputPtr.Pointer =IntPtr.Zero;
                 
 
                 cuda.Free(labelsPtr);
-                labelsPtr.Pointer = 0;
+                labelsPtr.Pointer =IntPtr.Zero;
                 cuda.DestroyTexture(cuLabelsTexRef);
 
                 cuda.Free(mainVecPtr);
-                mainVecPtr.Pointer = 0;
+                mainVecPtr.Pointer =IntPtr.Zero;
                 cuda.DestroyTexture(cuMainVecTexRef);
 
                 cuda.UnloadModule(cuModule);

@@ -585,40 +585,40 @@ namespace KMLib.GPU.Solvers
                 //free all resources
                 cuda.Free(valsCSRPtr);
                 cuda.Free(valsCSCPtr);
-                valsCSRPtr.Pointer = 0;
-                valsCSCPtr.Pointer = 0;
+                valsCSRPtr.Pointer =IntPtr.Zero;
+                valsCSCPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(idxCSRPtr);
                 cuda.Free(idxCSCPtr);
-                idxCSRPtr.Pointer = 0;
-                idxCSCPtr.Pointer = 0;
+                idxCSRPtr.Pointer =IntPtr.Zero;
+                idxCSCPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(vecLenghtCSRPtr);
                 cuda.Free(vecLenghtCSCPtr);
-                vecLenghtCSRPtr.Pointer = 0;
-                vecLenghtCSCPtr.Pointer = 0;
+                vecLenghtCSRPtr.Pointer =IntPtr.Zero;
+                vecLenghtCSCPtr.Pointer =IntPtr.Zero;
 
 
 
                 cuda.Free(qdPtr);
-                qdPtr.Pointer = 0;
+                qdPtr.Pointer =IntPtr.Zero;
                 //  cuda.Free(diagPtr);
-                diagPtr.Pointer = 0;
+                diagPtr.Pointer =IntPtr.Zero;
                 cuda.Free(alphaPtr);
-                alphaPtr.Pointer = 0;
+                alphaPtr.Pointer =IntPtr.Zero;
                 cuda.Free(gradPtr);
-                gradPtr.Pointer = 0;
+                gradPtr.Pointer =IntPtr.Zero;
 
                 cuda.Free(deltasPtr);
-                deltasPtr.Pointer = 0;
+                deltasPtr.Pointer =IntPtr.Zero;
                 cuda.DestroyTexture(cuDeltasTexRef);
 
                 cuda.Free(labelsPtr);
-                labelsPtr.Pointer = 0;
+                labelsPtr.Pointer =IntPtr.Zero;
                 cuda.DestroyTexture(cuLabelsTexRef);
 
                 cuda.Free(mainVecPtr);
-                mainVecPtr.Pointer = 0;
+                mainVecPtr.Pointer =IntPtr.Zero;
 
                 cuda.DestroyTexture(cuMainVecTexRef);
 
