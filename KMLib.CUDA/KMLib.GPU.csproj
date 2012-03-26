@@ -135,7 +135,7 @@
     <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CUDA.NET">
+    <Reference Include="CUDA.NET, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\Libs\CUDA.NET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
@@ -174,11 +174,12 @@
     <None Include="linSVMSolver.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="rbfSlicedEllpackKernel.cu" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>del *.cubin
-nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m64  -use_fast_math
+nvcc cudaSVMKernels.cu linSVMSolver.cu  --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32  -use_fast_math
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 </PostBuildEvent>
   </PropertyGroup>

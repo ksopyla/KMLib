@@ -143,7 +143,7 @@ namespace KMLibTests
         }
 
         [TestMethod()]
-        public void TransformToSliceEllpackTest()
+        public void TransformToSliceEllpackTest_2threads_2slice_5vectors()
         {
             float[] vecVals = null; // TODO: Initialize to an appropriate value
             int[] vecIdx = null; // TODO: Initialize to an appropriate value
@@ -153,11 +153,111 @@ namespace KMLibTests
             int[] vecIdxExpected = new int[] { 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3 };
             float[] vecValsExpected = new float[] { 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4, 1, 3 };
             int[] vecLenghtExpected = new int[] { 0, 3, 5, 8, 10, 13, 15, 18, 20, 23, 25 };
+            int[] vecsliceExpected = new int[] { 0, 12, 24, 36 };
 
             CudaHelpers.TransformToSlicedEllpack(out vecVals, out vecIdx, out sliceStart,out vecLenght, problemElements,2,2);
 
-            Assert.Fail("not implemented yet");
+            for (int i = 0; i < vecIdxExpected.Length; i++)
+            {
+                Assert.AreEqual(vecIdxExpected[i], vecIdx[i], "vec idx different at position" + i);
+            }
+
+            for (int i = 0; i < vecValsExpected.Length; i++)
+            {
+                Assert.AreEqual(vecValsExpected[i], vecVals[i], "vec val different at position" + i);
+            }
+
+            for (int i = 0; i < vecLenghtExpected.Length; i++)
+            {
+                Assert.AreEqual(vecLenghtExpected[i], vecLenght[i], "vec lenght different at position" + i);
+            }
+
+            for (int i = 0; i < vecsliceExpected.Length; i++)
+            {
+                Assert.AreEqual(vecsliceExpected[i], sliceStart[i], "vec slice different at position" + i);
+            }
            
+        }
+
+
+        [TestMethod()]
+        public void TransformToSliceEllpackTest_different_slice_sizes()
+        {
+
+            int sliceSize = 4;
+            int threads = 2;
+            var problem = GenerateTestProblemForSliceEllpack(13,sliceSize,15,new int[] { 3, 6, 5, 4 });
+            float[] vecVals = null; // TODO: Initialize to an appropriate value
+            int[] vecIdx = null; // TODO: Initialize to an appropriate value
+            int[] vecLenght = null; // TODO: Initialize to an appropriate value
+            int[] sliceStart = null;
+
+            int[] vecIdxExpected = new int[] {3,5,4,6,5,7,6,8,7,0,8,0,9,0,10,0 };
+            float[] vecValsExpected = new float[] { 1,1,2,2,3,3,4,4,1,0,2,0,3,0,4,0,5,5,6,6,7,7,8,8,5,5,6,6,7,7,8,8,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,9,9,10,10,11,11,12,12,9,0,10,0,11,0,12,0,13,13,0,0,0,0,0,0,13,13,0,0,0,0,0,0 };
+            int[] vecLenghtExpected = new int[] { 3,3,3,3,6,6,6,6,5,5,5,5,4 };
+            int[] sliceStarExpected = new int[] { 0, 16, 40, 64, 80 };
+
+            CudaHelpers.TransformToSlicedEllpack(out vecVals, out vecIdx, out sliceStart, out vecLenght, problem, threads ,sliceSize);
+
+            for (int i = 0; i < sliceStarExpected.Length; i++)
+            {
+                Assert.AreEqual(sliceStarExpected[i], sliceStart[i], "vec slice different at position" + i);
+            }
+
+            for (int i = 0; i < vecLenghtExpected.Length; i++)
+            {
+                Assert.AreEqual(vecLenghtExpected[i], vecLenght[i], "vec length different at position" + i);
+            }
+
+
+            for (int i = 0; i < vecValsExpected.Length; i++)
+            {
+                Assert.AreEqual(vecValsExpected[i], vecVals[i], "vec val different at position" + i);
+            }
+
+            for (int i = 0; i < vecIdxExpected.Length; i++)
+            {
+                Assert.AreEqual(vecIdxExpected[i], vecIdx[i], "vec idx different at position" + i);
+            }
+
+            
+
+        }
+
+        private SparseVec[] GenerateTestProblemForSliceEllpack(int rows, int sliceSize, int dim, int[] maxSliceSizes)
+        {
+
+            //int rows = 13;
+            //int sliceSize = 4;
+            //int thread = 2;
+            //int[] maxSliceSizes = new int[] { 3, 6, 5, 4 };
+            //int dim = 15;
+            
+            List<SparseVec> elements = new List<SparseVec>(rows);
+            
+
+            int sliceNr = 0;
+            int rowInSlice = 0;
+            for (int i = 0; i < rows; i++)
+            {
+                sliceNr = i / sliceSize;
+                rowInSlice = i % sliceSize;
+
+                List<KeyValuePair<int, float>> idxVal = new List<KeyValuePair<int, float>>();
+                for (int j = 1; j <= maxSliceSizes[sliceNr]; j++)
+                {
+                        idxVal.Add(new KeyValuePair<int, float>( (j*2+i)%dim+1 , i+1));
+                }
+
+                //idxVal.Add(new KeyValuePair<int, float>(1, 100));
+                
+                
+                idxVal.Sort((a, b) => a.Key.CompareTo(b.Key));
+
+                elements.Add(new SparseVec(dim, idxVal));
+            }
+
+            return elements.ToArray();
         }
     }
 }
