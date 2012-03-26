@@ -101,7 +101,7 @@ namespace KMLib.GPU
             #endregion
 
             int gridDimX = (int)Math.Ceiling((Rows + 0.0) / (blockSizeX));
-           
+
 
             for (int k = 0; k < TrainedModel.SupportElements.Length; k++)
             {
@@ -156,7 +156,7 @@ namespace KMLib.GPU
             //wait for all computation
             cuda.SynchronizeContext();
 
-            
+
             float[] result = new float[elements.Length];
             //copy result
             Marshal.Copy(outputIntPtr, result, 0, elements.Length);
@@ -174,18 +174,18 @@ namespace KMLib.GPU
                 //free all resources
                 cuda.Free(valsPtr);
                 valsPtr.Pointer = 0;
-                 
-                
+
+
 
                 cuda.Free(idxPtr);
                 idxPtr.Pointer = 0;
-                
+
                 cuda.Free(vecLenghtPtr);
                 vecLenghtPtr.Pointer = 0;
 
 
                 cuda.FreeHost(outputIntPtr);
-                
+
                 //cuda.Free(outputPtr);
                 outputPtr.Pointer = 0;
 
@@ -198,7 +198,7 @@ namespace KMLib.GPU
 
                 cuda.Free(labelsPtr);
                 labelsPtr.Pointer = 0;
-                if (cuLabelsTexRef.Pointer.ToInt32()  != 0)
+                if (cuLabelsTexRef.Pointer.ToInt32() != 0)
                     cuda.DestroyTexture(cuLabelsTexRef);
 
 
@@ -208,7 +208,7 @@ namespace KMLib.GPU
 
                 //Marshal.FreeHGlobal(svVecIntPtrs[0]);
                 //Marshal.FreeHGlobal(svVecIntPtrs[1]);
-                
+
                 cuda.UnloadModule(cuModule);
 
                 cuda.Dispose();
@@ -220,7 +220,7 @@ namespace KMLib.GPU
                 TrainedModel.SupportElementsIndexes = null;
                 TrainedModel = null;
 
-                
+
                 IsInitialized = false;
             }
         }
