@@ -20,7 +20,7 @@ namespace KMLib.GPU
     /// </summary>
     public class CudaRBFEllpackKernel : CUDAVectorKernel, IDisposable
     {
-     
+
         /// <summary>
         /// Array for self dot product 
         /// </summary>
@@ -28,16 +28,16 @@ namespace KMLib.GPU
 
 
         private float Gamma;
-       
-        
 
-       /// <summary>
-       /// cuda device pointer for stroing self linear dot product
-       /// </summary>
+
+
+        /// <summary>
+        /// cuda device pointer for stroing self linear dot product
+        /// </summary>
         private CUdeviceptr selfLinDotPtr;
 
 
-       
+
 
         public CudaRBFEllpackKernel(float gamma)
         {
@@ -103,7 +103,7 @@ namespace KMLib.GPU
             //return new RbfParameterSelection();
         }
 
-      
+
 
 
         public override void Init()
@@ -111,7 +111,7 @@ namespace KMLib.GPU
             linKernel.ProblemElements = problemElements;
             linKernel.Y = Y;
             linKernel.Init();
-           
+
             base.Init();
 
             float[] vecVals;
@@ -136,34 +136,42 @@ namespace KMLib.GPU
 
             uint memSize = (uint)(problemElements.Length * sizeof(float));
             //allocate mapped memory for our results
-            outputIntPtr = cuda.HostAllocate(memSize, CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
+            //CUDARuntime.cudaSetDeviceFlags(CUDARuntime.cudaDeviceMapHost);
+
+
+
+            // var e= CUDADriver.cuMemHostAlloc(ref outputIntPtr, memSize, 8);
+            //CUDARuntime.cudaHostAlloc(ref outputIntPtr, memSize, CUDARuntime.cudaHostAllocMapped);
+            //var errMsg=CUDARuntime.cudaGetErrorString(e);
+            //cuda.HostRegister(outputIntPtr,memSize, Cuda)
+            outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
 
             //normal memory allocation
             //outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
 
-            
+
             #endregion
 
             SetCudaFunctionParameters();
 
             //allocate memory for main vector, size of this vector is the same as dimenson, so many 
             //indexes will be zero, but cuda computation is faster
-            mainVector = new float[problemElements[0].Dim+1];
-            CudaHelpers.FillDenseVector(problemElements[0],mainVector);
+            mainVector = new float[problemElements[0].Dim + 1];
+            CudaHelpers.FillDenseVector(problemElements[0], mainVector);
 
             SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
 
             SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
-           
+
 
         }
 
-        
+
 
         protected override void SetCudaFunctionParameters()
         {
-            
+
             #region cuda set function parameters
             cuda.SetFunctionBlockShape(cuFunc, threadsPerBlock, 1, 1);
 
@@ -199,7 +207,7 @@ namespace KMLib.GPU
             #endregion
         }
 
-       
+
 
         #region IDisposable Members
 
@@ -209,25 +217,25 @@ namespace KMLib.GPU
             {
                 //free all resources
                 cuda.Free(valsPtr);
-                valsPtr.Pointer =IntPtr.Zero;
+                valsPtr.Pointer = IntPtr.Zero;
                 cuda.Free(idxPtr);
-                idxPtr.Pointer =IntPtr.Zero;
+                idxPtr.Pointer = IntPtr.Zero;
                 cuda.Free(vecLenghtPtr);
-                vecLenghtPtr.Pointer =IntPtr.Zero;
+                vecLenghtPtr.Pointer = IntPtr.Zero;
 
                 cuda.Free(selfLinDotPtr);
-                selfLinDotPtr.Pointer =IntPtr.Zero;
+                selfLinDotPtr.Pointer = IntPtr.Zero;
 
 
                 cuda.FreeHost(outputIntPtr);
                 //cuda.Free(outputPtr);
-                outputPtr.Pointer =IntPtr.Zero;
+                outputPtr.Pointer = IntPtr.Zero;
                 cuda.Free(labelsPtr);
-                labelsPtr.Pointer =IntPtr.Zero;
+                labelsPtr.Pointer = IntPtr.Zero;
                 cuda.DestroyTexture(cuLabelsTexRef);
 
                 cuda.Free(mainVecPtr);
-                mainVecPtr.Pointer =IntPtr.Zero;
+                mainVecPtr.Pointer = IntPtr.Zero;
 
                 cuda.DestroyTexture(cuMainVecTexRef);
 

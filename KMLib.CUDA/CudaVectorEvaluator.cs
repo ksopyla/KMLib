@@ -195,6 +195,10 @@ namespace KMLib.GPU
             
 
             cuda = new CUDA(0, true);
+            
+            var cuCtx = cuda.CreateContext(0, CUCtxFlags.MapHost);
+            cuda.SetCurrentContext(cuCtx);
+
             cuModule = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, cudaModuleName));
             cuFunc = cuda.GetModuleFunction(cudaEvaluatorKernelName);
 

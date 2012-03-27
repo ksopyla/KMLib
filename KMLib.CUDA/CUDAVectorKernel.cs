@@ -195,7 +195,9 @@ namespace KMLib.GPU
 
         protected void InitCudaModule()
         {
-            cuda = new CUDA(0, true);
+            cuda = new CUDA(0,true);
+            var cuCtx= cuda.CreateContext(0, CUCtxFlags.MapHost);
+            cuda.SetCurrentContext(cuCtx);
 
             string modluePath = Path.Combine(Environment.CurrentDirectory, cudaModuleName);
             if (!File.Exists(modluePath))
