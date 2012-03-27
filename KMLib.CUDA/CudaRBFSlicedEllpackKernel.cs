@@ -175,14 +175,8 @@ namespace KMLib.GPU
             //allocate mapped memory for our results
             var outputIntPtr = gpu.HostAllocate<float>(memSize); // .HostAllocate(memSize, CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             var outputPtr = gpu.GetDeviceMemoryFromIntPtr(outputIntPtr);// cuda.GetHostDevicePointer(outputIntPtr, 0);
-
-            //normal memory allocation
-            //outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
-
             
             #endregion
-
-          
 
             //allocate memory for main vector, size of this vector is the same as dimenson, so many 
             //indexes will be zero, but cuda computation is faster
@@ -190,7 +184,7 @@ namespace KMLib.GPU
             CudaHelpers.FillDenseVector(problemElements[0],mainVector);
 
            // SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
-            //  SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
+           // SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
            
 
         }

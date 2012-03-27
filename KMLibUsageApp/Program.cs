@@ -602,8 +602,8 @@ t.Stop();
             
             
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-            //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
-            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
