@@ -486,7 +486,14 @@ namespace KMLib.GPU
         }
 
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="size">array size</param>
+        /// <param name="maxBlock">maximum block size, good starting value is 64</param>
+        /// <param name="maxThreadsPerBlock"></param>
+        /// <param name="threads"></param>
+        /// <param name="blocks"></param>
         internal static void GetNumThreadsAndBlocks(int size, int maxBlock, int maxThreadsPerBlock, ref int threads, ref int blocks)
         {
 

@@ -22,7 +22,6 @@ texture<float,1,cudaReadModeElementType> mainVectorTexRef;
 
 #define BLOCK_SIZE 128
 
-#define WARP_SIZE 32
 
 #define NEG_INFINITY_F __int_as_float(0xff800000)
 
