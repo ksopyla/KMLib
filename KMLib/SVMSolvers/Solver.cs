@@ -15,6 +15,24 @@ namespace KMLib.SVMSolvers
     {
 
         /// <summary>
+        /// Internal helper class, whitch store computed solution
+        /// </summary>
+        protected class SolutionInfo
+        {
+            /// <summary>
+            /// objective function value
+            /// </summary>
+            public float obj;
+            /// <summary>
+            /// rho == b prameter in function
+            /// </summary>
+            public float rho;
+            public float upper_bound_p;
+            public float upper_bound_n;
+            public int iter;
+        }
+
+        /// <summary>
         /// Trainning problem
         /// </summary>
         public Problem<TProblemElement> problem;

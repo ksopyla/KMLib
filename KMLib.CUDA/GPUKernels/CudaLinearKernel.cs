@@ -97,13 +97,13 @@ namespace KMLib.GPU
             //mainVecPtr = cuda.CopyHostToDevice(mainVector);
             //cuda.SetTextureAddress(cuMainVecTexRef, mainVecPtr, (uint)(sizeof(float) * mainVector.Length));
 
-            SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector,ref mainVecPtr);
+           CudaHelpers.SetTextureMemory(cuda,cuModule, ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector,ref mainVecPtr);
 
             //cuLabelsTexRef = cuda.GetModuleTexture(cuModule, cudaLabelsTexRefName);
             //labelsPtr = cuda.CopyHostToDevice(Labels);
             //uint align = cuda.SetTextureAddress(cuLabelsTexRef, labelsPtr, (uint)(sizeof(float) * Labels.Length));
 
-            SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
+            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
 
         }
 
@@ -135,7 +135,7 @@ namespace KMLib.GPU
             cuda.SetParameter(cuFunc, offset, (uint)problemElements.Length);
             offset += sizeof(int);
 
-            lastParameterOffset = offset;
+            mainVecIdxParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
 
 

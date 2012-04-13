@@ -160,9 +160,9 @@ namespace KMLib.GPU
             mainVector = new float[problemElements[0].Dim + 1];
             CudaHelpers.FillDenseVector(problemElements[0], mainVector);
 
-            SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
+            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
 
-            SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
+            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
 
 
         }
@@ -194,7 +194,7 @@ namespace KMLib.GPU
             cuda.SetParameter(cuFunc, offset, (uint)problemElements.Length);
             offset += sizeof(int);
 
-            lastParameterOffset = offset;
+            mainVecIdxParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
             offset += sizeof(int);
 

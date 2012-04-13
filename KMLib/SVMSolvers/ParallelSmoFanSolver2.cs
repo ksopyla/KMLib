@@ -86,21 +86,21 @@ namespace KMLib.SVMSolvers
         /// <summary>
         /// Internal helper class, whitch store computed solution
         /// </summary>
-        internal class SolutionInfo
-        {
-            /// <summary>
-            /// objective function value
-            /// </summary>
-            public float obj;
-            /// <summary>
-            /// rho == b prameter in function
-            /// </summary>
-            public float rho;
-            public float upper_bound_p;
-            public float upper_bound_n;
-            public float r;	// for Solver_NU
-            public int iter;
-        }
+        //internal class SolutionInfo
+        //{
+        //    /// <summary>
+        //    /// objective function value
+        //    /// </summary>
+        //    public float obj;
+        //    /// <summary>
+        //    /// rho == b prameter in function
+        //    /// </summary>
+        //    public float rho;
+        //    public float upper_bound_p;
+        //    public float upper_bound_n;
+        //    public float r;	// for Solver_NU
+        //    public int iter;
+        //}
 
         #region variables from LibSVM
         protected int active_size;

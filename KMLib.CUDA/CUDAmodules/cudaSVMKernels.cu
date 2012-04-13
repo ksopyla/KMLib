@@ -302,8 +302,9 @@ extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
 		float dot=0;
 		int maxEl = rowLength[row];
 		int col=-1;
-		int val=0;
-		for(int i=0; i<maxEl;i++)
+		float val=0;
+		int i=0;
+		for(i=0; i<maxEl;i++)
 		{
 			col=colIdx[num_rows*i+row];
 			val= vals[num_rows*i+row];

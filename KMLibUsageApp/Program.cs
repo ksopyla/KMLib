@@ -19,17 +19,18 @@ namespace KMLibUsageApp
 {
     internal class Program
     {
-        private static float C = 0.01f;//1f;//4f;
+        private static float C = 4f;
         static float gamma = 0.5f;//7.8125f;
-        private static int folds=5;
+        private static int folds = 5;
         private static void Main(string[] args)
         {
             if (args.Length < 1)
                 throw new ArgumentException("to liitle arguments");
 
-           Debug.Listeners.Add(new ConsoleTraceListener());
+            Debug.Listeners.Add(new ConsoleTraceListener());
 
-            string dataFolder = args[0];// @"D:\UWM\praca naukowa\doktorat\code\KMLib\KMLibUsageApp\Data";
+            //string dataFolder = args[0];// @"D:\UWM\praca naukowa\doktorat\code\KMLib\KMLibUsageApp\Data";
+            string dataFolder = @"../../../Data";
 
             IList<Tuple<string, string, int>> dataSetsToTest = CreateDataSetList(dataFolder);
 
@@ -37,7 +38,7 @@ namespace KMLibUsageApp
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
-           // TestOneDataSet(dataFolder);
+            // TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -45,22 +46,22 @@ namespace KMLibUsageApp
 
             //TestMultiClasDataSet(dataFolder);
 
-           // TestRanking(dataFolder);
+            // TestRanking(dataFolder);
 
             string trainningFile;
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-            SVMClassifyLowLevel(trainningFile,testFile,numberOfFeatures, C);
-            
+            SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+
             //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
-            
-           // PerformCrossValidation(dataFolder, folds);
 
-           // SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+            // PerformCrossValidation(dataFolder, folds);
+
+            // SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
             Console.WriteLine("Press any button");
-           // Console.ReadKey();
+            // Console.ReadKey();
 
         }
 
@@ -72,11 +73,11 @@ namespace KMLibUsageApp
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
-            Console.WriteLine("Cross validation folds={0} \nDataSet1 atr={1}, trainning={2}",folds, numberOfFeatures, trainningFile);
+            Console.WriteLine("Cross validation folds={0} \nDataSet1 atr={1}, trainning={2}", folds, numberOfFeatures, trainningFile);
             Console.WriteLine();
             Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
-           
+
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
@@ -90,7 +91,7 @@ namespace KMLibUsageApp
 
         }
 
-       
+
 
         private static void TestOneDataSet(string dataFolder)
         {
@@ -107,15 +108,15 @@ namespace KMLibUsageApp
             Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
-            
+
             EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
-           // evaluator.Init();
+            // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
             IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
-            SVMClassify(train, test, kernel, evaluator,C);
+            SVMClassify(train, test, kernel, evaluator, C);
 
         }
 
@@ -131,9 +132,9 @@ namespace KMLibUsageApp
 
             string trainningFile = dataFolder + "/genresTrain_scale.train";
             string testFile = dataFolder + "/genresTest.arff_scale.t"; ;
-            int numberOfFeatures=181;
-            
-                
+            int numberOfFeatures = 181;
+
+
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
@@ -152,12 +153,12 @@ namespace KMLibUsageApp
             IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
 
-            
+
             //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             //this solver works a bit faster and use less memory
             var mcSvm = new MultiClassSVM<SparseVec>(train, kernel, C, evaluator);
 
-          
+
             Stopwatch timer = Stopwatch.StartNew();
 
             mcSvm.Train();
@@ -167,16 +168,16 @@ namespace KMLibUsageApp
 
             Console.WriteLine("Start Testing");
             Stopwatch t = Stopwatch.StartNew();
-           float[] predictions= mcSvm.Predict(test.Elements);
+            float[] predictions = mcSvm.Predict(test.Elements);
 
-           
-t.Stop();
+
+            t.Stop();
             //toremove: only for tests
             Console.WriteLine("prediction takes {0}  ms={1}", t.Elapsed, t.ElapsedMilliseconds);
 
 
-            SavePredictionToFile(predictions,Path.GetFileNameWithoutExtension(testFile)+".prediction");
-         
+            SavePredictionToFile(predictions, Path.GetFileNameWithoutExtension(testFile) + ".prediction");
+
             int correct = 0;
             for (int i = 0; i < test.ElementsCount; i++)
             {
@@ -194,7 +195,7 @@ t.Stop();
 
         private static void TestRanking(string dataFolder)
         {
-           
+
             string trainningFile = dataFolder + "/rankingTrain.t";
             string testFile = dataFolder + "/rankingTest.t"; ;
             int numberOfFeatures = 2;
@@ -240,7 +241,7 @@ t.Stop();
             evaluator.Init();
 
 
-            
+
             float[] predictions = new float[test.Elements.Length];
             Stopwatch t = Stopwatch.StartNew();
             for (int i = 0; i < test.ElementsCount; i++)
@@ -279,7 +280,7 @@ t.Stop();
         /// <returns></returns>
         private static Problem<SparseVec> CreateRankingProblem(Problem<SparseVec> origtrain)
         {
-           
+
             int k = origtrain.ElementsCount;
             int size = k * (k + 1) / 2;
 
@@ -288,12 +289,12 @@ t.Stop();
 
             for (int i = 0; i < k; i++)
             {
-                for (int j = 0; j < (i+1); j++)
+                for (int j = 0; j < (i + 1); j++)
                 {
-                    if (i==j)
+                    if (i == j)
                         continue;
 
-                    int ii=i, jj=j;
+                    int ii = i, jj = j;
 
                     //add some permutation
                     //if ( (j+i*(i+1)/2) % 2 == 0) { ii = j; jj = i; }
@@ -330,7 +331,7 @@ t.Stop();
         }
 
 
-       
+
         /// <summary>
         /// Read train and test problem from dataset file and then train SVM using CUDA kernels
         /// </summary>
@@ -357,10 +358,10 @@ t.Stop();
             EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-           // EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
-         
-           IKernel<SparseVec> kernel2 = new CudaLinearKernel();
-           // IKernel<SparseVec> kernel2 = new CudaRBFKernel(gamma);
+            // EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
+
+            IKernel<SparseVec> kernel2 = new CudaLinearKernel();
+            // IKernel<SparseVec> kernel2 = new CudaRBFKernel(gamma);
 
             SVMClassify(train, test, kernel2, evaluator, C);
         }
@@ -391,12 +392,12 @@ t.Stop();
                 Console.WriteLine("\n----------------------------------------------\n");
                 Console.WriteLine("DataSets , trainning={1} testing={2} , atr={0}", numberOfFeatures, trainningFile, testFile);
                 Console.WriteLine();
-                
+
 
                 Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
 
                 Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
-                
+
                 SVMClassify(train, test, kernel, evaluator, C);
                 Console.WriteLine("***************************\n");
 
@@ -408,7 +409,7 @@ t.Stop();
             string trainningFile;
             string testFile;
             int numberOfFeatures;
-            
+
             foreach (var data in dataSetsToTest)
             {
                 trainningFile = data.Item1;
@@ -420,7 +421,7 @@ t.Stop();
                 Console.WriteLine();
 
                 SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
-                
+
                 Console.WriteLine("***************************\n");
 
             }
@@ -460,12 +461,12 @@ t.Stop();
                 dataFolder + "/real-sim",
                 dataFolder + "/real-sim",
                 20958));
-            
+
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/mnist.scale",
                 dataFolder + "/mnist.scale.t",
                 784));
-            
+
 
 
 
@@ -494,7 +495,7 @@ t.Stop();
         private static void ChooseDataSet(string dataFolder, out string trainningFile, out string testFile, out int numberOfFeatures)
         {
             #region grant
-            
+
             //trainningFile = dataFolder + "/zegarki_meskie_damskie_sift_kmeans_5_50_headers.svm.libsvm";
             //testFile = dataFolder + "/zegarki_meskie_damskie_sift_kmeans_5_50_headers.svm.libsvm";
             //numberOfFeatures = 5;
@@ -510,10 +511,10 @@ t.Stop();
             //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/toy_2d.train";
-           // trainningFile = dataFolder + "/toy_2d_16.train";
-           // trainningFile = dataFolder + "/toy_2d_3.train";
-           // testFile = dataFolder + "/toy_2d.test";
-           // numberOfFeatures = 2;
+            // trainningFile = dataFolder + "/toy_2d_16.train";
+            // trainningFile = dataFolder + "/toy_2d_3.train";
+            // testFile = dataFolder + "/toy_2d.test";
+            // numberOfFeatures = 2;
 
 
 
@@ -535,9 +536,9 @@ t.Stop();
             ////testFile = dataFolder + "/a9a";
             //numberOfFeatures = 123;
 
-            trainningFile = dataFolder + "/w8a";
-            testFile = dataFolder + "/w8a.t";
-            numberOfFeatures = 300;
+            //trainningFile = dataFolder + "/w8a";
+            //testFile = dataFolder + "/w8a.t";
+            //numberOfFeatures = 300;
 
             //trainningFile = dataFolder + "/colon-cancer.train";
             //testFile = dataFolder + "/colon-cancer.train";
@@ -562,8 +563,9 @@ t.Stop();
             //numberOfFeatures = 1335191;
 
             //trainningFile = dataFolder + "/mnist.scale";
-            //testFile = dataFolder + "/mnist.scale";
-            //numberOfFeatures = 784;
+            trainningFile = dataFolder + "/mnist.scale_10k";
+            testFile = dataFolder + "/mnist.scale.t";
+            numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/kdda";
             //testFile = dataFolder + "/kdda.t";
@@ -590,7 +592,7 @@ t.Stop();
         /// <summary>
         /// Train and test SVM, using low level api, construct kernels, solver and evaluator by hand
         /// </summary>
-        private static void SVMClassifyLowLevel( string trainningFile,
+        private static void SVMClassifyLowLevel(string trainningFile,
             string testFile,
             int numberOfFeatures,
             float paramC)
@@ -599,16 +601,20 @@ t.Stop();
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
-            
-            
+
+
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-            EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
-            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
-            //IKernel<SparseVec> kernel = new CudaRBFKernel(gamma );
-            IKernel<SparseVec> kernel = new CudaRBFEllpackKernel(gamma);
+            IKernel<SparseVec> kernel = new CudaRBFKernel(gamma );
+
+            //IKernel<SparseVec> kernel = new CudaRBFEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CudaRBFSlicedEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CudaRBFSlicedEllpackKernel2(gamma);
+
             //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
             Model<SparseVec> model;
@@ -621,7 +627,7 @@ t.Stop();
             kernel.ProblemElements = train.Elements;
             kernel.Y = train.Y;
             kernel.Init();
-           
+
             //
             //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             //this solver works a bit faster and use less memory
@@ -632,46 +638,46 @@ t.Stop();
 
             Stopwatch timer = Stopwatch.StartNew();
             model = Solver.ComputeModel();
-            Console.WriteLine("Model computed {0}  miliseconds={1} obj={2} iter={3}", timer.Elapsed, timer.ElapsedMilliseconds,model.Obj,model.Iter);
+            Console.WriteLine("Model computed {0}  miliseconds={1} obj={2} iter={3} #sv={4}", timer.Elapsed, timer.ElapsedMilliseconds, model.Obj, model.Iter,model.SupportElements.Length);
 
             var disKernel = kernel as IDisposable;
             if (disKernel != null)
                 disKernel.Dispose();
-            
+
 
             var disSolver = Solver as IDisposable;
             if (disSolver != null)
                 disSolver.Dispose();
             Solver = null;
 
-            train.Dispose();    
+            train.Dispose();
 
             Console.WriteLine("Start Testing");
 
-          
+
             Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
-           
+
             evaluator.Init();
-           
+
 
             Stopwatch t = Stopwatch.StartNew();
             float[] predictions = evaluator.Predict(test.Elements);
 
             t.Stop();
             //toremove: only for tests
-            Console.WriteLine("prediction takes {0}  ms={1}",t.Elapsed, t.ElapsedMilliseconds);
+            Console.WriteLine("prediction takes {0}  ms={1}", t.Elapsed, t.ElapsedMilliseconds);
 
-           
-           
+
+
             //todo: Free evaluator memories
             var disposeEvaluator = evaluator as IDisposable;
             if (disposeEvaluator != null)
                 disposeEvaluator.Dispose();
 
-            
-            int correct = 0;            
+
+            int correct = 0;
             for (int i = 0; i < test.ElementsCount; i++)
             {
                 float predictedLabel = predictions[i];
@@ -705,7 +711,7 @@ t.Stop();
             Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
             Console.WriteLine("end read vectors");
 
-            
+
             //var Solver = new CUDALinSolver(train, C);
             //var Solver = new ConjugateLinSolver(train, C);
 
@@ -713,14 +719,14 @@ t.Stop();
             var Solver = new BBLinSolver(train, C);
             //var Solver = new GPUnmBBLinSolver(train, C);
             //var Solver = new GPUstdBBLinSolver(train, C);
-           // var Solver = new LinearSolver(train, C);
+            // var Solver = new LinearSolver(train, C);
 
             Console.WriteLine("User solver {0}", Solver.ToString());
 
             Stopwatch timer = Stopwatch.StartNew();
             model = Solver.ComputeModel();
             Console.WriteLine("Model computed {0}  miliseconds={1}", timer.Elapsed, timer.ElapsedMilliseconds);
-            
+
             var disSolver = Solver as IDisposable;
             if (disSolver != null)
                 disSolver.Dispose();
@@ -800,10 +806,10 @@ t.Stop();
         /// </summary>
         /// <param name="train"></param>
         /// <param name="kernel"></param>
-        private static void DoCrossValidation(Problem<SparseVec> train, IKernel<SparseVec> kernel,EvaluatorBase<SparseVec> evaluator, int folds)
+        private static void DoCrossValidation(Problem<SparseVec> train, IKernel<SparseVec> kernel, EvaluatorBase<SparseVec> evaluator, int folds)
         {
 
-            float[] penaltyC = new[] {0.125f, 0.025f, 0.5f, 1, 2,4,8,16,32,64,128};
+            float[] penaltyC = new[] { 0.125f, 0.025f, 0.5f, 1, 2, 4, 8, 16, 32, 64, 128 };
 
             //float[] penaltyC = new float[] { 0.5f, 4, 16, 128 };
 
@@ -863,129 +869,129 @@ t.Stop();
         }
 
 
-    
-
-    /* some tests with Mahalanobis Kernel 
-             /// <summary>
-             /// 
-             /// </summary>
-             private static void ComputeLinearMahalanobisKernel()
-             {
-                 //original covariance matrix, but det==0
-                 float[,] cov = new float[4, 4] {
-                     { 30.0f/125, -5.0f/125, -30.0f/125, -15.0f/125},
-                     { -5.0f/125, 30.0f/125, 5.0f/125, -10.0f/125},
-                     { -30.0f/125, 5.0f/125, 30.0f/125, 15.0f/125},
-                     { -15.0f/125, -10.0f/125, 15.0f/125, 20.0f/125}
-                 };
-
-                 FloatMatrix matrix = new FloatMatrix(cov);
 
 
-
-
-                 FloatMatrix identity = 0.01f * FloatMatrix.Identity(4);
-
-                 ////regularization, add to main diagonal some small value
-                 matrix += identity;
-
-                 Console.WriteLine("Matrix frobenius norm ={0}", MatrixFunctions.FrobNorm(matrix));
-
-                 //matrix *= 4;
-                 FloatSymmetricMatrix covMatrix = new FloatSymmetricMatrix(matrix);
-
-                 Console.WriteLine("Matrix frobenius norm ={0}", covMatrix.DataVector.TwoNorm());
-
-                 //DoubleSymmetricMatrix covMatrix = new DoubleSymmetricMatrix(3);
-
-
-                 ShowMatrix(covMatrix);
-
-
-                 Console.WriteLine("Det = " + MatrixFunctions.Determinant(covMatrix));
-                 float norm = MatrixFunctions.OneNorm(covMatrix);
-                 Console.WriteLine("Matrix one norm ={0}", norm);
-
-                 FloatSymEigDecomp eigDecomp = new FloatSymEigDecomp(covMatrix);
-
-                 Console.WriteLine("Eigen values=" + eigDecomp.EigenValues.ToString());
-
-
-
-                 //DoubleSymmetricMatrix invertedCovMatrix = MatrixFunctions.Inverse(covMatrix);
-                 FloatSymmetricMatrix invertedCovMatrix = MatrixFunctions.Inverse(covMatrix);
-
-                 ShowMatrix(invertedCovMatrix);
-
-
-                 // norm =MatrixFunctions.OneNorm(invertedCovMatrix);
-                 //Console.WriteLine("Matrix one norm ={0}",norm);
-
-
-                 //invertedCovMatrix *= invertedCovMatrix.Transpose();
-
-                 norm = invertedCovMatrix.DataVector.TwoNorm();
-                 Console.WriteLine("Matrix frobenius norm ={0}", norm);
-
-
-
-                 invertedCovMatrix /= norm;
-
-                 ShowMatrix(invertedCovMatrix);
-
-                 Vector[] vectors = new Vector[]
-                                        {
-                                            new SparseVector(new double[]{1,2,3,1}),
-                                            new SparseVector(new double[]{0,1,2,2}),
-                                            new SparseVector(new double[]{1,1,3,2})
-
-                                        };
-
-                 Problem<Vector> train = new Problem<Vector>(vectors, new float[] { 1, 1, -1, -1 });
-                 IKernel<Vector> kernel = new LinearMahalanobisKernel<Vector>(invertedCovMatrix);
-
-                 kernel.ProblemElements = train.Elements;
-
-
-                 for (int i = 0; i < vectors.Length; i++)
+        /* some tests with Mahalanobis Kernel 
+                 /// <summary>
+                 /// 
+                 /// </summary>
+                 private static void ComputeLinearMahalanobisKernel()
                  {
-                     for (int j = i; j < vectors.Length; j++)
+                     //original covariance matrix, but det==0
+                     float[,] cov = new float[4, 4] {
+                         { 30.0f/125, -5.0f/125, -30.0f/125, -15.0f/125},
+                         { -5.0f/125, 30.0f/125, 5.0f/125, -10.0f/125},
+                         { -30.0f/125, 5.0f/125, 30.0f/125, 15.0f/125},
+                         { -15.0f/125, -10.0f/125, 15.0f/125, 20.0f/125}
+                     };
+
+                     FloatMatrix matrix = new FloatMatrix(cov);
+
+
+
+
+                     FloatMatrix identity = 0.01f * FloatMatrix.Identity(4);
+
+                     ////regularization, add to main diagonal some small value
+                     matrix += identity;
+
+                     Console.WriteLine("Matrix frobenius norm ={0}", MatrixFunctions.FrobNorm(matrix));
+
+                     //matrix *= 4;
+                     FloatSymmetricMatrix covMatrix = new FloatSymmetricMatrix(matrix);
+
+                     Console.WriteLine("Matrix frobenius norm ={0}", covMatrix.DataVector.TwoNorm());
+
+                     //DoubleSymmetricMatrix covMatrix = new DoubleSymmetricMatrix(3);
+
+
+                     ShowMatrix(covMatrix);
+
+
+                     Console.WriteLine("Det = " + MatrixFunctions.Determinant(covMatrix));
+                     float norm = MatrixFunctions.OneNorm(covMatrix);
+                     Console.WriteLine("Matrix one norm ={0}", norm);
+
+                     FloatSymEigDecomp eigDecomp = new FloatSymEigDecomp(covMatrix);
+
+                     Console.WriteLine("Eigen values=" + eigDecomp.EigenValues.ToString());
+
+
+
+                     //DoubleSymmetricMatrix invertedCovMatrix = MatrixFunctions.Inverse(covMatrix);
+                     FloatSymmetricMatrix invertedCovMatrix = MatrixFunctions.Inverse(covMatrix);
+
+                     ShowMatrix(invertedCovMatrix);
+
+
+                     // norm =MatrixFunctions.OneNorm(invertedCovMatrix);
+                     //Console.WriteLine("Matrix one norm ={0}",norm);
+
+
+                     //invertedCovMatrix *= invertedCovMatrix.Transpose();
+
+                     norm = invertedCovMatrix.DataVector.TwoNorm();
+                     Console.WriteLine("Matrix frobenius norm ={0}", norm);
+
+
+
+                     invertedCovMatrix /= norm;
+
+                     ShowMatrix(invertedCovMatrix);
+
+                     Vector[] vectors = new Vector[]
+                                            {
+                                                new SparseVector(new double[]{1,2,3,1}),
+                                                new SparseVector(new double[]{0,1,2,2}),
+                                                new SparseVector(new double[]{1,1,3,2})
+
+                                            };
+
+                     Problem<Vector> train = new Problem<Vector>(vectors, new float[] { 1, 1, -1, -1 });
+                     IKernel<Vector> kernel = new LinearMahalanobisKernel<Vector>(invertedCovMatrix);
+
+                     kernel.ProblemElements = train.Elements;
+
+
+                     for (int i = 0; i < vectors.Length; i++)
                      {
-                         //Mahalanobis linear product
-                         Console.WriteLine("M [{0},{1}]={2}", i, j, kernel.Product(i, j));
-                         //Normal dot product
-                         Console.WriteLine("N [{0},{1}]={2}", i, j, vectors[i].DotProduct(vectors[j]));
+                         for (int j = i; j < vectors.Length; j++)
+                         {
+                             //Mahalanobis linear product
+                             Console.WriteLine("M [{0},{1}]={2}", i, j, kernel.Product(i, j));
+                             //Normal dot product
+                             Console.WriteLine("N [{0},{1}]={2}", i, j, vectors[i].DotProduct(vectors[j]));
+                             Console.WriteLine();
+                         }
+                     }
+
+
+                 }
+
+       
+                 private static void ShowMatrix(FloatSymmetricMatrix covMatrix)
+                 {
+                     for (int i = 0; i < covMatrix.Rows; i++)
+                     {
+                         for (int j = 0; j < covMatrix.Cols; j++)
+                         {
+                             Console.Write(" " + covMatrix[i, j]);
+                         }
                          Console.WriteLine();
                      }
                  }
-
-
-             }
-
-       
-             private static void ShowMatrix(FloatSymmetricMatrix covMatrix)
-             {
-                 for (int i = 0; i < covMatrix.Rows; i++)
+                 private static void ShowMatrix(DoubleSymmetricMatrix covMatrix)
                  {
-                     for (int j = 0; j < covMatrix.Cols; j++)
+                     for (int i = 0; i < covMatrix.Rows; i++)
                      {
-                         Console.Write(" " + covMatrix[i, j]);
+                         for (int j = 0; j < covMatrix.Cols; j++)
+                         {
+                             Console.Write(" " + covMatrix[i, j]);
+                         }
+                         Console.WriteLine();
                      }
-                     Console.WriteLine();
                  }
-             }
-             private static void ShowMatrix(DoubleSymmetricMatrix covMatrix)
-             {
-                 for (int i = 0; i < covMatrix.Rows; i++)
-                 {
-                     for (int j = 0; j < covMatrix.Cols; j++)
-                     {
-                         Console.Write(" " + covMatrix[i, j]);
-                     }
-                     Console.WriteLine();
-                 }
-             }
-     */
+         */
 
     }
 

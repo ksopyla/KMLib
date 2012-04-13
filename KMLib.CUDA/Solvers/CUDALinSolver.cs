@@ -411,11 +411,11 @@ namespace KMLib.GPU.Solvers
            
             //move W wector
             //CudaHelpers.FillDenseVector(problemElements[0], mainVector);
-            SetTextureMemory(ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
+            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
 
 
             //set texture memory for labels
-            SetTextureMemory(ref cuLabelsTexRef, cudaLabelsTexRefName, sub_prob.Y, ref labelsPtr);
+            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, sub_prob.Y, ref labelsPtr);
 
 
             /*
@@ -443,7 +443,7 @@ namespace KMLib.GPU.Solvers
 
 
             //deltasPtr = cuda.Allocate(deltas);
-            SetTextureMemory(ref cuDeltasTexRef, "deltasTexRef", deltas, ref deltasPtr);
+            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuDeltasTexRef, "deltasTexRef", deltas, ref deltasPtr);
 
             diagPtr = cuda.GetModuleGlobal(cuModule, "diag_shift");
             //set this in fill function
@@ -900,13 +900,13 @@ namespace KMLib.GPU.Solvers
             cuFuncUpdateW = cuda.GetModuleFunction(cudaUpdateW);
         }
 
-        protected void SetTextureMemory(ref CUtexref texture, string texName, float[] data, ref CUdeviceptr memPtr)
-        {
-            texture = cuda.GetModuleTexture(cuModule, texName);
-            memPtr = cuda.CopyHostToDevice(data);
-            cuda.SetTextureAddress(texture, memPtr, (uint)(sizeof(float) * data.Length));
+        //protected void SetTextureMemory(ref CUtexref texture, string texName, float[] data, ref CUdeviceptr memPtr)
+        //{
+        //    texture = cuda.GetModuleTexture(cuModule, texName);
+        //    memPtr = cuda.CopyHostToDevice(data);
+        //    cuda.SetTextureAddress(texture, memPtr, (uint)(sizeof(float) * data.Length));
 
-        }
+        //}
 
     }
 }

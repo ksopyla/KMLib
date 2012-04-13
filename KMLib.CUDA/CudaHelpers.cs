@@ -5,6 +5,8 @@ using System.Text;
 //using dnAnalytics.LinearAlgebra;
 using System.Diagnostics;
 using KMLib.Helpers;
+using GASS.CUDA.Types;
+using GASS.CUDA;
 
 namespace KMLib.GPU
 {
@@ -293,7 +295,10 @@ namespace KMLib.GPU
         {
             //int align = 128 *(int) Math.Ceiling((float)(sliceSize * threadsPerRow) / 128);
 
-            int align = (int)Math.Ceiling(0.0+sliceSize * threadsPerRow);
+            int align = (int)Math.Ceiling(0.0+sliceSize * threadsPerRow/64)*64;
+            int align2 = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
+
+            Debug.Assert(align == align2);
 
             int numRows = problemElements.Length;
             int numSlices = (int)Math.Ceiling( (numRows+0.0)/ sliceSize);
@@ -323,7 +328,7 @@ namespace KMLib.GPU
                     }
                 }
                 sliceStart[i + 1] = sliceStart[i] + (int)Math.Ceiling((sliceMax[i]+0.0) / threadsPerRow) * align;
-                var ttt = sliceStart[i] + sliceMax[i]*sliceSize ;
+                //var ttt = sliceStart[i] + sliceMax[i]*sliceSize ;
 
             }
 
@@ -462,6 +467,51 @@ namespace KMLib.GPU
                 }
 
             }
+        }
+
+
+        internal static void SetTextureMemory(CUDA cuda,CUmodule cuModule, ref CUtexref texture, string texName, float[] data, ref CUdeviceptr memPtr)
+        {
+            texture = cuda.GetModuleTexture(cuModule, texName);
+            memPtr = cuda.CopyHostToDevice(data);
+            cuda.SetTextureAddress(texture, memPtr, (uint)(sizeof(float) * data.Length));
+
+        }
+        internal static void SetTextureMemory(CUDA cuda, ref CUtexref texture, string texName, float[] data, ref CUdeviceptr memPtr)
+        {
+            texture = cuda.GetModuleTexture(texName);
+            memPtr = cuda.CopyHostToDevice(data);
+            cuda.SetTextureAddress(texture, memPtr, (uint)(sizeof(float) * data.Length));
+
+        }
+
+
+
+        internal static void GetNumThreadsAndBlocks(int size, int maxBlock, int maxThreadsPerBlock, ref int threads, ref int blocks)
+        {
+
+            //threads = (n < maxThreads * 2) ? nextPow2((n + 1) / 2) : maxThreads;
+            //blocks = (n + (threads * 2 - 1)) / (threads * 2);
+            //blocks = MIN(maxBlocks, blocks);
+            threads = (size < 2 * maxThreadsPerBlock) ? nextPow2((size + 1) / 2) : maxThreadsPerBlock;
+
+            blocks = (size + (threads * 2 - 1)) / (threads * 2);
+            blocks = Math.Min(blocks, maxBlock);
+        }
+
+
+        internal static int nextPow2(int x)
+        {
+            if (x < 0)
+                throw new ArgumentException("x should be grateher than 0");
+
+            --x;
+            x |= x >> 1;
+            x |= x >> 2;
+            x |= x >> 4;
+            x |= x >> 8;
+            x |= x >> 16;
+            return ++x;
         }
     }
 }

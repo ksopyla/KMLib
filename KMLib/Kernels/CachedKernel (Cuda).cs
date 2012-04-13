@@ -136,8 +136,7 @@ namespace KMLib.Kernels
             //string debStr = i.ToString() + " ->" + string.Join("; ", data);
             //Debug.WriteLine(debStr);
 
-            //Debug.WriteLine(i);
-            return data;
+             return data;
         }
 
 

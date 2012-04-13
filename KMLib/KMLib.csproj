@@ -150,7 +150,6 @@
     <Compile Include="SVMSolvers\LinearSolver.cs" />
     <Compile Include="SVMSolvers\ParallelSmoFanSolver2.cs" />
     <Compile Include="SVMSolvers\ParallelSmoFanSolver.cs" />
-    <Compile Include="SVMSolvers\ModSMOSolver.cs" />
     <Compile Include="SVMSolvers\ParallelSMOSolver.cs" />
     <Compile Include="Helpers\SortedNVal.cs" />
     <Compile Include="SVMSolvers\SolverFactory.cs" />
@@ -192,9 +191,6 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram1.cd" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
