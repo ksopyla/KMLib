@@ -96,7 +96,7 @@ namespace KMLib.GPU
         /// <summary>
         /// Cuda .net class for cuda opeation
         /// </summary>
-        protected CUDA cuda;
+        internal CUDA cuda;
 
 
         /// <summary>
@@ -144,6 +144,11 @@ namespace KMLib.GPU
         /// cuda pointer to labels, neded for coping to texture
         /// </summary>
         protected CUdeviceptr labelsPtr;
+        
+        /// <summary>
+        /// cuda context for svm kernel
+        /// </summary>
+        private CUcontext cuCtx;
 
 
         #endregion
@@ -217,6 +222,11 @@ namespace KMLib.GPU
         {
             SparseVec mainVec = problemElements[element1];
 
+            cuda.SetCurrentContext(cuCtx);
+            //cuda.PushCurrentContext();
+            //cuda.PopCurrentContext();
+
+
             if (mainVectorIdx != element1)
             {
                 CudaHelpers.FillDenseVector(mainVec, mainVector);
@@ -227,16 +237,25 @@ namespace KMLib.GPU
             //set the last parameter for kernel
             mainVectorIdx = (uint)element1;
             cuda.SetParameter(cuFunc, mainVecIdxParamOffset, mainVectorIdx);
+            
+            cuda.SetParameter(cuFunc, kernelResultParamOffset, devResultPtr);
 
             cuda.Launch(cuFunc, blocksPerGrid, 1);
             
-            //cuda.SynchronizeContext();
+            cuda.SynchronizeContext();
+            //float[] res = new float[problemElements.Length];
+            //float[] res2 = new float[problemElements.Length];
+           
+            ////cuda.CopyDeviceToHost(outputPtr, res);
+            ////cuda.CopyDeviceToDevice(outputPtr, devResultPtr, (uint)(sizeof(float) * res.Length) );
+            //cuda.CopyDeviceToHost(devResultPtr, res2);
         }
 
         protected void InitCudaModule()
         {
+
             cuda = new CUDA(0, true);
-            var cuCtx = cuda.CreateContext(0, CUCtxFlags.MapHost);
+            cuCtx = cuda.CreateContext(0, CUCtxFlags.MapHost);
             cuda.SetCurrentContext(cuCtx);
 
             string modluePath = Path.Combine(Environment.CurrentDirectory, cudaModuleName);

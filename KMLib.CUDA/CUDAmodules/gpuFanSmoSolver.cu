@@ -23,7 +23,7 @@ texture<float,1,cudaReadModeElementType> mainVectorTexRef;
 #define BLOCK_SIZE 128
 
 
-#define NEG_INFINITY_F __int_as_float(0xff800000)
+//define NEG_INFINITY_F __int_as_float(0xff800000)
 
 
 
@@ -85,13 +85,13 @@ extern "C" __global__ void FindMaxIdx(const float* y,
 	unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
 	unsigned int gridSize = blockDim.x*2*gridDim.x;
 	
-	shVals[tid]=NEG_INFINITY_F;
+	shVals[tid]=-FLT_MAX;
    
 	// we reduce multiple elements per thread.  The number is determined by the 
 	// number of active thread blocks (via gridDim).  More blocks will result
 	// in a larger gridSize and therefore fewer elements per thread
-	float maxG=NEG_INFINITY_F ;
-	float tempMax=NEG_INFINITY_F ;
+	float maxG=-FLT_MAX ;
+	float tempMax=-FLT_MAX ;
 	float yi=0;
 	float alpha_i=0;
 	float grad_i=0;
@@ -100,19 +100,27 @@ extern "C" __global__ void FindMaxIdx(const float* y,
 	{   
 		yi=y[i];
 		alpha_i=alpha[i];
-		tempMax = (yi*alpha_i)<(yi==1?C:0) ? -(grad[i]*yi):NEG_INFINITY_F;
-		maxG = fmaxf(maxG, tempMax );
+		tempMax = (yi*alpha_i)<(yi==1?C:0) ? -(grad[i]*yi):-FLT_MAX;
+		
 		//if maxG==tempMax then tempMax is new max value, so remember its index, otherwise do nothing (return 0)
-		maxG==tempMax ? shIdx[tid]=i:0; 
+		//maxG==tempMax ? shIdx[tid]=i:0; 
 
+		maxG<tempMax ? shIdx[tid]=i : 0;
+		maxG = fmaxf(maxG, tempMax );
+		
 		// ensure we don't read out of bounds 
 		if (i + blockSize < N) {
 			yi=y[i + blockSize];
 			alpha_i=alpha[i + blockSize];
-			tempMax = (yi*alpha_i)<(yi==1?C:0) ? -(grad[i + blockSize]*yi):NEG_INFINITY_F;
-			maxG = fmaxf(maxG, tempMax );
+			tempMax = (yi*alpha_i)<(yi==1?C:0) ? -(grad[i + blockSize]*yi):-FLT_MAX;
+			
+			//maxG = fmaxf(maxG, tempMax );
 			//if maxG==tempMax then tempMax is new max value, so remember its index, otherwise do nothing (return 0)
-			maxG==tempMax ? shIdx[tid]=i+blockSize:0; 
+			//maxG==tempMax ? shIdx[tid]=i+blockSize:0; 
+
+			maxG<tempMax ? shIdx[tid]=i+blockSize : 0;
+			maxG = fmaxf(maxG, tempMax );
+
 		}
 		i += gridSize;
 	} 
@@ -169,9 +177,9 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 									  const float* QD,		// diagonal in kernel matris
 									  int * idxReduce,		// array for results
 									  float* gradReduce,	// array for results
-									  float GMax,
-									  float QD_i,
-									  float Y_i,
+									  float gradMax,
+									  float QDi,
+									  float Yi,
 									  const int N)
 {
 
@@ -188,18 +196,20 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 	unsigned int j = blockIdx.x*blockDim.x*2 + threadIdx.x;
 	unsigned int gridSize = blockDim.x*2*gridDim.x;
 	
-	shVals[tid]=NEG_INFINITY_F;
-   
+	shVals[tid]=-FLT_MAX;
+	shIdx[tid]=-1;
 	// we reduce multiple elements per thread.  The number is determined by the 
 	// number of active thread blocks (via gridDim).  More blocks will result
 	// in a larger gridSize and therefore fewer elements per thread
-	float maxG=NEG_INFINITY_F ;
-	float tempMax=NEG_INFINITY_F ;
+	float maxG=-FLT_MAX ;
+	float tempMax=-FLT_MAX ;
 	float yj=0;
 	float alpha_j=0;
 	float grad_j=0;
 	float quad_coef=0;
-	
+	float QD_i=QDi;
+	float GMax=gradMax;
+	float Y_i=Yi;
 	while (j < N)
 	{   
 		yj=y[j];
@@ -207,23 +217,32 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 		//in libsvm this formula is different for different value of yj, 
 		//but when we mul by labels for i,j examples this formula can be computed as below
 		quad_coef = (QD_i+QD[j]-2*Y_i*yj*Qi[j]);
+		quad_coef = quad_coef< COEF_EPS ? COEF_EPS: quad_coef;
 
 		//check if is not at lower bound
-		tempMax = (yj*alpha_j)>(yj==1?0:-C) ? __fdividef(__powf(GMax+yj*grad[j],2.f),quad_coef):NEG_INFINITY_F;
-		maxG = fmaxf(maxG, tempMax );
+		tempMax = (yj*alpha_j)>(yj==1?0:-C) ? __fdividef(__powf(GMax+yj*grad[j],2.f),quad_coef):-FLT_MAX;
+		
+		//maxG = fmaxf(maxG, tempMax );
 		//if maxG==tempMax then tempMax is new max value, so remember its index, otherwise do nothing (return 0)
-		maxG==tempMax ? shIdx[tid]=j:0; 
+		//maxG==tempMax ? shIdx[tid]=j:0; 
 		//atomicMax, atomicCLA??
+		maxG<tempMax ? shIdx[tid]=j : 0;
+		maxG = fmaxf(maxG, tempMax );
 
 		// ensure we don't read out of bounds 
 		if (j + blockSize < N) {
 			yj=y[j + blockSize];
 			alpha_j=alpha[j + blockSize];
 			quad_coef = (QD_i+QD[j+ blockSize]-2*Y_i*yj*Qi[j+ blockSize]);
-			tempMax = (yj*alpha_j)>(yj==1?0:-C) ? __fdividef(__powf(GMax+yj*grad[j+blockSize],2.f),quad_coef):NEG_INFINITY_F;
-			maxG = fmaxf(maxG, tempMax );
+			quad_coef = quad_coef< COEF_EPS ? COEF_EPS: quad_coef;
+
+			tempMax = (yj*alpha_j)>(yj==1?0:-C) ? __fdividef(__powf(GMax+yj*grad[j+blockSize],2.f),quad_coef):-FLT_MAX;
+			//maxG = fmaxf(maxG, tempMax );
 			//if maxG==tempMax then tempMax is new max value, so remember its index, otherwise do nothing (return 0)
-			maxG==tempMax ? shIdx[tid]=j+blockSize:0; 
+			//maxG==tempMax ? (shIdx[tid]=j+blockSize):0; 
+
+			maxG<tempMax ? shIdx[tid]=j+blockSize : 0;
+			maxG = fmaxf(maxG, tempMax );
 		}
 		j+= gridSize;
 	} 
@@ -234,6 +253,7 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 
 
 	// do reduction in shared mem
+	
 	if (BLOCK_SIZE >= 512) { 
 		if (tid < 256) { if( shVals[tid]< shVals[tid+256]) {
 							 shVals[tid]=shVals[tid+256]; shIdx[tid]=shIdx[tid+256];	}} __syncthreads(); }
@@ -250,13 +270,13 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 		// now that we are using warp-synchronous programming (below)
 		// we need to declare our shared memory volatile so that the compiler
 		// doesn't reorder stores to it and induce incorrect behavior.
-		maxWarpReduce(shIdx,shVals,tid);
+		//maxWarpReduce(shIdx,shVals,tid);
 		
 	}
 	
 	// write result for this block to global mem 
 	if (tid == 0) {
-		gradReduce[blockIdx.x] = shVals[0];
+		gradReduce[blockIdx.x] =shVals[0];
 		idxReduce[blockIdx.x] = shIdx[0];
 	}
 	
