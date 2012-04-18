@@ -528,17 +528,7 @@ namespace KMLib.SVMSolvers
                 //}
 
 
-                var partition = Partitioner.Create(0, active_size);
-
-                Parallel.ForEach(partition, (range) =>
-                {
-                    int rangeEnd = range.Item2;
-                    for (int k = range.Item1; k < rangeEnd; k++)
-                    {
-                        G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
-                    }
-
-                });
+                UpdateGradients(Q_i, Q_j, delta_alpha_i, delta_alpha_j);
 
                 //  Parallel.ForEach(partition, UpdateGradient);
 
@@ -604,6 +594,21 @@ namespace KMLib.SVMSolvers
             si.upper_bound_n = Cn;
 
             // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
+        }
+
+        private void UpdateGradients(float[] Q_i, float[] Q_j, float delta_alpha_i, float delta_alpha_j)
+        {
+            var partition = Partitioner.Create(0, active_size);
+
+            Parallel.ForEach(partition, (range) =>
+            {
+                int rangeEnd = range.Item2;
+                for (int k = range.Item1; k < rangeEnd; k++)
+                {
+                    G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
+                }
+
+            });
         }
 
         /// <summary>

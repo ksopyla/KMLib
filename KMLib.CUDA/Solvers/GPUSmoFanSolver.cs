@@ -64,7 +64,7 @@ namespace KMLib.GPU.Solvers
         private GASS.CUDA.Types.CUfunction cuFuncFindStopping;
         private string funcFindStoping = "FindStoppingGradVal";
         private GASS.CUDA.Types.CUfunction cuFuncUpdateG;
-        private string funcUpdateGFunc="UpdateGrad";
+        private string funcUpdateGFunc = "UpdateGrad";
 
 
         /// <summary>
@@ -72,8 +72,12 @@ namespace KMLib.GPU.Solvers
         /// </summary>
         private int maxReductionBlocks = 64;
         /// <summary>
-        /// threads per block, def=128
+        /// threads per block, def=128,
         /// </summary>
+        /// <remarks>
+        /// This value is connected with constant definded in gpuFanSmoSolver.cu BLOCK_SIZE
+        /// they should be equal
+        /// </remarks>
         private int threadsPerBlock = 128;
 
         /// <summary>
@@ -104,11 +108,25 @@ namespace KMLib.GPU.Solvers
         private GASS.CUDA.Types.CUdeviceptr idxRedPtr;
         private CUdeviceptr constCPtr;
         private CUcontext cuCtx;
+
+        #region cuda function param offsets
+        
         private int GMaxParamOffsetInMinJ;
         private int QD_iParamOffsetInMinJ;
         private int yiParamOffsetInMinJ;
-        
-        
+        private object diff_i;
+
+        private int diff_j_ParamOffsetInUpgGrad;
+        private int diff_i_ParamOffsetInUpgGrad;
+        #endregion
+        /// <summary>
+        /// number of thhreads for updateing gradient
+        /// </summary>
+        private int updGThreadsPerBlock;
+        private int updGBlocksPerGrid;
+        private int iter;
+
+
 
 
 
@@ -134,24 +152,25 @@ namespace KMLib.GPU.Solvers
         public override Model<SparseVec> ComputeModel()
         {
             int problemSize = problem.ElementsCount;
-            float[] alphaResult = new float[problem.ElementsCount];
+            //float[] alphaResult = new float[problem.ElementsCount];
 
             SolutionInfo si = new SolutionInfo();
-            Solve(problem.Y, alphaResult, si);
+            Solve(problem.Y, si);
 
             Model<SparseVec> model = new Model<SparseVec>();
             model.NumberOfClasses = 2;
-            model.Alpha = alphaResult;
+            model.Alpha = alpha;//alphaResult;
             model.Bias = si.rho;
-
+            model.Iter = si.iter;
+            model.Obj = si.obj;
 
             //------------------
             List<SparseVec> supportElements = new List<SparseVec>(alpha.Length);
             List<int> suporrtIndexes = new List<int>(alpha.Length);
             List<float> supportLabels = new List<float>(alpha.Length);
-            for (int j = 0; j < alphaResult.Length; j++)
+            for (int j = 0; j < alpha.Length; j++)
             {
-                if (Math.Abs(alphaResult[j]) > 0)
+                if (Math.Abs(alpha[j]) > 0)
                 {
                     supportElements.Add(problem.Elements[j]);
                     suporrtIndexes.Add(j);
@@ -176,7 +195,7 @@ namespace KMLib.GPU.Solvers
         /// <param name="alpha_"></param>
         /// <param name="si"></param>
         /// <param name="shrinking"></param>
-        private void Solve(float[] y, float[] alpha, SolutionInfo si)
+        private void Solve(float[] y, SolutionInfo si)
         {
 
             // initialize gradient
@@ -198,26 +217,29 @@ namespace KMLib.GPU.Solvers
 
             SetCudaData();
             // optimization step
-            float GMaxI;
-            float GMaxJ;
-            int iter = 1;
+            float GMaxI=0;
+            float GMaxJ=0;
+            iter = 1;
 
 
-            while (true)
+            while (iter<1000)
             {
 
                 //Find i: Maximizes -y_i * grad(f)_i, i in I_up(\alpha)
                 Tuple<int, float> maxPair = FindMaxPair();
                 int i = maxPair.Item1;
                 GMaxI = maxPair.Item2;
-
-                if (i % 255 == 0)
+                
+                if (iter % 255 == 0)
                 {
                     GMaxJ = FindStoppingGradVal();
+
+                    if (GMaxI - GMaxJ < EPS)
+                        break;
                 }
 
                 //Compute i-th kernel collumn, set the specific memory region on GPU, 
-                ComputeKernel(i,kiPtr);
+                ComputeKernel(i, kiPtr);
 
 
                 // j: mimimizes the decrease of obj value
@@ -229,31 +251,30 @@ namespace KMLib.GPU.Solvers
 
 
                 //Compute j-th kernel collumn
-                ComputeKernel(j,kjPtr);
+                ComputeKernel(j, kjPtr);
 
 
                 float old_alpha_i = alpha[i];
                 float old_alpha_j = alpha[j];
 
                 //update alpha - serial code, one iteration
-                UpdateAlpha(i,j);
+                UpdateAlpha(i, j);
                 // update gradient G
                 float delta_alpha_i = alpha[i] - old_alpha_i;
                 float delta_alpha_j = alpha[j] - old_alpha_j;
 
-                //for (int k = 0; k < active_size; k++)
-                //{
-                //    G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
-                //}
+
+                UpdateGrad(i, j, delta_alpha_i, delta_alpha_j);
 
                 //czy to potrzebne???
                 // update alpha_status and G_bar,
-
+                iter++;
             }//end while
 
+            
+            cuda.CopyDeviceToHost(gradPtr, G);
             // calculate rho
-
-            si.rho = (GMaxI + GMaxJ) / 2;
+            si.rho = calculate_rho();
 
             //because we start from 1 not from 0;
             si.iter = iter - 1;
@@ -272,31 +293,53 @@ namespace KMLib.GPU.Solvers
             si.upper_bound_n = C;
         }
 
+
+
         private void UpdateAlpha(int i, int j)
         {
             float Qii = QD[i];
             float Qjj = QD[j];
-            float yi=y[i];
-            float yj=y[j];
+            float yi = y[i];
+            float yj = y[j];
             float Qij = 0;
 
-
+            //todo: remove it only for testing
             float[] a = new float[alpha.Length];
             cuda.CopyDeviceToHost(kiPtr, a);
-            //temp array only for coping
-            float[] temp= new float[]{0.0f};
-            cuda.CopyDeviceToHost(kiPtr + j, temp);
+
+            //copy Qij form device to host
+            float[] temp = new float[] { 0.0f };
+            cuda.CopyDeviceToHost(kiPtr + sizeof(float) * j, temp);
             Qij = temp[0];
 
+            //copy Grad[i] from device to host
+            float[] gradI = new float[] { 0.0f };
+            cuda.CopyDeviceToHost(gradPtr + sizeof(float) * i, gradI);
+            G[i] = gradI[0];
+            //copy Grad[j] from device to host
+            float[] gradJ = new float[] { 0.0f };
+            cuda.CopyDeviceToHost(gradPtr + sizeof(float) * j, gradJ);
+            G[j] = gradJ[0];
 
-            float quad_coef = Qii + Qjj - 2*yi*yj * Qij;
+            //copy alpha[i]
+            float[] aI = new float[] { 0.0f };
+            cuda.CopyDeviceToHost(alphaPtr + sizeof(float) * i, aI);
+            alpha[i] = aI[0];
+
+            float[] aJ = new float[] { 0.0f };
+            cuda.CopyDeviceToHost(alphaPtr + sizeof(float) * j, aJ);
+            alpha[j] = aJ[0];
+
+
+
+            float quad_coef = Qii + Qjj - 2 * yi * yj * Qij;
             if (quad_coef <= 0)
                 quad_coef = 1e-12f;
 
 
             if (y[i] != y[j])
             {
-                float quad_coef1 = Qii + Qjj +2 * Qij;
+                float quad_coef1 = Qii + Qjj + 2 * Qij;
                 float delta = (-G[i] - G[j]) / quad_coef;
                 float diff = alpha[i] - alpha[j];
                 alpha[i] += delta;
@@ -338,7 +381,7 @@ namespace KMLib.GPU.Solvers
             else
             {
                 float quad_coef2 = Qii + Qjj - 2 * Qij;
-                
+
                 float delta = (G[i] - G[j]) / quad_coef;
                 float sum = alpha[i] + alpha[j];
                 alpha[i] -= delta;
@@ -379,120 +422,71 @@ namespace KMLib.GPU.Solvers
             }
 
             //set alpha on device
-            cuda.CopyHostToDevice(alphaPtr+i, new float[] { alpha[i] });
-            cuda.CopyHostToDevice(alphaPtr+j, new float[] { alpha[j] });
+            cuda.CopyHostToDevice(alphaPtr + sizeof(float) * i, new float[] { alpha[i] });
+            cuda.CopyHostToDevice(alphaPtr + sizeof(float) * j, new float[] { alpha[j] });
 
+
+
+            //todo: remove it, only for debuging
+            cuda.CopyDeviceToHost(alphaPtr, a);
 
         }
 
-        private void SetCudaData()
+        /// <summary>
+        /// Updates gradients after alpha changes
+        ///  for (int k = 0; k < active_size; k++)
+        ///  {
+        ///    G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
+        ///   }
+        /// </summary>
+        /// <param name="i"></param>
+        /// <param name="j"></param>
+        /// <param name="delta_alpha_i"></param>
+        /// <param name="delta_alpha_j"></param>
+        private void UpdateGrad(int i, int j, float delta_alpha_i, float delta_alpha_j)
         {
+            float[] t = new float[G.Length];
+            cuda.CopyDeviceToHost(gradPtr, t);
+            
+            //var KI = Enumerable.Repeat(1.0f, G.Length).ToArray();
+            //var KJ = Enumerable.Repeat(1.0f, G.Length).ToArray();
+            //cuda.CopyHostToDevice(kiPtr, KI);
+            //cuda.CopyHostToDevice(kjPtr, KJ);
+            //delta_alpha_i = 0.1f;
+            //delta_alpha_j = 0.2f;
 
+            cuda.SetParameter(cuFuncUpdateG,diff_i_ParamOffsetInUpgGrad,delta_alpha_i);
+            cuda.SetParameter(cuFuncUpdateG,diff_j_ParamOffsetInUpgGrad,delta_alpha_j);
+            cuda.Launch(cuFuncUpdateG, updGBlocksPerGrid, 1);
+            cuda.SynchronizeContext();
 
-
-            CudaHelpers.GetNumThreadsAndBlocks(problemSize, maxReductionBlocks, threadsPerBlock, ref reductionThreads, ref reductionBlocks);
-
-            alphaPtr = cuda.CopyHostToDevice(alpha);
-            gradPtr = cuda.CopyHostToDevice(G);
-            yPtr = cuda.CopyHostToDevice(y);
-            kernelDiagPtr = cuda.CopyHostToDevice(QD);
-
-            //kernel columns i,j is simpler to copy array of zeros 
-            kiPtr = cuda.CopyHostToDevice(alpha);
-            kjPtr = cuda.CopyHostToDevice(alpha);
-
-            reduceVal = new float[reductionBlocks];
-            valRedPtr = cuda.CopyHostToDevice(reduceVal);
-            reduceIdx = new int[reductionBlocks];
-            idxRedPtr = cuda.CopyHostToDevice(reduceIdx);
-
-
-            constCPtr = cuda.GetModuleGlobal(cuModule, "C");
-            float[] cData = new float[] { C };
-            cuda.CopyHostToDevice(constCPtr, cData);
-
-            SetCudaParams();
-
+            float[] t1 = new float[G.Length];
+            cuda.CopyDeviceToHost(gradPtr, t1);
+            
         }
 
-        private void SetCudaParams()
-        {
-
-            #region Set cuda function parmeters for finding Max Idx
-
-            cuda.SetFunctionBlockShape(cuFuncFindMaxI, threadsPerBlock, 1, 1);
-
-            int offset = 0;
-            cuda.SetParameter(cuFuncFindMaxI, offset, yPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMaxI, offset, alphaPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMaxI, offset, gradPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMaxI, offset, idxRedPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMaxI, offset, valRedPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMaxI, offset, (uint)problemSize);
-            offset += sizeof(int);
-
-            cuda.SetParameterSize(cuFuncFindMaxI, (uint)offset);
-            #endregion
-
-
-
-            #region Set cuda function parmeters for computing Min Idx
-
-            cuda.SetFunctionBlockShape(cuFuncFindMinJ, threadsPerBlock, 1, 1);
-
-            offset = 0;
-            cuda.SetParameter(cuFuncFindMinJ, offset, yPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMinJ, offset, alphaPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMinJ, offset, gradPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMinJ, offset, kiPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMinJ, offset, kernelDiagPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMinJ, offset, idxRedPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFuncFindMinJ, offset, valRedPtr.Pointer);
-            offset += IntPtr.Size;
-
-            GMaxParamOffsetInMinJ = offset;
-            cuda.SetParameter(cuFuncFindMinJ, offset,0.0f);
-            offset += sizeof(float);
-            QD_iParamOffsetInMinJ = offset;
-            cuda.SetParameter(cuFuncFindMinJ, offset, 0.0f);
-            offset += sizeof(float);
-            yiParamOffsetInMinJ = offset;
-            cuda.SetParameter(cuFuncFindMinJ, offset, 0.0f);
-            offset += sizeof(float);
-
-            cuda.SetParameter(cuFuncFindMinJ, offset, (uint)problemSize);
-            offset += sizeof(int);
-
-            cuda.SetParameterSize(cuFuncFindMinJ, (uint)offset);
-            #endregion
-
-
-        }
-
+      
 
 
         private Tuple<int, float> FindMaxPair()
         {
+            float[] tempData = new float[y.Length];
+            cuda.CopyDeviceToHost(yPtr, tempData);
+            cuda.CopyDeviceToHost(alphaPtr, tempData);
+            cuda.CopyDeviceToHost(gradPtr, tempData);
+            cuda.CopyDeviceToHost(kiPtr, tempData);
+            cuda.CopyDeviceToHost(kernelDiagPtr, tempData);
+
 
             cuda.Launch(cuFuncFindMaxI, reductionBlocks, 1);
 
             cuda.CopyDeviceToHost(valRedPtr, reduceVal);
             cuda.CopyDeviceToHost(idxRedPtr, reduceIdx);
+            cuda.SynchronizeContext();
 
             float max = float.NegativeInfinity;
             int idx = -1;
-            for (int i = 0; i < reduceVal.Length; i++)
+            for (int i = 0; i < reductionBlocks; i++)
             {
                 if (max < reduceVal[i])
                 {
@@ -514,16 +508,15 @@ namespace KMLib.GPU.Solvers
             //cuda.CopyDeviceToHost(kiPtr, tempData);
             //cuda.CopyDeviceToHost(kernelDiagPtr, tempData);
 
-            
+
             cuda.SetParameter(cuFuncFindMinJ, GMaxParamOffsetInMinJ, GmaxI);
             cuda.SetParameter(cuFuncFindMinJ, QD_iParamOffsetInMinJ, QD[i]);
             cuda.SetParameter(cuFuncFindMinJ, yiParamOffsetInMinJ, y[i]);
 
             cuda.Launch(cuFuncFindMinJ, reductionBlocks, 1);
-
-            cuda.SynchronizeContext();
             cuda.CopyDeviceToHost(valRedPtr, reduceVal);
             cuda.CopyDeviceToHost(idxRedPtr, reduceIdx);
+            cuda.SynchronizeContext();
 
             float max = float.NegativeInfinity;
             int idx = -1;
@@ -545,10 +538,11 @@ namespace KMLib.GPU.Solvers
         /// </summary>
         /// <param name="i"></param>
         /// <param name="ptr"></param>
-        private void ComputeKernel(int i,CUdeviceptr ptr)
+        private void ComputeKernel(int i, CUdeviceptr ptr)
         {
             gpuKernel.AllProductsGPU(i, ptr);
 
+            //todo: removie it
             float[] ki = new float[problemSize];
             cuda.CopyDeviceToHost(ptr, ki);
 
@@ -556,7 +550,21 @@ namespace KMLib.GPU.Solvers
 
         private float FindStoppingGradVal()
         {
-            throw new NotImplementedException();
+            cuda.Launch(cuFuncFindStopping, reductionBlocks, 1);
+            cuda.CopyDeviceToHost(valRedPtr, reduceVal);
+            cuda.SynchronizeContext();
+            
+            float min = float.PositiveInfinity;
+            for (int k = 0; k < reduceVal.Length; k++)
+            {
+                if (min > reduceVal[k])
+                {
+                    min = reduceVal[k];
+                }
+            }
+
+            return min;
+
         }
 
         private void InitCudaModule()
@@ -581,8 +589,185 @@ namespace KMLib.GPU.Solvers
         }
 
 
+        private void SetCudaData()
+        {
 
 
-        
+
+            CudaHelpers.GetNumThreadsAndBlocks(problemSize, maxReductionBlocks, threadsPerBlock, ref reductionThreads, ref reductionBlocks);
+
+            alphaPtr = cuda.CopyHostToDevice(alpha);
+            gradPtr = cuda.CopyHostToDevice(G);
+            yPtr = cuda.CopyHostToDevice(y);
+            kernelDiagPtr = cuda.CopyHostToDevice(QD);
+
+            //kernel columns i,j is simpler to copy array of zeros 
+            kiPtr = cuda.CopyHostToDevice(alpha);
+            kjPtr = cuda.CopyHostToDevice(alpha);
+
+            //todo:remove it
+            int redSize = reductionThreads; //reductionBlocks
+            reduceVal = new float[redSize];
+            reduceIdx = new int[redSize];
+
+            
+            valRedPtr = cuda.CopyHostToDevice(reduceVal);
+            idxRedPtr = cuda.CopyHostToDevice(reduceIdx);
+
+
+            constCPtr = cuda.GetModuleGlobal(cuModule, "C");
+            float[] cData = new float[] { C };
+            cuda.CopyHostToDevice(constCPtr, cData);
+
+            SetCudaParams();
+
+        }
+
+        private void SetCudaParams()
+        {
+
+            #region Set cuda function parmeters for finding Max Idx
+
+            cuda.SetFunctionBlockShape(cuFuncFindMaxI, reductionThreads, 1, 1);
+
+            int offset = 0;
+            cuda.SetParameter(cuFuncFindMaxI, offset, yPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMaxI, offset, alphaPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMaxI, offset, gradPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMaxI, offset, idxRedPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMaxI, offset, valRedPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMaxI, offset, (uint)problemSize);
+            offset += sizeof(int);
+
+            cuda.SetParameterSize(cuFuncFindMaxI, (uint)offset);
+            #endregion
+
+
+
+            #region Set cuda function parmeters for computing Min Idx
+
+            cuda.SetFunctionBlockShape(cuFuncFindMinJ, reductionThreads, 1, 1);
+
+            offset = 0;
+            cuda.SetParameter(cuFuncFindMinJ, offset, yPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMinJ, offset, alphaPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMinJ, offset, gradPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMinJ, offset, kiPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMinJ, offset, kernelDiagPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMinJ, offset, idxRedPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindMinJ, offset, valRedPtr.Pointer);
+            offset += IntPtr.Size;
+
+            GMaxParamOffsetInMinJ = offset;
+            cuda.SetParameter(cuFuncFindMinJ, offset, 0.0f);
+            offset += sizeof(float);
+            QD_iParamOffsetInMinJ = offset;
+            cuda.SetParameter(cuFuncFindMinJ, offset, 0.0f);
+            offset += sizeof(float);
+            yiParamOffsetInMinJ = offset;
+            cuda.SetParameter(cuFuncFindMinJ, offset, 0.0f);
+            offset += sizeof(float);
+
+            cuda.SetParameter(cuFuncFindMinJ, offset, (uint)problemSize);
+            offset += sizeof(int);
+
+            cuda.SetParameterSize(cuFuncFindMinJ, (uint)offset);
+            #endregion
+
+            #region Set cuda function parmeters for computing Min value for stopping
+
+            cuda.SetFunctionBlockShape(cuFuncFindStopping, reductionThreads, 1, 1);
+
+            offset = 0;
+            cuda.SetParameter(cuFuncFindStopping, offset, yPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindStopping, offset, alphaPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindStopping, offset, gradPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindStopping, offset, valRedPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncFindStopping, offset, (uint)problemSize);
+            offset += sizeof(int);
+            cuda.SetParameterSize(cuFuncFindStopping, (uint)offset);
+            #endregion
+
+            #region set cuda function parma for gradient updateing
+
+            updGThreadsPerBlock = 64;
+            //4 operaation for threads,
+            updGBlocksPerGrid = (problemSize + 4 * updGThreadsPerBlock - 1) / (4 * updGThreadsPerBlock);
+
+            cuda.SetFunctionBlockShape(cuFuncUpdateG, updGThreadsPerBlock, 1, 1);
+
+            offset = 0;
+            cuda.SetParameter(cuFuncUpdateG, offset, kiPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncUpdateG, offset, kjPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFuncUpdateG, offset, gradPtr.Pointer);
+            offset += IntPtr.Size;
+            diff_i_ParamOffsetInUpgGrad = offset;
+            cuda.SetParameter(cuFuncUpdateG, offset, 0.0f);
+            offset += sizeof(float);
+            diff_j_ParamOffsetInUpgGrad = offset;
+            cuda.SetParameter(cuFuncUpdateG, offset, 0.0f);
+            offset += sizeof(float);
+            cuda.SetParameter(cuFuncUpdateG, offset, (uint)problemSize);
+            offset += sizeof(int);
+
+            cuda.SetParameterSize(cuFuncUpdateG, (uint)offset);
+            #endregion
+        }
+
+        float calculate_rho()
+        {
+            float r;
+            int nr_free = 0;
+            float ub = INF, lb = -INF, sum_free = 0;
+            for (int i = 0; i < problemSize; i++)
+            {
+                float yG = y[i] * G[i];
+
+                if (alpha[i]==0)
+                {
+                    if (y[i] > 0)
+                        ub = Math.Min(ub, yG);
+                    else
+                        lb = Math.Max(lb, yG);
+                }
+                else if (alpha[i]==C)
+                {
+                    if (y[i] < 0)
+                        ub = Math.Min(ub, yG);
+                    else
+                        lb = Math.Max(lb, yG);
+                }
+                else
+                {
+                    ++nr_free;
+                    sum_free += yG;
+                }
+            }
+
+            if (nr_free > 0)
+                r = sum_free / nr_free;
+            else
+                r = (ub + lb) / 2;
+
+            return r;
+        }
+
     }
 }

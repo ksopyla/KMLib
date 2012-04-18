@@ -531,10 +531,16 @@ namespace KMLibUsageApp
             ////in a1a problem max index is 123
             //numberOfFeatures = 123;
 
+
             //trainningFile = dataFolder + "/a9a";
             //testFile = dataFolder + "/a9a.t";
             ////testFile = dataFolder + "/a9a";
             //numberOfFeatures = 123;
+
+            trainningFile = dataFolder + "/a9a_128.train";
+            testFile = dataFolder + "/a9a.t";
+            //testFile = dataFolder + "/a9a";
+            numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -563,9 +569,9 @@ namespace KMLibUsageApp
             //numberOfFeatures = 1335191;
 
             //trainningFile = dataFolder + "/mnist.scale";
-            trainningFile = dataFolder + "/mnist.scale_10k";
-            testFile = dataFolder + "/mnist.scale.t";
-            numberOfFeatures = 784;
+            //trainningFile = dataFolder + "/mnist.scale_10k";
+            //testFile = dataFolder + "/mnist.scale.t";
+            //numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/kdda";
             //testFile = dataFolder + "/kdda.t";
@@ -631,8 +637,9 @@ namespace KMLibUsageApp
             //
             //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
             //this solver works a bit faster and use less memory
-            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
-            //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
+            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
+            //var Solver = new GPUSmoFanSolver(train, kernel, C);
 
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 

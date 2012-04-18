@@ -1,10 +1,6 @@
 ﻿
 #include <float.h>
 
-const float MAX_FLOAT = FLT_MAX;
-const float MIN_FLOAT = FLT_MIN;
-
-
 __constant__ float C;
 // minimal coeficient
 __constant__ float COEF_EPS = 0.00001f;
@@ -22,6 +18,8 @@ texture<float,1,cudaReadModeElementType> mainVectorTexRef;
 
 #define BLOCK_SIZE 128
 
+#define BLOCK_SIZE_RED 64
+
 
 //define NEG_INFINITY_F __int_as_float(0xff800000)
 
@@ -33,17 +31,17 @@ texture<float,1,cudaReadModeElementType> mainVectorTexRef;
 */
 __device__ void maxWarpReduce(volatile int *volShIdx,volatile float *volShVal,unsigned int tid)
 {
-		if (BLOCK_SIZE >=  64) { if( volShVal[tid]< volShVal[tid+32]) {
+		if (BLOCK_SIZE_RED >=  64) { if( volShVal[tid]< volShVal[tid+32]) {
 							 volShVal[tid]=volShVal[tid+32]; volShIdx[tid]=volShIdx[tid+32];	} }
-		if (BLOCK_SIZE >=  32) { if( volShVal[tid]< volShVal[tid+16]) {
+		if (BLOCK_SIZE_RED >=  32) { if( volShVal[tid]< volShVal[tid+16]) {
 							 volShVal[tid]=volShVal[tid+16]; volShIdx[tid]=volShIdx[tid+16];	} }
-		if (BLOCK_SIZE >=  16) { if( volShVal[tid]< volShVal[tid+8]) {
+		if (BLOCK_SIZE_RED >=  16) { if( volShVal[tid]< volShVal[tid+8]) {
 							 volShVal[tid]=volShVal[tid+8]; volShIdx[tid]=volShIdx[tid+8];	} }
-		if (BLOCK_SIZE >=   8) { if( volShVal[tid]< volShVal[tid+4]) {
+		if (BLOCK_SIZE_RED >=   8) { if( volShVal[tid]< volShVal[tid+4]) {
 							 volShVal[tid]=volShVal[tid+4]; volShIdx[tid]=volShIdx[tid+4];	} }
-		if (BLOCK_SIZE >=   4) { if( volShVal[tid]< volShVal[tid+2]) {
+		if (BLOCK_SIZE_RED >=   4) { if( volShVal[tid]< volShVal[tid+2]) {
 							 volShVal[tid]=volShVal[tid+2]; volShIdx[tid]=volShIdx[tid+2];	} }
-		if (BLOCK_SIZE >=   2) { if( volShVal[tid]< volShVal[tid+1]) {
+		if (BLOCK_SIZE_RED >=   2) { if( volShVal[tid]< volShVal[tid+1]) {
 							 volShVal[tid]=volShVal[tid+1]; volShIdx[tid]=volShIdx[tid+1];	} }
 }
 
@@ -52,12 +50,20 @@ __device__ void maxWarpReduce(volatile int *volShIdx,volatile float *volShVal,un
 */
 __device__ void minWarpReduce(volatile float *sdata,unsigned int tid)
 {
-		if (BLOCK_SIZE >=  64) sdata[tid]=fminf(sdata[tid],sdata[tid+32]);
-		if (BLOCK_SIZE >=  32) sdata[tid]=fminf(sdata[tid],sdata[tid+16]);
-		if (BLOCK_SIZE >=  16) sdata[tid]=fminf(sdata[tid],sdata[tid+8]);
-		if (BLOCK_SIZE >=   8) sdata[tid]=fminf(sdata[tid],sdata[tid+4]);
-		if (BLOCK_SIZE >=   4) sdata[tid]=fminf(sdata[tid],sdata[tid+2]);
-		if (BLOCK_SIZE >=   2) sdata[tid]=fminf(sdata[tid],sdata[tid+1]);
+		/*
+		if (BLOCK_SIZE_RED >=  64) sdata[tid]=fminf(sdata[tid],sdata[tid+32]);
+		if (BLOCK_SIZE_RED >=  32) sdata[tid]=fminf(sdata[tid],sdata[tid+16]);
+		if (BLOCK_SIZE_RED >=  16) sdata[tid]=fminf(sdata[tid],sdata[tid+8]);
+		if (BLOCK_SIZE_RED >=   8) sdata[tid]=fminf(sdata[tid],sdata[tid+4]);
+		if (BLOCK_SIZE_RED >=   4) sdata[tid]=fminf(sdata[tid],sdata[tid+2]);
+		if (BLOCK_SIZE_RED >=   2) sdata[tid]=fminf(sdata[tid],sdata[tid+1]);
+		*/
+		sdata[tid]=fminf(sdata[tid],sdata[tid+32]);
+		sdata[tid]=fminf(sdata[tid],sdata[tid+16]);
+		sdata[tid]=fminf(sdata[tid],sdata[tid+8]);
+		sdata[tid]=fminf(sdata[tid],sdata[tid+4]);
+		sdata[tid]=fminf(sdata[tid],sdata[tid+2]);
+		sdata[tid]=fminf(sdata[tid],sdata[tid+1]);
 }
 
 /*
@@ -72,20 +78,21 @@ extern "C" __global__ void FindMaxIdx(const float* y,
 									  const int N)
 {
 
-	__shared__ float shVals[BLOCK_SIZE];     
-	__shared__ int shIdx[BLOCK_SIZE];
+	__shared__ float shVals[BLOCK_SIZE_RED];     
+	__shared__ int shIdx[BLOCK_SIZE_RED];
 	
 	// perform first level of reduction,
 	// reading from global memory, writing to shared memory
 	unsigned int tid = threadIdx.x;
-	//unsigned int i = blockIdx.x*BLOCK_SIZE*2 + threadIdx.x;
-	//unsigned int gridSize = BLOCK_SIZE*2*gridDim.x;
+	//unsigned int i = blockIdx.x*BLOCK_SIZE_RED*2 + threadIdx.x;
+	//unsigned int gridSize = BLOCK_SIZE_RED*2*gridDim.x;
 
 	unsigned int blockSize = blockDim.x;
 	unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
 	unsigned int gridSize = blockDim.x*2*gridDim.x;
 	
 	shVals[tid]=-FLT_MAX;
+	shIdx[tid]=-1;
    
 	// we reduce multiple elements per thread.  The number is determined by the 
 	// number of active thread blocks (via gridDim).  More blocks will result
@@ -94,7 +101,6 @@ extern "C" __global__ void FindMaxIdx(const float* y,
 	float tempMax=-FLT_MAX ;
 	float yi=0;
 	float alpha_i=0;
-	float grad_i=0;
 	
 	while (i < N)
 	{   
@@ -129,18 +135,23 @@ extern "C" __global__ void FindMaxIdx(const float* y,
 	shVals[tid] = maxG;
 	__syncthreads();
 
+	
 
 	// do reduction in shared mem
-	if (BLOCK_SIZE >= 512) { 
+	if (BLOCK_SIZE_RED >= 512) { 
 		if (tid < 256) { if( shVals[tid]< shVals[tid+256]) {
 							 shVals[tid]=shVals[tid+256]; shIdx[tid]=shIdx[tid+256];	}} __syncthreads(); }
-	if (BLOCK_SIZE >= 256) { 
+	if (BLOCK_SIZE_RED >= 256) { 
 		if (tid < 128) { if( shVals[tid]< shVals[tid+128]) {
 							 shVals[tid]=shVals[tid+128]; shIdx[tid]=shIdx[tid+128];	}} __syncthreads(); }
-	if (BLOCK_SIZE >= 128) { 
+	if (BLOCK_SIZE_RED >= 128) { 
 		if (tid < 64) { if( shVals[tid]< shVals[tid+64]) {
 							 shVals[tid]=shVals[tid+64]; shIdx[tid]=shIdx[tid+64];	}} __syncthreads(); }
 	
+
+	//gradReduce[tid] =shVals[tid];
+	//idxReduce[tid] = shIdx[tid];
+	//return;
 
 	if (tid < 32)
 	{
@@ -183,14 +194,14 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 									  const int N)
 {
 
-	__shared__ float shVals[BLOCK_SIZE];     
-	__shared__ int shIdx[BLOCK_SIZE];
+	__shared__ float shVals[BLOCK_SIZE_RED];     
+	__shared__ int shIdx[BLOCK_SIZE_RED];
 	
 	// perform first level of reduction,
 	// reading from global memory, writing to shared memory
 	unsigned int tid = threadIdx.x;
-	//unsigned int i = blockIdx.x*BLOCK_SIZE*2 + threadIdx.x;
-	//unsigned int gridSize = BLOCK_SIZE*2*gridDim.x;
+	//unsigned int i = blockIdx.x*BLOCK_SIZE_RED*2 + threadIdx.x;
+	//unsigned int gridSize = BLOCK_SIZE_RED*2*gridDim.x;
 
 	unsigned int blockSize = blockDim.x;
 	unsigned int j = blockIdx.x*blockDim.x*2 + threadIdx.x;
@@ -205,7 +216,7 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 	float tempMax=-FLT_MAX ;
 	float yj=0;
 	float alpha_j=0;
-	float grad_j=0;
+	
 	float quad_coef=0;
 	float QD_i=QDi;
 	float GMax=gradMax;
@@ -250,17 +261,20 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 	// each thread puts its local sum into shared memory 
 	shVals[tid] = maxG;
 	__syncthreads();
-
-
+/*
+	gradReduce[tid] =shVals[tid];
+		idxReduce[tid] = shIdx[tid];
+	return;
+*/
 	// do reduction in shared mem
 	
-	if (BLOCK_SIZE >= 512) { 
+	if (BLOCK_SIZE_RED >= 512) { 
 		if (tid < 256) { if( shVals[tid]< shVals[tid+256]) {
 							 shVals[tid]=shVals[tid+256]; shIdx[tid]=shIdx[tid+256];	}} __syncthreads(); }
-	if (BLOCK_SIZE >= 256) { 
+	if (BLOCK_SIZE_RED >= 256) { 
 		if (tid < 128) { if( shVals[tid]< shVals[tid+128]) {
 							 shVals[tid]=shVals[tid+128]; shIdx[tid]=shIdx[tid+128];	}} __syncthreads(); }
-	if (BLOCK_SIZE >= 128) { 
+	if (BLOCK_SIZE_RED >= 128) { 
 		if (tid < 64) { if( shVals[tid]< shVals[tid+64]) {
 							 shVals[tid]=shVals[tid+64]; shIdx[tid]=shIdx[tid+64];	}} __syncthreads(); }
 	
@@ -270,7 +284,7 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 		// now that we are using warp-synchronous programming (below)
 		// we need to declare our shared memory volatile so that the compiler
 		// doesn't reorder stores to it and induce incorrect behavior.
-		//maxWarpReduce(shIdx,shVals,tid);
+		maxWarpReduce(shIdx,shVals,tid);
 		
 	}
 	
@@ -293,12 +307,12 @@ extern "C" __global__ void FindStoppingGradVal(const float* y,
 									  float* gradReduce,
 									  const int N)
 {
-	__shared__ float shVals[BLOCK_SIZE];     
+	__shared__ float shVals[BLOCK_SIZE_RED];     
 	// perform first level of reduction,
 	// reading from global memory, writing to shared memory
 	unsigned int tid = threadIdx.x;
-	//unsigned int i = blockIdx.x*BLOCK_SIZE*2 + threadIdx.x;
-	//unsigned int gridSize = BLOCK_SIZE*2*gridDim.x;
+	//unsigned int i = blockIdx.x*BLOCK_SIZE_RED*2 + threadIdx.x;
+	//unsigned int gridSize = BLOCK_SIZE_RED*2*gridDim.x;
 
 	unsigned int blockSize = blockDim.x;
 	unsigned int j = blockIdx.x*blockDim.x*2 + threadIdx.x;
@@ -314,28 +328,29 @@ extern "C" __global__ void FindStoppingGradVal(const float* y,
 	while (j < N)
 	{   
 		yj=y[j];
-		yj_far = (j+BLOCK_SIZE)<N ? y[j+BLOCK_SIZE]:0;
+		yj_far = (j+blockSize)<N ? y[j+blockSize]:0;
 		
 		shVals[tid]=fminf(shVals[tid], fminf(
 										(yj*alpha[j]) >(yj==1? 0:-C) ? -(grad[j]*yj): FLT_MAX,
-										j+BLOCK_SIZE<N ?
-										( ( yj_far*alpha[j+BLOCK_SIZE])>(yj_far==1? 0:-C) ? -(grad[j+BLOCK_SIZE]*yj_far): FLT_MAX)
+										j+blockSize<N ?
+										( ( yj_far*alpha[j+blockSize])>(yj_far==1? 0:-C) ? -(grad[j+blockSize]*yj_far): FLT_MAX)
 										: FLT_MAX
 										));
 		
 		j += gridSize;
 	} 
+
 	__syncthreads();
 
 
 	// do reduction in shared mem
-	if (BLOCK_SIZE >= 512) 
+	if (BLOCK_SIZE_RED >= 512) 
 		if (tid < 256) { shVals[tid]=fminf(shVals[tid],shVals[tid+256]); __syncthreads(); }
 
-	if (BLOCK_SIZE >= 256) 
+	if (BLOCK_SIZE_RED >= 256) 
 		if (tid < 128) {  shVals[tid]=fminf(shVals[tid],shVals[tid+128]);  __syncthreads(); }
 
-	if (BLOCK_SIZE >= 128)
+	if (BLOCK_SIZE_RED >= 128)
 		if (tid < 64) {  shVals[tid]=fminf(shVals[tid],shVals[tid+64]); __syncthreads(); }
 	
 
@@ -361,6 +376,12 @@ extern "C" __global__ void FindStoppingGradVal(const float* y,
 	Updates gradient 
 
 	One threads process 4 gradients, inspired by Volkow http://www.cs.berkeley.edu/~volkov/volkov10-GTC.pdf
+Qi - i-th kernel column
+Qj - j-th kernel column
+grad - gradient
+diff_i  - alpha_i-old_alpha_i
+diff_j  - alpha_j-old_alpha_j
+N       - #rows
 */
 extern "C" __global__ void UpdateGrad(const float* Qi, 
 									  const float* Qj, 
@@ -369,7 +390,7 @@ extern "C" __global__ void UpdateGrad(const float* Qi,
 									  float diff_j,
 									  const int N)
 {
-    int iblock = blockIdx.x+  gridDim.x*blockDim.x;
+    int iblock = blockIdx.x; //+  gridDim.x*blockDim.x;
     int idx    = threadIdx.x+4*iblock*blockDim.x;
 	//acumulators 
 	float tempGrad[4];	
@@ -379,10 +400,17 @@ extern "C" __global__ void UpdateGrad(const float* Qi,
 	float alpha_j_diff=diff_j;	
 	//read 4 elements per thread int to register's
 	for(int i=0;i<4;i++){
+		/*
 		tempGrad[i] = (idx+i*blockDim.x <N) ? grad[idx+i*blockDim.x]:0;
 		tempQi[i]   = (idx+i*blockDim.x <N) ? Qi[idx+i*blockDim.x]:0;
 		tempQj[i]   = (idx+i*blockDim.x <N) ? Qj[idx+i*blockDim.x]:0;
-
+		*/
+		if(idx+i*blockDim.x <N)
+		{
+			tempGrad[i] = grad[idx+i*blockDim.x]; 
+			tempQi[i]=Qi[idx+i*blockDim.x]; 
+			tempQj[i]=Qj[idx+i*blockDim.x];
+		}
 		//(idx+i*blockDim.x <N) ? (tempGrad[i] = grad[idx+i*blockDim.x]; tempQi[i]=Qi[idx+i*blockDim.x]; tempQj[i]=Qj[idx+i*blockDim.x]):0;
 	}
 	
