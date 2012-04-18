@@ -222,11 +222,8 @@ namespace KMLib.GPU
         {
             SparseVec mainVec = problemElements[element1];
 
-            cuda.SetCurrentContext(cuCtx);
-            //cuda.PushCurrentContext();
-            //cuda.PopCurrentContext();
-
-
+            //cuda.SetCurrentContext(cuCtx);
+            
             if (mainVectorIdx != element1)
             {
                 CudaHelpers.FillDenseVector(mainVec, mainVector);

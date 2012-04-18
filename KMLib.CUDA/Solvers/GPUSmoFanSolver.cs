@@ -26,7 +26,7 @@ namespace KMLib.GPU.Solvers
     ///  LibSVM (http://www.csie.ntu.edu.tw/~cjlin/libsvm/)
     ///  
     /// </remarks>
-    public class GPUSmoFanSolver : Solver<SparseVec>
+    public class GPUSmoFanSolver : Solver<SparseVec>, IDisposable
     {
 
         private CUDAVectorKernel gpuKernel;
@@ -222,7 +222,7 @@ namespace KMLib.GPU.Solvers
             iter = 1;
 
 
-            while (iter<1000)
+            while (iter<200000)
             {
 
                 //Find i: Maximizes -y_i * grad(f)_i, i in I_up(\alpha)
@@ -304,8 +304,8 @@ namespace KMLib.GPU.Solvers
             float Qij = 0;
 
             //todo: remove it only for testing
-            float[] a = new float[alpha.Length];
-            cuda.CopyDeviceToHost(kiPtr, a);
+            //float[] a = new float[alpha.Length];
+            //cuda.CopyDeviceToHost(kiPtr, a);
 
             //copy Qij form device to host
             float[] temp = new float[] { 0.0f };
@@ -321,14 +321,14 @@ namespace KMLib.GPU.Solvers
             cuda.CopyDeviceToHost(gradPtr + sizeof(float) * j, gradJ);
             G[j] = gradJ[0];
 
-            //copy alpha[i]
-            float[] aI = new float[] { 0.0f };
-            cuda.CopyDeviceToHost(alphaPtr + sizeof(float) * i, aI);
-            alpha[i] = aI[0];
+            ////copy alpha[i]
+            //float[] aI = new float[] { 0.0f };
+            //cuda.CopyDeviceToHost(alphaPtr + sizeof(float) * i, aI);
+            //alpha[i] = aI[0];
 
-            float[] aJ = new float[] { 0.0f };
-            cuda.CopyDeviceToHost(alphaPtr + sizeof(float) * j, aJ);
-            alpha[j] = aJ[0];
+            //float[] aJ = new float[] { 0.0f };
+            //cuda.CopyDeviceToHost(alphaPtr + sizeof(float) * j, aJ);
+            //alpha[j] = aJ[0];
 
 
 
@@ -339,7 +339,6 @@ namespace KMLib.GPU.Solvers
 
             if (y[i] != y[j])
             {
-                float quad_coef1 = Qii + Qjj + 2 * Qij;
                 float delta = (-G[i] - G[j]) / quad_coef;
                 float diff = alpha[i] - alpha[j];
                 alpha[i] += delta;
@@ -380,8 +379,6 @@ namespace KMLib.GPU.Solvers
             }
             else
             {
-                float quad_coef2 = Qii + Qjj - 2 * Qij;
-
                 float delta = (G[i] - G[j]) / quad_coef;
                 float sum = alpha[i] + alpha[j];
                 alpha[i] -= delta;
@@ -428,7 +425,7 @@ namespace KMLib.GPU.Solvers
 
 
             //todo: remove it, only for debuging
-            cuda.CopyDeviceToHost(alphaPtr, a);
+            //cuda.CopyDeviceToHost(alphaPtr, a);
 
         }
 
@@ -445,8 +442,9 @@ namespace KMLib.GPU.Solvers
         /// <param name="delta_alpha_j"></param>
         private void UpdateGrad(int i, int j, float delta_alpha_i, float delta_alpha_j)
         {
-            float[] t = new float[G.Length];
-            cuda.CopyDeviceToHost(gradPtr, t);
+            //float[] t = new float[G.Length];
+            //float[] t1 = new float[G.Length];
+            //cuda.CopyDeviceToHost(gradPtr, t);
             
             //var KI = Enumerable.Repeat(1.0f, G.Length).ToArray();
             //var KJ = Enumerable.Repeat(1.0f, G.Length).ToArray();
@@ -460,8 +458,8 @@ namespace KMLib.GPU.Solvers
             cuda.Launch(cuFuncUpdateG, updGBlocksPerGrid, 1);
             cuda.SynchronizeContext();
 
-            float[] t1 = new float[G.Length];
-            cuda.CopyDeviceToHost(gradPtr, t1);
+            
+            //cuda.CopyDeviceToHost(gradPtr, t1);
             
         }
 
@@ -470,14 +468,6 @@ namespace KMLib.GPU.Solvers
 
         private Tuple<int, float> FindMaxPair()
         {
-            float[] tempData = new float[y.Length];
-            cuda.CopyDeviceToHost(yPtr, tempData);
-            cuda.CopyDeviceToHost(alphaPtr, tempData);
-            cuda.CopyDeviceToHost(gradPtr, tempData);
-            cuda.CopyDeviceToHost(kiPtr, tempData);
-            cuda.CopyDeviceToHost(kernelDiagPtr, tempData);
-
-
             cuda.Launch(cuFuncFindMaxI, reductionBlocks, 1);
 
             cuda.CopyDeviceToHost(valRedPtr, reduceVal);
@@ -543,8 +533,8 @@ namespace KMLib.GPU.Solvers
             gpuKernel.AllProductsGPU(i, ptr);
 
             //todo: removie it
-            float[] ki = new float[problemSize];
-            cuda.CopyDeviceToHost(ptr, ki);
+            //float[] ki = new float[problemSize];
+            //cuda.CopyDeviceToHost(ptr, ki);
 
         }
 
@@ -555,7 +545,7 @@ namespace KMLib.GPU.Solvers
             cuda.SynchronizeContext();
             
             float min = float.PositiveInfinity;
-            for (int k = 0; k < reduceVal.Length; k++)
+            for (int k = 0; k < reductionBlocks; k++)
             {
                 if (min > reduceVal[k])
                 {
@@ -592,7 +582,7 @@ namespace KMLib.GPU.Solvers
         private void SetCudaData()
         {
 
-
+            
 
             CudaHelpers.GetNumThreadsAndBlocks(problemSize, maxReductionBlocks, threadsPerBlock, ref reductionThreads, ref reductionBlocks);
 
@@ -769,5 +759,25 @@ namespace KMLib.GPU.Solvers
             return r;
         }
 
+
+        public void Dispose()
+        {
+
+            if (cuda != null)
+            {
+                cuda.Free(yPtr);
+                cuda.Free(alphaPtr);
+                cuda.Free(gradPtr);
+                cuda.Free(kiPtr);
+                cuda.Free(kjPtr);
+                cuda.Free(kernelDiagPtr);
+
+                cuda.Free(valRedPtr);
+                cuda.Free(idxRedPtr);
+
+                cuda.UnloadModule(cuModule);
+
+            }
+        }
     }
 }

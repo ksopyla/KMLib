@@ -490,11 +490,11 @@ namespace KMLib.GPU
         /// 
         /// </summary>
         /// <param name="size">array size</param>
-        /// <param name="maxBlock">maximum block size, good starting value is 64</param>
+        /// <param name="maxBlocksPerGrid">maximum block size, good starting value is 64</param>
         /// <param name="maxThreadsPerBlock"></param>
         /// <param name="threads"></param>
         /// <param name="blocks"></param>
-        internal static void GetNumThreadsAndBlocks(int size, int maxBlock, int maxThreadsPerBlock, ref int threads, ref int blocks)
+        internal static void GetNumThreadsAndBlocks(int size, int maxBlocksPerGrid, int maxThreadsPerBlock, ref int threads, ref int blocks)
         {
 
             //threads = (n < maxThreads * 2) ? nextPow2((n + 1) / 2) : maxThreads;
@@ -503,7 +503,7 @@ namespace KMLib.GPU
             threads = (size < 2 * maxThreadsPerBlock) ? nextPow2((size + 1) / 2) : maxThreadsPerBlock;
 
             blocks = (size + (threads * 2 - 1)) / (threads * 2);
-            blocks = Math.Min(blocks, maxBlock);
+            blocks = Math.Min(blocks, maxBlocksPerGrid);
         }
 
 

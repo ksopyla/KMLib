@@ -18,7 +18,7 @@ texture<float,1,cudaReadModeElementType> mainVectorTexRef;
 
 #define BLOCK_SIZE 128
 
-#define BLOCK_SIZE_RED 64
+#define BLOCK_SIZE_RED 128
 
 
 //define NEG_INFINITY_F __int_as_float(0xff800000)
@@ -31,6 +31,7 @@ texture<float,1,cudaReadModeElementType> mainVectorTexRef;
 */
 __device__ void maxWarpReduce(volatile int *volShIdx,volatile float *volShVal,unsigned int tid)
 {
+		/*
 		if (BLOCK_SIZE_RED >=  64) { if( volShVal[tid]< volShVal[tid+32]) {
 							 volShVal[tid]=volShVal[tid+32]; volShIdx[tid]=volShIdx[tid+32];	} }
 		if (BLOCK_SIZE_RED >=  32) { if( volShVal[tid]< volShVal[tid+16]) {
@@ -43,6 +44,20 @@ __device__ void maxWarpReduce(volatile int *volShIdx,volatile float *volShVal,un
 							 volShVal[tid]=volShVal[tid+2]; volShIdx[tid]=volShIdx[tid+2];	} }
 		if (BLOCK_SIZE_RED >=   2) { if( volShVal[tid]< volShVal[tid+1]) {
 							 volShVal[tid]=volShVal[tid+1]; volShIdx[tid]=volShIdx[tid+1];	} }
+*/
+
+		if( volShVal[tid]< volShVal[tid+32]) {
+							 volShVal[tid]=volShVal[tid+32]; volShIdx[tid]=volShIdx[tid+32];	} 
+		if( volShVal[tid]< volShVal[tid+16]) {
+							 volShVal[tid]=volShVal[tid+16]; volShIdx[tid]=volShIdx[tid+16];	} 
+		if( volShVal[tid]< volShVal[tid+8]) {
+							 volShVal[tid]=volShVal[tid+8]; volShIdx[tid]=volShIdx[tid+8];	} 
+		if( volShVal[tid]< volShVal[tid+4]) {
+							 volShVal[tid]=volShVal[tid+4]; volShIdx[tid]=volShIdx[tid+4];	}
+		if( volShVal[tid]< volShVal[tid+2]) {
+							 volShVal[tid]=volShVal[tid+2]; volShIdx[tid]=volShIdx[tid+2];  }
+		if( volShVal[tid]< volShVal[tid+1]) {
+							 volShVal[tid]=volShVal[tid+1]; volShIdx[tid]=volShIdx[tid+1];	}
 }
 
 /*
@@ -138,6 +153,7 @@ extern "C" __global__ void FindMaxIdx(const float* y,
 	
 
 	// do reduction in shared mem
+	/*
 	if (BLOCK_SIZE_RED >= 512) { 
 		if (tid < 256) { if( shVals[tid]< shVals[tid+256]) {
 							 shVals[tid]=shVals[tid+256]; shIdx[tid]=shIdx[tid+256];	}} __syncthreads(); }
@@ -146,9 +162,18 @@ extern "C" __global__ void FindMaxIdx(const float* y,
 							 shVals[tid]=shVals[tid+128]; shIdx[tid]=shIdx[tid+128];	}} __syncthreads(); }
 	if (BLOCK_SIZE_RED >= 128) { 
 		if (tid < 64) { if( shVals[tid]< shVals[tid+64]) {
-							 shVals[tid]=shVals[tid+64]; shIdx[tid]=shIdx[tid+64];	}} __syncthreads(); }
+						 shVals[tid]=shVals[tid+64]; shIdx[tid]=shIdx[tid+64];	}} __syncthreads(); }
+*/	
 	
-
+	if (blockSize >= 512) { 
+		if (tid < 256) { if( shVals[tid]< shVals[tid+256]) {
+							 shVals[tid]=shVals[tid+256]; shIdx[tid]=shIdx[tid+256];	}} __syncthreads(); }
+	if (blockSize >= 256) { 
+		if (tid < 128) { if( shVals[tid]< shVals[tid+128]) {
+							 shVals[tid]=shVals[tid+128]; shIdx[tid]=shIdx[tid+128];	}} __syncthreads(); }
+	if (blockSize >= 128) { 
+		if (tid < 64) { if( shVals[tid]< shVals[tid+64]) {
+							 shVals[tid]=shVals[tid+64]; shIdx[tid]=shIdx[tid+64];	}} __syncthreads(); }
 	//gradReduce[tid] =shVals[tid];
 	//idxReduce[tid] = shIdx[tid];
 	//return;
@@ -268,13 +293,13 @@ extern "C" __global__ void FindMinIdx(const float * y,		//labels
 */
 	// do reduction in shared mem
 	
-	if (BLOCK_SIZE_RED >= 512) { 
+	if (blockSize >= 512) { 
 		if (tid < 256) { if( shVals[tid]< shVals[tid+256]) {
 							 shVals[tid]=shVals[tid+256]; shIdx[tid]=shIdx[tid+256];	}} __syncthreads(); }
-	if (BLOCK_SIZE_RED >= 256) { 
+	if (blockSize >= 256) { 
 		if (tid < 128) { if( shVals[tid]< shVals[tid+128]) {
 							 shVals[tid]=shVals[tid+128]; shIdx[tid]=shIdx[tid+128];	}} __syncthreads(); }
-	if (BLOCK_SIZE_RED >= 128) { 
+	if (blockSize >= 128) { 
 		if (tid < 64) { if( shVals[tid]< shVals[tid+64]) {
 							 shVals[tid]=shVals[tid+64]; shIdx[tid]=shIdx[tid+64];	}} __syncthreads(); }
 	
@@ -344,13 +369,13 @@ extern "C" __global__ void FindStoppingGradVal(const float* y,
 
 
 	// do reduction in shared mem
-	if (BLOCK_SIZE_RED >= 512) 
+	if (blockSize >= 512) 
 		if (tid < 256) { shVals[tid]=fminf(shVals[tid],shVals[tid+256]); __syncthreads(); }
 
-	if (BLOCK_SIZE_RED >= 256) 
+	if (blockSize >= 256) 
 		if (tid < 128) {  shVals[tid]=fminf(shVals[tid],shVals[tid+128]);  __syncthreads(); }
 
-	if (BLOCK_SIZE_RED >= 128)
+	if (blockSize >= 128)
 		if (tid < 64) {  shVals[tid]=fminf(shVals[tid],shVals[tid+64]); __syncthreads(); }
 	
 

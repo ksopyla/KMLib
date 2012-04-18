@@ -72,12 +72,14 @@ extern "C" __global__ void rbfSlicedEllpackKernel(const float *vecVals,
 	  }
   
    sh_cache[tx] = sub;
-   
+   __syncthreads();
+
+	volatile float *shMem = sh_cache;
    //for 4 thread per row
   
-if(txm < 2){
-	  sh_cache[tx]+=sh_cache[tx+2];
-	  sh_cache[tx] += sh_cache[tx+1];
+	if(txm < 2){
+	  shMem[tx]+=shMem[tx+2];
+	  shMem[tx] += shMem[tx+1];
 
 	  if(txm == 0 ){
 		  result[row]=vecLabels[row]*shLabel*expf(-0.5*(selfDot[row]+shMainSelfDot-2*sh_cache[tx]));

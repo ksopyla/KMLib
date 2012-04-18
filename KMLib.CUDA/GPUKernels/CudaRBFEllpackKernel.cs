@@ -187,7 +187,7 @@ namespace KMLib.GPU
             cuda.SetParameter(cuFunc, offset, selfLinDotPtr.Pointer);
             offset += IntPtr.Size;
 
-
+            kernelResultParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
             offset += IntPtr.Size;
 
