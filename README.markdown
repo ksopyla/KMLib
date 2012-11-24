@@ -1,10 +1,12 @@
 ﻿
-#KMLib - Kernel Machine Library
+#KMLib - Kernel Machine Library with GPU SVM solver in .Net
 
-##Description GPU SVM .net
-Support Vectors Machine library in .net (SVM .Net), main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF,Chi-Square,Exp Chi-Square). Library includes GPU SVM solver for kernels linear,RBF,Chi-Square and Exp Chi-Square which use NVIDIA CUDA technology. It allows for classification big sparse datasets through utilization of matrix sparse format CSR[1], Ellpack-R[2], Sliced EllR-T[3]
+##Description 
+Support Vectors Machine library in .net (SVM .Net), main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF,Chi-Square,Exp Chi-Square). 
+Library includes _GPU SVM solver_ for kernels linear,RBF,Chi-Square and Exp Chi-Square which use NVIDIA CUDA technology. It allows for classification big sparse datasets through utilization of matrix sparse format CSR[1], Ellpack-R[2], Sliced EllR-T[3]
 
 More on http://wmii.uwm.edu.pl/~ksopyla/svm-net-with-cuda-kmlib/
+
 __Author: Krzysztof Sopyła <krzysztofsopyla@gmail.com>__
 
 ## Requirements 
@@ -59,9 +61,9 @@ xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 
 If you work on 64bit system you can also change -m32 to -m64
 
-## How to extend
-//todo
-
-## Solution description
-//todo
+References
+[1] „SVM with CUDA Accelerated Kernels for Big Sparse Problems”, K. Sopyła, P. Drozda, P. Górecki (2012), Lecture Notes in Artificial Intelligence, Springer Berlin / Heidelberg
+[2] "Support vector machines on gpu with sparse matrix format" Tsung-Kai Lin and Shao-Yi Chien. Machine Learning and Applications, Fourth International Conference on,
+0:313–318, 2010
+[3]
 
