@@ -125,6 +125,7 @@ namespace KMLib.GPU.Solvers
         private int updGThreadsPerBlock;
         private int updGBlocksPerGrid;
         private int iter;
+        private int MaxIter=500000;
 
 
 
@@ -222,7 +223,7 @@ namespace KMLib.GPU.Solvers
             iter = 1;
 
 
-            while (iter<200000)
+            while (iter<MaxIter)
             {
 
                 //Find i: Maximizes -y_i * grad(f)_i, i in I_up(\alpha)

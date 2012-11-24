@@ -1,17 +1,15 @@
 ﻿
 #KMLib - Kernel Machine Library
 
-##Description 
-SVM (Support Vectors Machine) library for .net, main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF). Lib includes some SVM kernels(linear,RBF) which use NVIDIA CUDA technology for computing products. 
+##Description GPU SVM .net
+Support Vectors Machine library in .net (SVM .Net), main goal is extensibility. You can easily implement your custom kernel or use already implemented (Linear,RBF,Chi-Square,Exp Chi-Square). Library includes GPU SVM solver for kernels linear,RBF,Chi-Square and Exp Chi-Square which use NVIDIA CUDA technology. It allows for classification big sparse datasets through utilization of matrix sparse format CSR[1], Ellpack-R[2], Sliced EllR-T[3]
 
-All vectors are in sparse format due to you can train and test bigger data set (thousands of elements and up to milions of features)
-
+More on http://wmii.uwm.edu.pl/~ksopyla/svm-net-with-cuda-kmlib/
 __Author: Krzysztof Sopyła <krzysztofsopyla@gmail.com>__
 
 ## Requirements 
 - .net 4.0 
 - CUDA 3.0 driver for CUDA enabled SVM kernels
-- dnAnalitycs (dll  included in project)
 - CUDA.net (dll included in project)
 
 ## How to use

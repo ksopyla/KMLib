@@ -525,6 +525,15 @@ namespace KMLib.SVMSolvers
                 //for (int k = 0; k < active_size; k++)
                 //{
                 //    G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
+
+                //    if (float.IsNaN(G[k]))
+                //    {
+                //        Console.WriteLine("iter=" + iter);
+                //        Console.WriteLine("k={0} i={1} j={2} ", k, i,j);
+                //        Console.WriteLine("{0} {1} {2} {3} {4}", G[k], Q_i[k], delta_alpha_i, Q_j[k], delta_alpha_j);
+
+                //        System.Environment.Exit(-1);
+                //    }
                 //}
 
 

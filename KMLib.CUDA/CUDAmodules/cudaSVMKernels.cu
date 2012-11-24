@@ -11,10 +11,13 @@ texture<float,1,cudaReadModeElementType> labelsTexRef;
 //in SVM prediction, its stores one dense support vector
 texture<float,1,cudaReadModeElementType> svTexRef;
 
-#define BLOCK_SIZE 128
+#define BLOCK_SIZE 256
 
 #define WARP_SIZE 32
 
+#define PREFETCH_SIZE 2
+
+#define VECDIM 597
 
 /******************************************************************
  *
@@ -261,7 +264,7 @@ sdata[threadIdx.x] = sum;
 
 
 //cuda kernel funtion for computing SVM RBF kernel, uses 
-// Ellpack-R fromat for storing sparse matrix, labels are in texture cache, 
+// Ellpack-R fromat for storing sparse matrix, labels are in texture cache,  uses ILP - prefetch vector elements in registers
 //Params:
 //vals - array of vectors values
 //colIdx  - array of column indexes in ellpack-r fromat
@@ -271,7 +274,7 @@ sdata[threadIdx.x] = sum;
 //num_rows -number of vectors
 //mainVecIndex - main vector index, needed for retriving its label
 //gamma - gamma parameter for RBF 
-extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
+extern "C" __global__ void rbfEllpackFormatKernel_ILP(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength, 
 									   const float* selfDot,
@@ -301,6 +304,247 @@ extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
 	{
 		float dot=0;
 		int maxEl = rowLength[row];
+		
+		int i=0;
+		
+		float preVals[PREFETCH_SIZE];
+		int preColls[PREFETCH_SIZE];
+		float preVecVals[PREFETCH_SIZE];
+		
+		//how many elements are the rest after division
+		int rest = maxEl%PREFETCH_SIZE;
+        int mainIter = ceilf( (maxEl+0.0)/PREFETCH_SIZE);
+		for(i=0; i<mainIter;i++)
+		{
+			int subIter= min(maxEl-i*PREFETCH_SIZE,PREFETCH_SIZE);
+			
+			for(int j=0; j<subIter;j++)			
+			{
+				preColls[j]=colIdx[ (i*PREFETCH_SIZE+j)*num_rows+row];
+				preVals[j]=vals[ (i*PREFETCH_SIZE+j)*num_rows+row];
+			}			
+
+			
+			for(int j=0; j<subIter;j++)
+			{
+				preVecVals[j] = tex1Dfetch(mainVectorTexRef,preColls[j]);
+			}
+
+			for(int j=0; j<subIter;j++){
+				dot+=preVals[j]*preVecVals[j];
+				//dot+=preVals[j]*tex1Dfetch(mainVectorTexRef,preColls[j]);
+			}
+		}
+		results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		
+	}	
+
+}
+
+//cuda kernel funtion for computing SVM RBF kernel, uses 
+// Ellpack-R fromat for storing sparse matrix, labels are in texture cache,  uses ILP - prefetch vector elements in registers
+//Params:
+//vals - array of vectors values
+//colIdx  - array of column indexes in ellpack-r fromat
+//rowLength -array, contains number of nonzero elements in each row
+//selfDot - array of precomputed self linear product 
+//results - array of results Linear Kernel
+//num_rows -number of vectors
+//mainVecIndex - main vector index, needed for retriving its label
+//gamma - gamma parameter for RBF 
+extern "C" __global__ void rbfEllpackFormatKernel_ILP_shared(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength, 
+									   const float* selfDot,
+									   float * results,
+									   const int num_rows,
+									   const int mainVecIndex,
+									   const float gamma)
+{
+	
+
+	__shared__ float shGamma;
+	__shared__ int shMainVecIdx;
+	__shared__ float shMainSelfDot;
+	__shared__ float shLabel;
+
+	
+	__shared__ float shMainVec[VECDIM];
+	
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIndex;
+		shGamma = gamma;
+		shMainSelfDot = selfDot[shMainVecIdx];
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+	}
+
+	for(int k=threadIdx.x;k<VECDIM;k+=blockDim.x)
+		shMainVec[k]=tex1Dfetch(mainVectorTexRef,k);
+	
+	__syncthreads();
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+
+	if(row<num_rows)
+	{
+		float dot=0;
+		int maxEl = rowLength[row];
+		
+		int i=0;
+		
+		float preVals[PREFETCH_SIZE];
+		int preColls[PREFETCH_SIZE];
+		//float preVecVals[PREFETCH_SIZE];
+		
+		//how many elements are the rest after division
+		int rest = maxEl%PREFETCH_SIZE;
+        int mainIter = ceilf( (maxEl+0.0)/PREFETCH_SIZE);
+		for(i=0; i<mainIter;i++)
+		{
+			int subIter= min(maxEl-i*PREFETCH_SIZE,PREFETCH_SIZE);
+			
+			for(int j=0; j<subIter;j++)			
+			{
+				preColls[j]=colIdx[ (i*PREFETCH_SIZE+j)*num_rows+row];
+				preVals[j]=vals[ (i*PREFETCH_SIZE+j)*num_rows+row];
+			}			
+
+			for(int j=0; j<subIter;j++){
+				dot+=preVals[j]*shMainVec[preColls[j]];
+				//dot+=preVals[j]*tex1Dfetch(mainVectorTexRef,preColls[j]);
+			}
+		}
+		results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		
+	}	
+
+}
+//cuda kernel funtion for computing SVM RBF kernel, uses 
+// Ellpack-R fromat for storing sparse matrix, labels are in texture cache
+//Params:
+//vals - array of vectors values
+//colIdx  - array of column indexes in ellpack-r fromat
+//rowLength -array, contains number of nonzero elements in each row
+//selfDot - array of precomputed self linear product 
+//results - array of results Linear Kernel
+//num_rows -number of vectors
+//mainVecIndex - main vector index, needed for retriving its label
+//gamma - gamma parameter for RBF 
+extern "C" __global__ void rbfEllpackFormatKernel_shared(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength, 
+									   const float* selfDot,
+									   float * results,
+									   const int numRows,
+									   const int mainVecIndex,
+									   const float gamma)
+{
+	
+
+	__shared__ float shGamma;
+	__shared__ int shMainVecIdx;
+	__shared__ float shMainSelfDot;
+	__shared__ float shLabel;
+	
+	__shared__ float shMainVec[VECDIM];
+	//volatile float *shMainVec =shMainVecAR;
+	
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIndex;
+		shGamma = gamma;
+		shMainSelfDot = selfDot[shMainVecIdx];
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+	}
+
+	for(int k=threadIdx.x;k<VECDIM;k+=blockDim.x)
+		shMainVec[k]=tex1Dfetch(mainVectorTexRef,k);
+	
+	__syncthreads();
+	
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+	const int num_rows =numRows;
+	if(row<num_rows)
+	{
+		int maxEl = rowLength[row];
+		int labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
+		
+		float dot=0;
+		int col=-1;
+		float val=0;
+		int i=0;
+		for(i=0; i<maxEl;i++)
+		{
+			col=colIdx[num_rows*i+row];
+			val= vals[num_rows*i+row];
+			dot+=val*shMainVec[col];
+		}
+
+		//results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		
+		//val=-shGamma*(selfDot[row]+shMainSelfDot-2*dot);
+		//val=-shGamma;
+		//val=selfDot[row];
+		//val=shMainSelfDot;
+		//val=-2*dot;
+
+
+
+		val =labelProd* __expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		//val = floorf(val*1000+0.5)/1000;
+		//results[row]=labelProd*val;
+		results[row]=val;
+		
+	}	
+
+}
+
+
+
+//cuda kernel funtion for computing SVM RBF kernel, uses 
+// Ellpack-R fromat for storing sparse matrix, labels are in texture cache
+//Params:
+//vals - array of vectors values
+//colIdx  - array of column indexes in ellpack-r fromat
+//rowLength -array, contains number of nonzero elements in each row
+//selfDot - array of precomputed self linear product 
+//results - array of results Linear Kernel
+//num_rows -number of vectors
+//mainVecIndex - main vector index, needed for retriving its label
+//gamma - gamma parameter for RBF 
+extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength, 
+									   const float* selfDot,
+									   float * results,
+									   const int numRows,
+									   const int mainVecIndex,
+									   const float gamma)
+{
+	
+
+	__shared__ float shGamma;
+	__shared__ int shMainVecIdx;
+	__shared__ float shMainSelfDot;
+	__shared__ float shLabel;
+	
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIndex;
+		shGamma = gamma;
+		shMainSelfDot = selfDot[shMainVecIdx];
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+	}
+	__syncthreads();
+	
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+	const int num_rows =numRows;
+	if(row<num_rows)
+	{
+		int maxEl = rowLength[row];
+		int labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
+		float dot=0;
+		
 		int col=-1;
 		float val=0;
 		int i=0;
@@ -310,11 +554,21 @@ extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
 			val= vals[num_rows*i+row];
 			dot+=val*tex1Dfetch(mainVectorTexRef,col);
 		}
-		results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		//results[row]=shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		
+		//results[row]=labelProd*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		//results[row]=labelProd*exp(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+
+		val = expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		//val = floorf(val*10000+0.5)/10000;
+		results[row]=labelProd*val;
+		
+		//results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
 		
 	}	
 
 }
+
 
 
 /*******************************************************************************************/

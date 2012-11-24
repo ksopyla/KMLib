@@ -295,10 +295,12 @@ namespace KMLib.GPU
         {
             //int align = 128 *(int) Math.Ceiling((float)(sliceSize * threadsPerRow) / 128);
 
-            int align = (int)Math.Ceiling(0.0+sliceSize * threadsPerRow/64)*64;
+            
+            int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 64.0)*64;
+            //int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 2.0) * 2;
             int align2 = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
 
-            Debug.Assert(align == align2);
+            //Debug.Assert(align == align2);
 
             int numRows = problemElements.Length;
             int numSlices = (int)Math.Ceiling( (numRows+0.0)/ sliceSize);

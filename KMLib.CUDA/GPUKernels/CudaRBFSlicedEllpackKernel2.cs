@@ -51,13 +51,18 @@ namespace KMLib.GPU
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
+
+            
+            
             cudaProductKernelName = "rbfSlicedEllpackKernel";
+            //cudaProductKernelName = "rbfSlicedEllpackKernel_shared";
+
             cudaModuleName = "rbfSlicedEllpackKernel.cubin";
 
             cudaMainVecTexRefName = "mainVecTexRef";
 
-            threadsPerRow = 4;
-            sliceSize = 64;
+            threadsPerRow =  4;
+            sliceSize =  64;
         }
 
 
@@ -133,6 +138,7 @@ namespace KMLib.GPU
             blocksPerGrid = (int)Math.Ceiling(1.0 * N * threadsPerRow / blockSize);
 
             align = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
+            
 
             float[] vecVals;
             int[] vecColIdx;

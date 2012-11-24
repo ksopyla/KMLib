@@ -15,35 +15,35 @@ namespace KMLib.Helpers
         float DotProduct(T otherVec);
     }
 
-    public class DeVec : IVector<DeVec>
-    {
+    //public class DeVec : IVector<DeVec>
+    //{
 
-        public float DotProuct()
-        {
-            throw new NotImplementedException();
-        }
+    //    public float DotProuct()
+    //    {
+    //        throw new NotImplementedException();
+    //    }
 
-        public float DotProduct(DeVec otherVec)
-        {
+    //    public float DotProduct(DeVec otherVec)
+    //    {
 
-            otherVec.DotProduct(this);
-            throw new NotImplementedException();
-        }
-    }
+    //        otherVec.DotProduct(this);
+    //        throw new NotImplementedException();
+    //    }
+    //}
 
-    public class SpVec : IVector<SpVec>
-    {
+    //public class SpVec : IVector<SpVec>
+    //{
 
-        public float DotProuct()
-        {
-            throw new NotImplementedException();
-        }
+    //    public float DotProuct()
+    //    {
+    //        throw new NotImplementedException();
+    //    }
 
-        public float DotProduct(SpVec otherVec)
-        {
-            throw new NotImplementedException();
-        }
-    }
+    //    public float DotProduct(SpVec otherVec)
+    //    {
+    //        throw new NotImplementedException();
+    //    }
+    //}
 
 
     public abstract class Vector

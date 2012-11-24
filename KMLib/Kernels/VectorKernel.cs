@@ -40,7 +40,12 @@ namespace KMLib.Kernels
             {
                 DiagonalDotCacheBuilded = false;
                 problemElements = value;
-              //  ComputeDiagonalDotCache();
+              
+                //insted of computing Diagonal Dot Cache here 
+                //it is done in Init() method
+                //  ComputeDiagonalDotCache();
+
+
 
             }
         }

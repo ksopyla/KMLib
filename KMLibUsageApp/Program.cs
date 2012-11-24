@@ -20,7 +20,7 @@ namespace KMLibUsageApp
     internal class Program
     {
         private static float C = 4f;
-        static float gamma = 0.5f;//7.8125f;
+        static float gamma = 0.5f;
         private static int folds = 5;
         private static void Main(string[] args)
         {
@@ -38,9 +38,7 @@ namespace KMLibUsageApp
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
-            // TestOneDataSet(dataFolder);
-
-            //TestOneDataSetWithCuda(dataFolder);
+            TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -52,14 +50,14 @@ namespace KMLibUsageApp
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-            SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+            //SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
             //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
 
             // PerformCrossValidation(dataFolder, folds);
 
-            // SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+            //SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
             Console.WriteLine("Press any button");
             // Console.ReadKey();
 
@@ -107,15 +105,19 @@ namespace KMLibUsageApp
 
             Problem<SparseVec> test = IOHelper.ReadDNAVectorsFromFile(testFile, numberOfFeatures);
 
-            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+            //Do dataset Normalization
 
-            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
+            //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
+            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            IKernel<SparseVec> kernel = new RbfKernel(gamma);
-            //IKernel<SparseVec> kernel = new LinearKernel();
+            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            IKernel<SparseVec> kernel = new LinearKernel();
+            //IKernel<SparseVec> kernel = new ChiSquareKernel();
+            //IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
+            
             SVMClassify(train, test, kernel, evaluator, C);
 
         }
@@ -532,15 +534,15 @@ namespace KMLibUsageApp
             //numberOfFeatures = 123;
 
 
-            //trainningFile = dataFolder + "/a9a";
-            //testFile = dataFolder + "/a9a.t";
-            ////testFile = dataFolder + "/a9a";
-            //numberOfFeatures = 123;
-
-            trainningFile = dataFolder + "/a9a_128.train";
+            trainningFile = dataFolder + "/a9a";
             testFile = dataFolder + "/a9a.t";
             //testFile = dataFolder + "/a9a";
             numberOfFeatures = 123;
+
+            //trainningFile = dataFolder + "/a9a_128.train";
+            //testFile = dataFolder + "/a9a.t";
+            ////testFile = dataFolder + "/a9a";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
@@ -558,8 +560,8 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/duke.tr";
             //numberOfFeatures = 7129;
 
-            //trainningFile = dataFolder + "/rcv1_train.binary";
-            //testFile = dataFolder + "/rcv1_test.binary";
+            ////trainningFile = dataFolder + "/rcv1_train.binary";
+            ////testFile = dataFolder + "/rcv1_test.binary";
             //trainningFile = dataFolder + "/rcv1_test.binary";
             //testFile = dataFolder + "/rcv1_train.binary";
             //numberOfFeatures = 47236;
@@ -569,7 +571,7 @@ namespace KMLibUsageApp
             //numberOfFeatures = 1335191;
 
             //trainningFile = dataFolder + "/mnist.scale";
-            //trainningFile = dataFolder + "/mnist.scale_10k";
+            ////trainningFile = dataFolder + "/mnist.scale_10k";
             //testFile = dataFolder + "/mnist.scale.t";
             //numberOfFeatures = 784;
 
@@ -578,12 +580,27 @@ namespace KMLibUsageApp
             //numberOfFeatures = 20216830;
 
 
-            ////trainningFile = dataFolder + "/real-sim_small_3K";
-            ////string trainningFile = dataFolder + "/real-sim_med_6K";
-            ////string trainningFile = dataFolder + "/real-sim_med_10K";
+            //trainningFile = dataFolder + "/real-sim_small_3K";
+            //string trainningFile = dataFolder + "/real-sim_med_6K";
+            //string trainningFile = dataFolder + "/real-sim_med_10K";
             //trainningFile = dataFolder + "/real-sim";
             //testFile = dataFolder + "/real-sim";
             //numberOfFeatures = 20958;
+
+            //trainningFile = dataFolder + "/test_history1.train"; //#2626 inst
+            //testFile = dataFolder + "/test_history1.test"; //#1125
+            //numberOfFeatures = 1776;
+           
+            
+            //dominostats #train	193657  #test	82996 dim	596
+            //trainningFile = dataFolder + "/dominionstats.train"; //#2626 inst
+            //testFile = dataFolder + "/dominionstats.test"; //#1125
+            //numberOfFeatures = 596;
+
+            ////#train	177862 test	76227 dim	52242
+            //trainningFile = dataFolder + "/tweet.train"; //#2626 inst
+            //testFile = dataFolder + "/tweet.test"; //#1125
+            //numberOfFeatures = 52242;
 
             //for test
             //trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
@@ -608,37 +625,32 @@ namespace KMLibUsageApp
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
 
+            Console.WriteLine("read vectors");
+            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
+            Console.WriteLine("end read vectors");
 
+            Model<SparseVec> model;
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
             //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
             EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
-            IKernel<SparseVec> kernel = new CudaRBFKernel(gamma );
-
+            //IKernel<SparseVec> kernel = new CudaRBFKernel(gamma );
             //IKernel<SparseVec> kernel = new CudaRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CudaRBFSlicedEllpackKernel(gamma);
-            //IKernel<SparseVec> kernel = new CudaRBFSlicedEllpackKernel2(gamma);
-
+            IKernel<SparseVec> kernel = new CudaRBFSlicedEllpackKernel2(gamma);
             //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
-            Model<SparseVec> model;
-
-            Console.WriteLine("read vectors");
-            Problem<SparseVec> train = IOHelper.ReadDNAVectorsFromFile(trainningFile, numberOfFeatures);
-            Console.WriteLine("end read vectors");
 
             Console.WriteLine("kernel init");
             kernel.ProblemElements = train.Elements;
             kernel.Y = train.Y;
             kernel.Init();
 
-            //
-            //Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
+            //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
             //this solver works a bit faster and use less memory
-            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
-            var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
+            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
             //var Solver = new GPUSmoFanSolver(train, kernel, C);
 
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
@@ -647,15 +659,17 @@ namespace KMLibUsageApp
             model = Solver.ComputeModel();
             Console.WriteLine("Model computed {0}  miliseconds={1} obj={2} iter={3} #sv={4}", timer.Elapsed, timer.ElapsedMilliseconds, model.Obj, model.Iter,model.SupportElements.Length);
 
+            var disSolver = Solver as IDisposable;
+            if (disSolver != null)
+                disSolver.Dispose();
+            Solver = null;
+            
             var disKernel = kernel as IDisposable;
             if (disKernel != null)
                 disKernel.Dispose();
 
 
-            var disSolver = Solver as IDisposable;
-            if (disSolver != null)
-                disSolver.Dispose();
-            Solver = null;
+            
 
             train.Dispose();
 

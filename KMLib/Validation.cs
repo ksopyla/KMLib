@@ -410,7 +410,7 @@ namespace KMLib
 
             double accuracy = (float)correct / TestProblem.ElementsCount;
           
-            Console.WriteLine(string.Format("init, dispose and prediction on {0} elements takes {1}", TestProblem.ElementsCount, t.Elapsed));
+            Console.WriteLine(string.Format("init, dispose and prediction on {0} elements takes {1}, correct={2}", TestProblem.ElementsCount, t.Elapsed,correct));
             return accuracy;
         }
 
