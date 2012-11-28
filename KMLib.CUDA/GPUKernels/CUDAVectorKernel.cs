@@ -260,8 +260,7 @@ namespace KMLib.GPU
                 throw new ArgumentException("Failed access to cuda module" + modluePath);
 
             cuModule = cuda.LoadModule(modluePath);
-            cuFunc = cuda.GetModuleFunction(cudaProductKernelName);
-            //var cuModule2 = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, "rbfSlicedEllpackKernel.cubin"));
+            cuFunc = cuda.GetModuleFunction(cudaProductKernelName);            
         }
 
 

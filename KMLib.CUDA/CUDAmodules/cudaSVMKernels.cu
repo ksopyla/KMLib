@@ -1,4 +1,9 @@
-﻿
+﻿/*
+
+author: Krzysztof Sopyła
+
+*/
+
 //texture for vector, which is used for matrix vector multiplication
 //in SVM, when we have to compute many dot products (one vector with others)
 texture<float,1,cudaReadModeElementType> mainVectorTexRef;
@@ -18,6 +23,8 @@ texture<float,1,cudaReadModeElementType> svTexRef;
 #define PREFETCH_SIZE 2
 
 #define VECDIM 597
+
+#define maxNNZ 100
 
 /******************************************************************
  *
@@ -569,6 +576,160 @@ extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
 
 }
 
+
+//cuda kernel funtion for computing SVM Chi-Square kernel, 
+// K(x,y)= 1 - Sum( (xi-yi)^2/(xi+yi))
+//
+//uses Ellpack-R fromat for storing sparse matrix, labels are in texture cache
+//
+//Params:
+//vals - array of vectors values
+//colIdx  - array of column indexes in ellpack-r fromat
+//rowLength -array, contains number of nonzero elements in each row
+//selfDot - array of precomputed self linear product 
+//results - array of results Linear Kernel
+//num_rows -number of vectors
+//mainVecIndex - main vector index, needed for retriving its label
+extern "C" __global__ void chiSquaredEllpackKernel(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength, 
+									   float * results,
+									   const int numRows,
+									   const int mainVecIndex)
+{
+	
+
+	__shared__ int shMainVecIdx;
+	__shared__ float shLabel;
+	__shared__ int shMainCols[maxNNZ];
+	__shared__ float shMainVals[maxNNZ];
+	__shared__ int shMainNNZ;
+	
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIndex;
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+		shMainNNZ=  rowLength[mainVecIndex];
+	}
+
+	__syncthreads();
+	
+	for(int s=threadIdx.x;s<shMainNNZ;s+=blockDim.x){
+		shMainCols[s] = colIdx[numRows*s+shMainVecIdx];
+		shMainVals[s]=tex1Dfetch(mainVectorTexRef,shMainCols[s]);
+	}
+	
+	__syncthreads();
+	
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+	const int num_rows =numRows;
+	if(row<num_rows)
+	{
+		int maxEl = rowLength[row];
+		int labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
+		float chi=0;
+		
+		int col1=-1;
+		float val1=0;
+		float val2=0;
+		int i=0;
+		int k=0;
+		int prevCol=shMainCols[k];
+
+		for(i=0; i<maxEl;i++)
+		{
+			col1=colIdx[num_rows*i+row];
+			val1= vals[num_rows*i+row];
+			val2 = tex1Dfetch(mainVectorTexRef,col1);
+			
+			chi+= (val1-val2)*(val1-val2)/(val1+val2);
+			
+			//vector in Ellpack format might miss some previous columns which are non zero in dens vector
+			//we want to "catch up with main dense vector"
+			
+			while(k<shMainNNZ && prevCol<col1) //prevCol=cols[numRows*k+shMainVecIdx];
+			{
+				//it is sufficient to add only value of dense vector,
+				//because sparse vector values in this position is zero
+				chi+=tex1Dfetch(mainVectorTexRef,prevCol);
+				k++;
+				if(k<shMainNNZ)
+					prevCol=shMainCols[k];
+				
+			}
+			if(prevCol==col1){
+				k++;//increase k, to move to first grather than col1 index
+				if(k<shMainNNZ)
+					prevCol=shMainCols[k];
+			}
+		}
+
+		//add those values which left (were not added before)
+		while(k<shMainNNZ){
+			chi+=shMainVals[k++];		
+			
+			//prevCol=cols[numRows*k+shMainVecIdx];
+			//chi+=tex1Dfetch(mainVectorTexRef,prevCol);
+		}
+		results[row]=labelProd*(1-2*chi);
+	}	
+
+}
+
+//cuda kernel funtion for computing SVM Chi-Square kernel in its normalized version,
+// K(x,y)= Sum( (xi*yi)/(xi+yi))
+// uses Ellpack-R fromat for storing sparse matrix, labels are in texture cache
+//Params:
+//vals - array of vectors values
+//colIdx  - array of column indexes in ellpack-r fromat
+//rowLength -array, contains number of nonzero elements in each row
+//selfDot - array of precomputed self linear product 
+//results - array of results Linear Kernel
+//num_rows -number of vectors
+//mainVecIndex - main vector index, needed for retriving its label
+extern "C" __global__ void chiSquaredNormEllpackKernel(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength, 
+									   float * results,
+									   const int numRows,
+									   const int mainVecIndex)
+{
+	
+	__shared__ float shLabel;
+	
+	if(threadIdx.x==0)
+	{
+		shLabel = tex1Dfetch(labelsTexRef,mainVecIndex);		
+	}
+	
+	__syncthreads();
+	
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+	const int num_rows =numRows;
+	if(row<num_rows)
+	{
+		int maxEl = rowLength[row];
+		int labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
+		float chi=0;
+		
+		int col1=-1;
+		float val1=0;
+		float val2=0;
+		int i=0;
+
+		for(i=0; i<maxEl;i++)
+		{
+			col1=colIdx[num_rows*i+row];
+			val1= vals[num_rows*i+row];
+			val2 = tex1Dfetch(mainVectorTexRef,col1);
+			
+			chi+= (val1*val2)/(val1+val2);
+			
+		}
+		results[row]=labelProd*chi;
+	}	
+
+}
 
 
 /*******************************************************************************************/

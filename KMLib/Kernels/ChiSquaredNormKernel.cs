@@ -8,20 +8,20 @@ namespace KMLib.Kernels
 {
 
     /// <summary>
-    /// Represents Chi^2 Kernel for computing product between two histograms
+    /// Represents Chi^2 Kernel for computing product between two histograms l1 normalised histograms
     /// 
-    /// K(x,y)= 1 - Sum( (xi-yi)^2/(xi+yi))
+    /// K(x,y)= Sum( (xi*yi)/(xi+yi))
     /// 
     /// vectors should contains positive numbers(like histograms does) and should be normalized
     /// sum(xi)=1
     /// </summary>
-    public class ChiSquareKernel : VectorKernel<SparseVec>, IDisposable
+    public class ChiSquaredNormKernel : VectorKernel<SparseVec>, IDisposable
     {
         public override float Product(SparseVec element1, SparseVec element2)
         {
 
-            float result = ChiSquareDist(element1, element2);
-            return 1.0f-2*result;
+            float result = ChiSquareNormDist(element1, element2);
+            return result;
 
         }
 
@@ -32,7 +32,7 @@ namespace KMLib.Kernels
         /// <param name="element1"></param>
         /// <param name="element2"></param>
         /// <returns></returns>
-        public static float ChiSquareDist(SparseVec element1, SparseVec element2)
+        public static float ChiSquareNormDist(SparseVec element1, SparseVec element2)
         {
             double result = 0.0f;
             int i1 = 0, i2 = 0;
@@ -43,36 +43,23 @@ namespace KMLib.Kernels
 
                 if (idx1 == idx2)
                 {
-                    float div = element1.Values[i1] - element2.Values[i2];
+                    float mul = element1.Values[i1] * element2.Values[i2];
                     float sum = element1.Values[i1] + element2.Values[i2];
 
-                    result += div * div / sum;
+                    result += mul / sum;
 
                     i1++;                     
                     i2++;
                 }
                 else if (idx1 < idx2)
                 {
-                    // xi!=0 yi=0 than
-                    //  (xi-yi)^2/(xi-yi)=(xi-0)^2/(xi+0)=xi^2/xi=xi;
-                    result += element1.Values[i1];
                     i1++;
                 }
                 else
                 {
-                    // xi=0 yi!=0 than
-                    //  (0-yi)^2/(0+yi)=yi^2/yi=yi;
-                    result += element2.Values[i2];
                     i2++;
                 }
             }
-
-            while (i1 < element1.Count)
-                result += element1.Values[i1++];
-
-            while (i2 < element2.Count)
-                result += element2.Values[i2++];
-
 
             return (float)result;
         }
@@ -89,9 +76,6 @@ namespace KMLib.Kernels
             if (problemElements == null)
                 throw new ApplicationException("Problem elements are null");
 
-            if (element1 == element2)
-                return 1.0f;
-
             return this.Product(problemElements[element1], problemElements[element2]);
         }
 
@@ -102,7 +86,7 @@ namespace KMLib.Kernels
 
         public override string ToString()
         {
-            return "Chi Square Kernel";
+            return "Chi Squared Norm Kernel";
         }
 
         public void Dispose()

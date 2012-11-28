@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("KMLib.CUDA")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Microsoft")]
+[assembly: AssemblyCompany("Krzysztof Sopyła")]
 [assembly: AssemblyProduct("KMLib.CUDA")]
-[assembly: AssemblyCopyright("Copyright © Microsoft 2010")]
+[assembly: AssemblyCopyright("Copyright © Krzysztof Sopyla")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -147,10 +147,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GPUKernels\CudaChiSquaredNormEllpackKernel.cs" />
+    <Compile Include="GPUKernels\CudaChiSquaredEllpackKernel.cs" />
     <Compile Include="GPUKernels\CudaRBFSlicedEllpackKernel2.cs" />
     <Compile Include="GPUKernels\CudaRBFEllpackKernel.cs" />
     <Compile Include="CUDAConfig.cs" />
-    <Compile Include="CudaLinearEvaluator.cs" />
+    <Compile Include="CudaLinearCSREvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
     <Compile Include="GPUKernels\CudaLinearKernel.cs" />
     <Compile Include="GPUKernels\CudaRBFSlicedEllpackKernel.cs" />
@@ -160,7 +162,7 @@
     <Compile Include="Solvers\GPUstdBBLinSolver.cs" />
     <Compile Include="Solvers\GPUnmBBLinSolver.cs" />
     <Compile Include="Solvers\CUDALinSolver.cs" />
-    <Compile Include="CudaRBFEvaluator.cs" />
+    <Compile Include="CudaRBFCSREvaluator.cs" />
     <Compile Include="GPUKernels\CudaRBFKernel.cs" />
     <Compile Include="CudaVectorEvaluator.cs" />
     <Compile Include="GPUKernels\CUDAVectorKernel.cs" />
@@ -190,7 +192,7 @@
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(TargetDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
 del *.cubin
-nvcc cudaSVMKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32 -arch=sm_21
+nvcc cudaSVMKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 </PostBuildEvent>
   </PropertyGroup>

@@ -132,7 +132,8 @@
     <Compile Include="Helpers\AlphaInfo.cs" />
     <Compile Include="Helpers\StepVariable.cs" />
     <Compile Include="Helpers\SparseVec.cs" />
-    <Compile Include="Kernels\ChiSquareKernel.cs" />
+    <Compile Include="Kernels\ChiSquaredKernel.cs" />
+    <Compile Include="Kernels\ChiSquaredNormKernel.cs" />
     <Compile Include="Kernels\ExpChiSquareKernel.cs" />
     <Compile Include="Kernels\FrobeniusKernel.cs" />
     <Compile Include="Kernels\FrobeniusParameterSelection.cs" />

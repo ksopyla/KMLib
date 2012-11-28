@@ -1,6 +1,11 @@
-﻿
+﻿/*
 
+author: Krzysztof Sopyła
+mail: krzysztofsopyla@gmail.com
 
+Licence: contact with author
+web page: http://wmii.uwm.edu.pl/wydzial/kadra/get/143
+*/
 
 texture<float,1,cudaReadModeElementType> mainVecTexRef;
 
