@@ -9,6 +9,24 @@ More on http://wmii.uwm.edu.pl/~ksopyla/svm-net-with-cuda-kmlib/
 
 __Author: Krzysztof Sopyła <krzysztofsopyla@gmail.com>__
 
+License: MIT
+If you use this software in academic publication please cite:
+
+@inproceedings{Sopyla2012,
+author = {Sopy\la, Krzysztof and Drozda, Pawe\l and G\’{o}recki, Przemys\law},
+title = {SVM with CUDA accelerated kernels for big sparse problems},
+booktitle = {Proceedings of the 11th international conference on Artificial Intelligence and Soft Computing – Volume Part I},
+series = {ICAISC’12},
+year = {2012},
+isbn = {978-3-642-29346-7},
+pages = {439–447},
+numpages = {9},
+url = {http://dx.doi.org/10.1007/978-3-642-29347-4_51},
+doi = {10.1007/978-3-642-29347-4_51},
+acmid = {2342010},
+publisher = {Springer-Verlag}}
+
+
 ## Requirements 
 - .net 4.0 
 - CUDA 3.0 driver for CUDA enabled SVM kernels
