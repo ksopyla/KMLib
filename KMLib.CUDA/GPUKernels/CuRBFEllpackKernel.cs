@@ -15,10 +15,10 @@ namespace KMLib.GPU
 
     /// <summary>
     /// Class for computing RBF kernel using cuda.
-    /// Data are stored in sliced Ellpack-R format use only CUDA.net library
+    /// Data are stored in Ellpack-R format.
     /// 
     /// </summary>
-    public class CudaRBFSlicedEllpackKernel2 : CUDAVectorKernel, IDisposable
+    public class CuRBFEllpackKernel : CuVectorKernel, IDisposable
     {
 
         /// <summary>
@@ -35,34 +35,20 @@ namespace KMLib.GPU
         /// cuda device pointer for stroing self linear dot product
         /// </summary>
         private CUdeviceptr selfLinDotPtr;
-        private int sliceSize;
-        private int threadsPerRow;
-        
-        //private int blockSize;
-        
-        private int align;
-        private CUdeviceptr sliceStartPtr;
-        private int blockSize;
 
 
 
 
-        public CudaRBFSlicedEllpackKernel2(float gamma)
+        public CuRBFEllpackKernel(float gamma)
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
-
+            cudaProductKernelName = "rbfEllpackFormatKernel";
+            //cudaProductKernelName = "rbfEllpackFormatKernel_shared";
+            //cudaProductKernelName = "rbfEllpackFormatKernel_ILP";
+            //cudaProductKernelName = "rbfEllpackFormatKernel_ILP_shared";
             
             
-            cudaProductKernelName = "rbfSlicedEllpackKernel";
-            //cudaProductKernelName = "rbfSlicedEllpackKernel_shared";
-
-            cudaModuleName = "rbfSlicedEllpackKernel.cubin";
-
-            cudaMainVecTexRefName = "mainVecTexRef";
-
-            threadsPerRow =  4;
-            sliceSize =  64;
         }
 
 
@@ -133,19 +119,11 @@ namespace KMLib.GPU
 
             base.Init();
 
-            blockSize = threadsPerRow * sliceSize;
-            int N = problemElements.Length;
-            blocksPerGrid = (int)Math.Ceiling(1.0 * N * threadsPerRow / blockSize);
-
-            align = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
-            
-
             float[] vecVals;
             int[] vecColIdx;
             int[] vecLenght;
-            int[] sliceStart;
 
-            CudaHelpers.TransformToSlicedEllpack(out vecVals, out vecColIdx, out sliceStart, out vecLenght, problemElements, threadsPerRow, sliceSize);
+            CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
 
             selfLinDot = linKernel.DiagonalDotCache;
 
@@ -157,14 +135,20 @@ namespace KMLib.GPU
             valsPtr = cuda.CopyHostToDevice(vecVals);
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
             vecLenghtPtr = cuda.CopyHostToDevice(vecLenght);
-            sliceStartPtr = cuda.CopyHostToDevice(sliceStart);
-            
-            labelsPtr = cuda.CopyHostToDevice(Y);
+
             //!!!!!
             selfLinDotPtr = cuda.CopyHostToDevice(selfLinDot);
 
             uint memSize = (uint)(problemElements.Length * sizeof(float));
-            
+            //allocate mapped memory for our results
+            //CUDARuntime.cudaSetDeviceFlags(CUDARuntime.cudaDeviceMapHost);
+
+
+
+            // var e= CUDADriver.cuMemHostAlloc(ref outputIntPtr, memSize, 8);
+            //CUDARuntime.cudaHostAlloc(ref outputIntPtr, memSize, CUDARuntime.cudaHostAllocMapped);
+            //var errMsg=CUDARuntime.cudaGetErrorString(e);
+            //cuda.HostRegister(outputIntPtr,memSize, Cuda)
             outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
 
@@ -183,7 +167,7 @@ namespace KMLib.GPU
 
             CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
 
-           // CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
+            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
 
 
         }
@@ -194,7 +178,7 @@ namespace KMLib.GPU
         {
 
             #region cuda set function parameters
-            cuda.SetFunctionBlockShape(cuFunc,blockSize, 1, 1);
+            cuda.SetFunctionBlockShape(cuFunc, threadsPerBlock, 1, 1);
 
             int offset = 0;
             cuda.SetParameter(cuFunc, offset, valsPtr.Pointer);
@@ -204,32 +188,23 @@ namespace KMLib.GPU
 
             cuda.SetParameter(cuFunc, offset, vecLenghtPtr.Pointer);
             offset += IntPtr.Size;
-            cuda.SetParameter(cuFunc, offset, sliceStartPtr.Pointer);
-            offset += IntPtr.Size;
-
 
             cuda.SetParameter(cuFunc, offset, selfLinDotPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFunc, offset, labelsPtr.Pointer);
-            offset += IntPtr.Size;
             kernelResultParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
             offset += IntPtr.Size;
+
+            cuda.SetParameter(cuFunc, offset, (uint)problemElements.Length);
+            offset += sizeof(int);
 
             mainVecIdxParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
             offset += sizeof(int);
 
-            cuda.SetParameter(cuFunc, offset, (uint)problemElements.Length);
-            offset += sizeof(int);
-
             cuda.SetParameter(cuFunc, offset, Gamma);
             offset += sizeof(float);
-
-            cuda.SetParameter(cuFunc, offset, align);
-            offset += sizeof(int);
-
 
             cuda.SetParameterSize(cuFunc, (uint)offset);
 
@@ -262,7 +237,7 @@ namespace KMLib.GPU
                 outputPtr.Pointer = IntPtr.Zero;
                 cuda.Free(labelsPtr);
                 labelsPtr.Pointer = IntPtr.Zero;
-                //cuda.DestroyTexture(cuLabelsTexRef);
+                cuda.DestroyTexture(cuLabelsTexRef);
 
                 cuda.Free(mainVecPtr);
                 mainVecPtr.Pointer = IntPtr.Zero;

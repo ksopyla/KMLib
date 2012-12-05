@@ -29,7 +29,7 @@ namespace KMLib.GPU.Solvers
     public class GPUSmoFanSolver : Solver<SparseVec>, IDisposable
     {
 
-        private CUDAVectorKernel gpuKernel;
+        private CuVectorKernel gpuKernel;
 
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace KMLib.GPU.Solvers
             QD = kernel.DiagonalDotCache;
             alpha = new float[problemSize];
             G = new float[problemSize];
-            gpuKernel = (CUDAVectorKernel)kernel;
+            gpuKernel = (CuVectorKernel)kernel;
         }
 
 

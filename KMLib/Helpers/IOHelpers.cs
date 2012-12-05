@@ -100,7 +100,7 @@ namespace KMLib.Helpers
         /// </summary>
         /// <param name="fileName">Data set file name</param>
         /// <returns></returns>
-        public static Problem<SparseVec> ReadDNAVectorsFromFile(string fileName, int numberOfFeatures)
+        public static Problem<SparseVec> ReadVectorsFromFile(string fileName, int numberOfFeatures)
         {
             //initial list capacity 8KB, its only heuristic
             int listCapacity = 1 << 13;

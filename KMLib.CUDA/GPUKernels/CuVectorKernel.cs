@@ -18,7 +18,7 @@ namespace KMLib.GPU
     /// Based clas for all cuda enable svm kernel
     /// This class encapsulates all necessary variables for cuda.net library
     /// </summary>
-    public abstract class CUDAVectorKernel : VectorKernel<SparseVec>
+    public abstract class CuVectorKernel : VectorKernel<SparseVec>
     {
 
         #region cuda names

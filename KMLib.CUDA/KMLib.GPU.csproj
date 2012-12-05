@@ -147,15 +147,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GPUKernels\CudaChiSquaredNormEllpackKernel.cs" />
-    <Compile Include="GPUKernels\CudaChiSquaredEllpackKernel.cs" />
-    <Compile Include="GPUKernels\CudaRBFSlicedEllpackKernel2.cs" />
-    <Compile Include="GPUKernels\CudaRBFEllpackKernel.cs" />
+    <Compile Include="GPUKernels\CuChiSquaredNormEllpackKernel.cs" />
+    <Compile Include="GPUKernels\CuChiSquaredEllpackKernel.cs" />
+    <Compile Include="GPUKernels\CuRBFSlicedEllpackKernel2.cs" />
+    <Compile Include="GPUKernels\CuRBFEllpackKernel.cs" />
     <Compile Include="CUDAConfig.cs" />
     <Compile Include="CudaLinearCSREvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
-    <Compile Include="GPUKernels\CudaLinearKernel.cs" />
-    <Compile Include="GPUKernels\CudaRBFSlicedEllpackKernel.cs" />
+    <Compile Include="GPUKernels\CuLinearKernel.cs" />
+    <Compile Include="GPUKernels\CuRBFSlicedEllpackKernel.cs" />
     <Compile Include="Solvers\GPUSmoFanSolver.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -163,9 +163,9 @@
     <Compile Include="Solvers\GPUnmBBLinSolver.cs" />
     <Compile Include="Solvers\CUDALinSolver.cs" />
     <Compile Include="CudaRBFCSREvaluator.cs" />
-    <Compile Include="GPUKernels\CudaRBFKernel.cs" />
+    <Compile Include="GPUKernels\CuRBFKernel.cs" />
     <Compile Include="CudaVectorEvaluator.cs" />
-    <Compile Include="GPUKernels\CUDAVectorKernel.cs" />
+    <Compile Include="GPUKernels\CuVectorKernel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -175,6 +175,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="ClassDiagram1.cd" />
     <None Include="CUDAmodules\gpuFanSmoSolver.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

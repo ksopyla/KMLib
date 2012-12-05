@@ -10,6 +10,7 @@ More on http://wmii.uwm.edu.pl/~ksopyla/svm-net-with-cuda-kmlib/
 __Author: Krzysztof Sopyła <krzysztofsopyla@gmail.com>__
 
 License: MIT
+
 If you use this software in academic publication please cite:
 
 @inproceedings{Sopyla2012,

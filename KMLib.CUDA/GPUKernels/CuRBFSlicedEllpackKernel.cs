@@ -27,7 +27,7 @@ namespace KMLib.GPU
     /// Data are stored in Ellpack-R format.
     /// 
     /// </summary>
-    public class CudaRBFSlicedEllpackKernel : VectorKernel<SparseVec>, IDisposable
+    public class CuRBFSlicedEllpackKernel :  VectorKernel<SparseVec>, IDisposable
     {
 
         #region cuda module constant and names
@@ -124,7 +124,7 @@ namespace KMLib.GPU
         
         
 
-        public CudaRBFSlicedEllpackKernel(float gamma)
+        public CuRBFSlicedEllpackKernel(float gamma)
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
@@ -309,7 +309,7 @@ namespace KMLib.GPU
             module = CudafyModule.TryDeserialize(moduleName);
             if (module == null || !module.TryVerifyChecksums())
             {
-                module = CudafyTranslator.Cudafy(typeof(CudaRBFSlicedEllpackKernel));
+                module = CudafyTranslator.Cudafy(typeof(CuRBFSlicedEllpackKernel));
                 module.Serialize();
             }
             gpu.LoadModule(module);
