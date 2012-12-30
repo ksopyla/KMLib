@@ -16,7 +16,7 @@ __device__ const int ThreadPerRow=4;
 __device__ const int SliceSize=64;
 
 
-#define VECDIM 597
+#define VECDIM 784
 
 //gamma parameter in RBF
 //__constant__ float GammaDev=0.5;
@@ -217,3 +217,56 @@ extern "C" __global__ void rbfSlicedEllpackKernel_shared(const float *vecVals,
 }//end func
 
 
+
+
+
+/************************* HELPER FUNCTIONS ****************************/
+
+extern "C" __global__ void makeDenseVectorSlicedEllRT(const float *vecVals,
+											 const int *vecCols,
+											 const int *vecLengths, 
+											 const int * sliceStart, 
+											 float *mainVector,
+											 const int mainVecIdx,
+											 const int nrRows,
+											 const int vecDim,
+											 const int align){
+  
+  
+	__shared__ int shMaxNNZ;
+	__shared__ int shSliceNr;
+	__shared__ int shRowInSlice;
+	
+	if(threadIdx.x==0)
+	{
+		shMaxNNZ =	vecLengths[mainVecIdx];
+		//in which slice main vector is?
+		shSliceNr = mainVecIdx/SliceSize;
+		shRowInSlice = mainVecIdx% SliceSize;
+	}
+
+	int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
+	//int tmx = threadIdx.x % ThreadPerRow;	
+
+	if(thIdx < vecDim)
+	{
+		//set all vector values to zero
+		mainVector[thIdx]=0.0;
+		
+		if(thIdx <shMaxNNZ){
+			int threadNr = thIdx%ThreadPerRow;
+			int rowSlice= thIdx/ThreadPerRow;
+	
+			//int	ind = sliceStart[shSliceNr]+shStartRow+tmx;
+			
+			int idx = sliceStart[shSliceNr] + align * rowSlice + shRowInSlice * ThreadPerRow + threadNr;
+			
+			int col     = vecCols[idx];
+			float value = vecVals[idx];
+			mainVector[col]=value;
+		}
+	
+
+	}//end if
+		
+}//end func

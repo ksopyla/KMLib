@@ -43,7 +43,7 @@ namespace KMLib
         /// <summary>
         /// Evaluator for prediction
         /// </summary>
-        private EvaluatorBase<TProblemElement> evaluator;
+        private Evaluator<TProblemElement> evaluator;
 
         /// <summary>
         /// trained model
@@ -69,7 +69,7 @@ namespace KMLib
         /// <param name="C">Parameter C.</param>
         /// <param name="evaluator">The evaluator class for prediction.</param>
         public CSVM(Problem<TProblemElement> trainProblem, IKernel<TProblemElement> kernel,
-                    float C, EvaluatorBase<TProblemElement> evaluator)
+                    float C, Evaluator<TProblemElement> evaluator)
         {
             this.problem = trainProblem;
 
@@ -133,6 +133,7 @@ namespace KMLib
 
             evaluator.Kernel = kernel;
             evaluator.TrainedModel = model;
+            evaluator.Init();
             //evaluator.TrainningProblem = problem;
 
         }

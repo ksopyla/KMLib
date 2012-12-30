@@ -121,7 +121,7 @@ namespace KMLib.GPU
         /// <summary>
         /// cuda device pointer to vectors lenght
         /// </summary>
-        protected CUdeviceptr vecLenghtPtr;
+        protected CUdeviceptr vecLengthPtr;
 
         /// <summary>
         /// cuda device pointer for output
@@ -174,15 +174,18 @@ namespace KMLib.GPU
             //cuda calculation
             //todo: possible small improvements
             //if mainVectorIdx==element1 then we don't have to copy to device
-            SparseVec mainVec = problemElements[element1];
+            //SparseVec mainVec = problemElements[element1];
 
-            if (mainVectorIdx != element1)
-            {
-                CudaHelpers.FillDenseVector(mainVec, mainVector);
+            //if (mainVectorIdx != element1)
+            //{
+            //    CudaHelpers.FillDenseVector(mainVec, mainVector);
 
-                cuda.CopyHostToDevice(mainVecPtr, mainVector);
+            //    cuda.CopyHostToDevice(mainVecPtr, mainVector);
 
-            }
+            //}
+
+            SetMemoryForDenseVector(element1);
+
             //uint align = cuda.SetTextureAddress(cuMainVecTexRef, mainVecPtr, (uint)(sizeof(float) * mainVector.Length));
 
             //copy to texture
@@ -218,19 +221,25 @@ namespace KMLib.GPU
 
         }
 
-        public void AllProductsGPU(int element1,CUdeviceptr devResultPtr)
-        {
-            SparseVec mainVec = problemElements[element1];
 
-            //cuda.SetCurrentContext(cuCtx);
-            
-            if (mainVectorIdx != element1)
+        
+
+        public virtual void SetMemoryForDenseVector(int mainIndex)
+        {
+            SparseVec mainVec = problemElements[mainIndex];
+            if (mainVectorIdx != mainIndex)
             {
                 CudaHelpers.FillDenseVector(mainVec, mainVector);
-
                 cuda.CopyHostToDevice(mainVecPtr, mainVector);
-
             }
+        }
+
+
+        public void AllProductsGPU(int element1,CUdeviceptr devResultPtr)
+        {
+
+            SetMemoryForDenseVector(element1);
+
             //set the last parameter for kernel
             mainVectorIdx = (uint)element1;
             cuda.SetParameter(cuFunc, mainVecIdxParamOffset, mainVectorIdx);
@@ -239,13 +248,10 @@ namespace KMLib.GPU
 
             cuda.Launch(cuFunc, blocksPerGrid, 1);
             
-            cuda.SynchronizeContext();
-            //float[] res = new float[problemElements.Length];
-            //float[] res2 = new float[problemElements.Length];
-           
-            ////cuda.CopyDeviceToHost(outputPtr, res);
-            ////cuda.CopyDeviceToDevice(outputPtr, devResultPtr, (uint)(sizeof(float) * res.Length) );
-            //cuda.CopyDeviceToHost(devResultPtr, res2);
+
+            //when gpu solver is used all cuda Launch are queued, so we don't have to synchronize context
+            //cuda.SynchronizeContext();
+            
         }
 
         protected void InitCudaModule()

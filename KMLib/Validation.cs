@@ -33,7 +33,7 @@ namespace KMLib
         /// Gets or sets the evaluator.
         /// </summary>
         /// <value>The evaluator.</value>
-        public EvaluatorBase<TProblemElement> Evaluator { get; set; }
+        public Evaluator<TProblemElement> Evaluator { get; set; }
 
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace KMLib
         /// <param name="evaluator">The evaluator.</param>
         public Validation(IKernel<TProblemElement> kernel,
                             Problem<TProblemElement> trainningProblem,
-                            EvaluatorBase<TProblemElement> evaluator)
+                            Evaluator<TProblemElement> evaluator)
         {
             Kernel = kernel;
             TrainingProblem = trainningProblem;

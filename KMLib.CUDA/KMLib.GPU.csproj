@@ -156,6 +156,7 @@
     <Compile Include="CudaHelpers.cs" />
     <Compile Include="GPUKernels\CuLinearKernel.cs" />
     <Compile Include="GPUKernels\CuRBFSlicedEllpackKernel.cs" />
+    <Compile Include="GPUKernels\EllpackDenseVectorBuilder.cs" />
     <Compile Include="Solvers\GPUSmoFanSolver.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -192,7 +193,7 @@
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(TargetDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
 del *.cubin
-nvcc cudaSVMKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu --cubin   -ccbin "%25VS90COMNTOOLS%25../../VC/bin" -m32
+nvcc cudaSVMKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu --cubin   -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m32 -arch=sm_30
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 </PostBuildEvent>
   </PropertyGroup>

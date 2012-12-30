@@ -14,7 +14,7 @@ namespace KMLib.Evaluate
     /// <remarks>It is not so sequential, because it works on many CPU cores, but
     ///  "sequential" means that elements are predicted one by one
     /// </remarks>
-    public class SequentialDualEvaluator<TProblemElement> : EvaluatorBase<TProblemElement>
+    public class DualEvaluator<TProblemElement> : Evaluator<TProblemElement>
     {
         
         //#region IEvaluator<SparseVector> Members

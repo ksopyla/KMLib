@@ -86,7 +86,7 @@ namespace KMLib.GPU
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
-            vecLenghtPtr = cuda.CopyHostToDevice(vecLenght);
+            vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 
             uint memSize = (uint)(problemElements.Length * sizeof(float));
             //allocate mapped memory for our results
@@ -127,7 +127,7 @@ namespace KMLib.GPU
             cuda.SetParameter(cuFunc, offset, idxPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFunc, offset, vecLenghtPtr.Pointer);
+            cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
             
             kernelResultParamOffset = offset;
@@ -160,8 +160,8 @@ namespace KMLib.GPU
                 valsPtr.Pointer = IntPtr.Zero;
                 cuda.Free(idxPtr);
                 idxPtr.Pointer = IntPtr.Zero;
-                cuda.Free(vecLenghtPtr);
-                vecLenghtPtr.Pointer = IntPtr.Zero;
+                cuda.Free(vecLengthPtr);
+                vecLengthPtr.Pointer = IntPtr.Zero;
 
                 cuda.FreeHost(outputIntPtr);
                 //cuda.Free(outputPtr);

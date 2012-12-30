@@ -159,6 +159,7 @@
     <Compile Include="Transforms\IDataTransform.cs" />
     <Compile Include="Transforms\LpNorm.cs" />
     <Compile Include="Transforms\MaxMinTransform.cs" />
+    <Compile Include="Transforms\NullTransform.cs" />
     <Compile Include="Validation.cs" />
     <Compile Include="Helpers\BlockCache.cs" />
     <Compile Include="Helpers\ListHelper.cs" />

@@ -66,6 +66,15 @@ namespace KMLib.GPU
         }
 
 
+        public override void SetMemoryForDenseVector(int mainIndex)
+        {
+            base.SetMemoryForDenseVector(mainIndex);
+
+
+
+        }
+
+
         public override float Product(SparseVec element1, SparseVec element2)
         {
 
@@ -156,7 +165,7 @@ namespace KMLib.GPU
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
-            vecLenghtPtr = cuda.CopyHostToDevice(vecLenght);
+            vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
             sliceStartPtr = cuda.CopyHostToDevice(sliceStart);
             
             labelsPtr = cuda.CopyHostToDevice(Y);
@@ -202,7 +211,7 @@ namespace KMLib.GPU
             cuda.SetParameter(cuFunc, offset, idxPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFunc, offset, vecLenghtPtr.Pointer);
+            cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
             cuda.SetParameter(cuFunc, offset, sliceStartPtr.Pointer);
             offset += IntPtr.Size;
@@ -250,8 +259,8 @@ namespace KMLib.GPU
                 valsPtr.Pointer = IntPtr.Zero;
                 cuda.Free(idxPtr);
                 idxPtr.Pointer = IntPtr.Zero;
-                cuda.Free(vecLenghtPtr);
-                vecLenghtPtr.Pointer = IntPtr.Zero;
+                cuda.Free(vecLengthPtr);
+                vecLengthPtr.Pointer = IntPtr.Zero;
 
                 cuda.Free(selfLinDotPtr);
                 selfLinDotPtr.Pointer = IntPtr.Zero;

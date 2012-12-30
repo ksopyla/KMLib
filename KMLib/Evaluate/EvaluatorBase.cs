@@ -14,7 +14,7 @@ namespace KMLib.Evaluate
     /// Base class for all the evaluators, used for prediction
     /// </summary>
     /// <typeparam name="TProblemElement">The type of the problem element.</typeparam>
-    public abstract class EvaluatorBase<TProblemElement>
+    public abstract class Evaluator<TProblemElement>
     {
         protected bool IsInitialized = false;
         /// <summary>

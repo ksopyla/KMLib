@@ -935,4 +935,44 @@ extern "C" __global__ void setSignForPrediction(float * inputArray,const int siz
 		inputArray[idx] = -(signbit(val)*2-1);
 	}
 }
+ 
 
+
+
+/*
+Creates i-th dense vector from sparse matrix in Ellpack-R representation
+vecVals - vector values, vectors are layout in matrix in Ellpack format
+vecCols - vector columns indexes
+vecLength - number of nonzero elements in each row
+mainVector - output dense vector
+mainVecIdx - main vector index, which vector should be created as dense
+nrRows     - number of rows in matrix
+vecDim     - vector dimensions
+*/
+extern "C" __global__ void makeDenseVectorEllpack(const float *vecVals,
+											 const int *vecCols,
+											 const int *vecLengths, 
+											 float *mainVector,
+											 const int mainVecIdx,
+											 const int nrRows,
+											 const int vecDim)
+{
+	__shared__ int shMaxNNZ;
+	
+	if(threadIdx.x==0)
+	{
+		shMaxNNZ =	vecLengths[mainVecIdx];
+	}
+
+	int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);	
+	if(thIdx < vecDim)
+	{
+		//set all vector values to zero
+		mainVector[thIdx]=0.0;
+		if(thIdx <shMaxNNZ){
+			int col     = vecCols[thIdx*nrRows+mainVecIdx];
+			float value = vecVals[thIdx*nrRows+mainVecIdx];
+			mainVector[col]=value;
+		}
+	}//end if	
+}//end func

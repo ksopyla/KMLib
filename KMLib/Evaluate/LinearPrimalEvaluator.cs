@@ -12,7 +12,7 @@ namespace KMLib.Evaluate
     /// Evaluator for linear SVM
     /// Predict based on primal
     /// </summary>
-    public class LinearPrimalEvaluator : EvaluatorBase<SparseVec>
+    public class LinearPrimalEvaluator : Evaluator<SparseVec>
     {
         public override float[] Predict(SparseVec[] elements)
         {

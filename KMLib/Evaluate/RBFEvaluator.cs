@@ -15,7 +15,7 @@ namespace KMLib.Evaluate
     /// is faster for RBF than <see cref="SequentialEvalutor"/>
     /// Prediction is based on dual form of SVM, use alpha coeficient in model to predict.
     /// </summary>
-    public class RBFDualEvaluator : EvaluatorBase<SparseVec>
+    public class RBFDualEvaluator : Evaluator<SparseVec>
     {
         LinearKernel linKernel;
 

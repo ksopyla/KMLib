@@ -27,19 +27,21 @@ namespace KMLibUsageApp
         {
             if (args.Length < 1)
                 throw new ArgumentException("to liitle arguments");
+            string dataFolder = args[0];
+            //string dataFolder = @"../../../Data";
+
+
 
             Debug.Listeners.Add(new ConsoleTraceListener());
 
-            //string dataFolder = args[0];// @"D:\UWM\praca naukowa\doktorat\code\KMLib\KMLibUsageApp\Data";
-            string dataFolder = @"../../../Data";
-
+            
             IList<Tuple<string, string, int>> dataSetsToTest = CreateDataSetList(dataFolder);
 
             //Console.WriteLine("press any key to start");
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
-            TestOneDataSet(dataFolder);
+            //TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -78,7 +80,7 @@ namespace KMLibUsageApp
 
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
-            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             // evaluator.Init();
@@ -110,19 +112,19 @@ namespace KMLibUsageApp
             
             //Do dataset Normalization
             IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            train.Elements = dataTransform.Transform(train.Elements);
-            test.Elements = dataTransform.Transform(test.Elements);
+            //train.Elements = dataTransform.Transform(train.Elements);
+            //test.Elements = dataTransform.Transform(test.Elements);
 
             
             //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
+            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
 
             // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
             //IKernel<SparseVec> kernel = new ChiSquaredKernel();
-            IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
+            //IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
             //IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
             
             SVMClassify(train, test, kernel, evaluator, C);
@@ -154,7 +156,7 @@ namespace KMLibUsageApp
 
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
 
-            EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
 
             // evaluator.Init();
@@ -222,7 +224,7 @@ namespace KMLibUsageApp
 
             Problem<SparseVec> test = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
 
-            EvaluatorBase<SparseVec> evaluator = new LinearPrimalEvaluator();
+            Evaluator<SparseVec> evaluator = new LinearPrimalEvaluator();
             Model<SparseVec> model;
 
             //
@@ -364,7 +366,7 @@ namespace KMLibUsageApp
             var testSumArr = test.Elements.Sum(x => x.Indices.Length);
             var testSum = test.Elements.Sum(x => x.Count);
 
-            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
+            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
 
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
             // EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
@@ -389,7 +391,7 @@ namespace KMLibUsageApp
             //EvaluatorBase<SparseVector> evaluator = new SequentialEvaluator<SparseVector>();
             //IKernel<SparseVector> kernel = new LinearKernel();
 
-            EvaluatorBase<SparseVec> evaluator = new CudaLinearCSREvaluator();
+            Evaluator<SparseVec> evaluator = new CudaLinearCSREvaluator();
             IKernel<SparseVec> kernel = new CuLinearKernel();
 
             foreach (var data in dataSetsToTest)
@@ -533,18 +535,18 @@ namespace KMLibUsageApp
             #endregion
 
 
-            trainningFile = dataFolder + "/a1a.train";
+            //trainningFile = dataFolder + "/a1a.train";
             //testFile = dataFolder + "/a1a.test";
-            testFile = dataFolder + "/a1a.train";
-            //testFile= trainningFile = dataFolder + "/a1a.small.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
-
-
-            //trainningFile = dataFolder + "/a9a";
-            //testFile = dataFolder + "/a9a.t";
-            //testFile = dataFolder + "/a9a";
+            ////testFile = dataFolder + "/a1a.train";
+            ////testFile= trainningFile = dataFolder + "/a1a.small.train";
+            ////in a1a problem max index is 123
             //numberOfFeatures = 123;
+
+
+            trainningFile = dataFolder + "/a9a";
+            testFile = dataFolder + "/a9a.t";
+            //testFile = dataFolder + "/a9a";
+            numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a_128.train";
             //testFile = dataFolder + "/a9a.t";
@@ -628,7 +630,8 @@ namespace KMLibUsageApp
             float paramC)
         {
 
-            IDataTransform<SparseVec> dataTransform = new LpNorm(1);
+            //IDataTransform<SparseVec> dataTransform = new LpNorm(1);
+            IDataTransform<SparseVec> dataTransform = new NullTransform();
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
@@ -643,18 +646,18 @@ namespace KMLibUsageApp
             Model<SparseVec> model;
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
             //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
-            //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            EvaluatorBase<SparseVec> evaluator = new SequentialDualEvaluator<SparseVec>();
+            Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
 
             #region Cuda kernels
             
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
-            //IKernel<SparseVec> kernel = new CudaRBFKernel(gamma );
-            //IKernel<SparseVec> kernel = new CudaRBFEllpackKernel(gamma);
-            //IKernel<SparseVec> kernel = new CudaRBFSlicedEllpackKernel(gamma);
-            //IKernel<SparseVec> kernel = new CudaRBFSlicedEllpackKernel2(gamma);
-            //IKernel<SparseVec> kernel = new CudaChiSquaredEllpackKernel();
-            IKernel<SparseVec> kernel = new CuChiSquaredNormEllpackKernel();
+            //IKernel<SparseVec> kernel = new CuRBFKernel(gamma );
+            IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel2(gamma);
+            //IKernel<SparseVec> kernel = new CuChiSquaredEllpackKernel();
+            //IKernel<SparseVec> kernel = new CuChiSquaredNormEllpackKernel();
 
 
             #endregion
@@ -668,8 +671,8 @@ namespace KMLibUsageApp
 
             //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
             //this solver works a bit faster and use less memory
-            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
-            //var Solver = new GPUSmoFanSolver(train, kernel, C);
+            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            var Solver = new GPUSmoFanSolver(train, kernel, C);
 
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 
@@ -703,7 +706,7 @@ namespace KMLibUsageApp
 
 
             Stopwatch t = Stopwatch.StartNew();
-            float[] predictions = evaluator.Predict(test.Elements);
+            float[] predictions = evaluator.Predict(test.Elements); //new float[1]; //
 
             t.Stop();
             //toremove: only for tests
@@ -718,7 +721,7 @@ namespace KMLibUsageApp
 
 
             int correct = 0;
-            for (int i = 0; i < test.ElementsCount; i++)
+            for (int i = 0; i < predictions.Length; i++)
             {
                 float predictedLabel = predictions[i];
 
@@ -744,7 +747,7 @@ namespace KMLibUsageApp
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
 
-            EvaluatorBase<SparseVec> evaluator = new LinearPrimalEvaluator();
+            Evaluator<SparseVec> evaluator = new LinearPrimalEvaluator();
             Model<SparseVec> model;
 
             Console.WriteLine("read vectors");
@@ -815,7 +818,7 @@ namespace KMLibUsageApp
            Problem<TProbElement> train,
            Problem<TProbElement> test,
            IKernel<TProbElement> kernel,
-           EvaluatorBase<TProbElement> evaluator,
+           Evaluator<TProbElement> evaluator,
            float paramC)
         {
 
@@ -846,7 +849,7 @@ namespace KMLibUsageApp
         /// </summary>
         /// <param name="train"></param>
         /// <param name="kernel"></param>
-        private static void DoCrossValidation(Problem<SparseVec> train, IKernel<SparseVec> kernel, EvaluatorBase<SparseVec> evaluator, int folds)
+        private static void DoCrossValidation(Problem<SparseVec> train, IKernel<SparseVec> kernel, Evaluator<SparseVec> evaluator, int folds)
         {
 
             float[] penaltyC = new[] { 0.125f, 0.025f, 0.5f, 1, 2, 4, 8, 16, 32, 64, 128 };

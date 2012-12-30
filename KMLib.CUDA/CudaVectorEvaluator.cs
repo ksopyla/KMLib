@@ -17,7 +17,7 @@ namespace KMLib.GPU
     /// base class for all cuda enabled evaluators
     /// </summary>
     /// <remarks>It sores nesessary data for cuda initialization</remarks>
-    public abstract class CudaVectorEvaluator : EvaluatorBase<SparseVec>
+    public abstract class CudaVectorEvaluator : Evaluator<SparseVec>
     {
 
         #region cuda names

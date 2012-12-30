@@ -9,6 +9,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using KMLib.Kernels;
 using KMLib.Helpers;
+using KMLib.GPU.GPUKernels;
 
 namespace KMLib.GPU
 {
@@ -35,8 +36,9 @@ namespace KMLib.GPU
         /// cuda device pointer for stroing self linear dot product
         /// </summary>
         private CUdeviceptr selfLinDotPtr;
+        private bool MakeDenseVectorOnGPU=true;
 
-
+        EllpackDenseVectorBuilder vecBuilder;
 
 
         public CuRBFEllpackKernel(float gamma)
@@ -108,7 +110,14 @@ namespace KMLib.GPU
             //return new RbfParameterSelection();
         }
 
-
+        public override void SetMemoryForDenseVector(int mainIndex)
+        {
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder.BuildDenseVector(mainIndex);
+            }else
+                base.SetMemoryForDenseVector(mainIndex);
+        }
 
 
         public override void Init()
@@ -134,9 +143,9 @@ namespace KMLib.GPU
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
-            vecLenghtPtr = cuda.CopyHostToDevice(vecLenght);
+            vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 
-            //!!!!!
+            
             selfLinDotPtr = cuda.CopyHostToDevice(selfLinDot);
 
             uint memSize = (uint)(problemElements.Length * sizeof(float));
@@ -169,6 +178,11 @@ namespace KMLib.GPU
 
             CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
 
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder = new EllpackDenseVectorBuilder(cuda, mainVecPtr, valsPtr, idxPtr, vecLengthPtr, problemElements.Length, problemElements[0].Dim);
+                vecBuilder.Init();
+            }
 
         }
 
@@ -186,7 +200,7 @@ namespace KMLib.GPU
             cuda.SetParameter(cuFunc, offset, idxPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFunc, offset, vecLenghtPtr.Pointer);
+            cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
 
             cuda.SetParameter(cuFunc, offset, selfLinDotPtr.Pointer);
@@ -225,8 +239,8 @@ namespace KMLib.GPU
                 valsPtr.Pointer = IntPtr.Zero;
                 cuda.Free(idxPtr);
                 idxPtr.Pointer = IntPtr.Zero;
-                cuda.Free(vecLenghtPtr);
-                vecLenghtPtr.Pointer = IntPtr.Zero;
+                cuda.Free(vecLengthPtr);
+                vecLengthPtr.Pointer = IntPtr.Zero;
 
                 cuda.Free(selfLinDotPtr);
                 selfLinDotPtr.Pointer = IntPtr.Zero;
