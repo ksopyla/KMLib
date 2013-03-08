@@ -26,7 +26,7 @@ namespace KMLib.GPU
         /// Array for self dot product 
         /// </summary>
         float[] selfLinDot;
-
+ 
 
         private float Gamma;
 
@@ -36,9 +36,7 @@ namespace KMLib.GPU
         /// cuda device pointer for stroing self linear dot product
         /// </summary>
         private CUdeviceptr selfLinDotPtr;
-        private bool MakeDenseVectorOnGPU=true;
 
-        EllpackDenseVectorBuilder vecBuilder;
 
 
         public CuRBFEllpackKernel(float gamma)
@@ -49,7 +47,8 @@ namespace KMLib.GPU
             //cudaProductKernelName = "rbfEllpackFormatKernel_shared";
             //cudaProductKernelName = "rbfEllpackFormatKernel_ILP";
             //cudaProductKernelName = "rbfEllpackFormatKernel_ILP_shared";
-            
+
+            MakeDenseVectorOnGPU = false;
             
         }
 

@@ -9,6 +9,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using KMLib.Kernels;
 using KMLib.Helpers;
+using KMLib.GPU.GPUKernels;
 
 namespace KMLib.GPU
 {
@@ -110,9 +111,24 @@ namespace KMLib.GPU
 
             CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
 
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder = new EllpackDenseVectorBuilder(cuda, mainVecPtr, valsPtr, idxPtr, vecLengthPtr, problemElements.Length, problemElements[0].Dim);
+                vecBuilder.Init();
+            }
 
         }
 
+
+        public override void SetMemoryForDenseVector(int mainIndex)
+        {
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder.BuildDenseVector(mainIndex);
+            }
+            else
+                base.SetMemoryForDenseVector(mainIndex);
+        }
 
 
         protected override void SetCudaFunctionParameters()

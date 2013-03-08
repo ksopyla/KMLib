@@ -134,6 +134,9 @@
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
     <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
   </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Cudafy.NET">
       <HintPath>..\Libs\Cudafy.NET.dll</HintPath>
@@ -193,8 +196,9 @@
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(TargetDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
 del *.cubin
-nvcc cudaSVMKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu --cubin   -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m32 -arch=sm_30
+nvcc cudaSVMKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu --cubin   -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64 -arch=sm_12
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
+xcopy "$(TargetDir)*.cu" "$(SolutionDir)Libs" /Y
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

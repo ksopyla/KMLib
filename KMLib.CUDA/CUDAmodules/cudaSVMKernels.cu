@@ -320,7 +320,7 @@ extern "C" __global__ void rbfEllpackFormatKernel_ILP(const float * vals,
 		
 		//how many elements are the rest after division
 		int rest = maxEl%PREFETCH_SIZE;
-        int mainIter = ceilf( (maxEl+0.0)/PREFETCH_SIZE);
+		int mainIter = ceilf( (maxEl+0.0)/PREFETCH_SIZE);
 		for(i=0; i<mainIter;i++)
 		{
 			int subIter= min(maxEl-i*PREFETCH_SIZE,PREFETCH_SIZE);
@@ -405,7 +405,7 @@ extern "C" __global__ void rbfEllpackFormatKernel_ILP_shared(const float * vals,
 		
 		//how many elements are the rest after division
 		int rest = maxEl%PREFETCH_SIZE;
-        int mainIter = ceilf( (maxEl+0.0)/PREFETCH_SIZE);
+		int mainIter = ceilf( (maxEl+0.0)/PREFETCH_SIZE);
 		for(i=0; i<mainIter;i++)
 		{
 			int subIter= min(maxEl-i*PREFETCH_SIZE,PREFETCH_SIZE);
@@ -474,7 +474,7 @@ extern "C" __global__ void rbfEllpackFormatKernel_shared(const float * vals,
 	if(row<num_rows)
 	{
 		int maxEl = rowLength[row];
-		int labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
+		float labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
 		
 		float dot=0;
 		int col=-1;
@@ -709,7 +709,7 @@ extern "C" __global__ void chiSquaredNormEllpackKernel(const float * vals,
 	if(row<num_rows)
 	{
 		int maxEl = rowLength[row];
-		int labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
+		float labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
 		float chi=0;
 		
 		int col1=-1;
@@ -963,16 +963,22 @@ extern "C" __global__ void makeDenseVectorEllpack(const float *vecVals,
 	{
 		shMaxNNZ =	vecLengths[mainVecIdx];
 	}
+	
+	__syncthreads();
 
 	int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);	
 	if(thIdx < vecDim)
 	{
 		//set all vector values to zero
 		mainVector[thIdx]=0.0;
+	
 		if(thIdx <shMaxNNZ){
 			int col     = vecCols[thIdx*nrRows+mainVecIdx];
 			float value = vecVals[thIdx*nrRows+mainVecIdx];
+			
+			//mainVector[thIdx]=col;
 			mainVector[col]=value;
 		}
+
 	}//end if	
 }//end func

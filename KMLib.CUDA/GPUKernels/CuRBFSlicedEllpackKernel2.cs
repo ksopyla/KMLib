@@ -18,6 +18,7 @@ namespace KMLib.GPU
     /// Data are stored in sliced Ellpack-R format use only CUDA.net library
     /// 
     /// </summary>
+    /// <remarks>This implementation use only CUDA.net</remarks>
     public class CuRBFSlicedEllpackKernel2 : CuVectorKernel, IDisposable
     {
 

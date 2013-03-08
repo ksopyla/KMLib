@@ -41,7 +41,7 @@ namespace KMLibUsageApp
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
-            //TestOneDataSet(dataFolder);
+            TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -62,7 +62,7 @@ namespace KMLibUsageApp
 
             //SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
             Console.WriteLine("Press any button");
-            // Console.ReadKey();
+             Console.ReadKey();
 
         }
 
@@ -112,8 +112,9 @@ namespace KMLibUsageApp
             
             //Do dataset Normalization
             IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            //train.Elements = dataTransform.Transform(train.Elements);
-            //test.Elements = dataTransform.Transform(test.Elements);
+            //IDataTransform<SparseVec> dataTransform = new NullTransform();            
+            train.Elements = dataTransform.Transform(train.Elements);
+            test.Elements = dataTransform.Transform(test.Elements);
 
             
             //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
@@ -121,10 +122,10 @@ namespace KMLibUsageApp
 
             // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+           //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
             //IKernel<SparseVec> kernel = new ChiSquaredKernel();
-            //IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
+            IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
             //IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
             
             SVMClassify(train, test, kernel, evaluator, C);
@@ -535,18 +536,18 @@ namespace KMLibUsageApp
             #endregion
 
 
-            //trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            ////testFile= trainningFile = dataFolder + "/a1a.small.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
-
-
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
-            //testFile = dataFolder + "/a9a";
+            trainningFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.test";
+            //testFile = dataFolder + "/a1a.train";
+            //testFile= trainningFile = dataFolder + "/a1a.small.train";
+            //in a1a problem max index is 123
             numberOfFeatures = 123;
+
+
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            ////testFile = dataFolder + "/a9a";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a_128.train";
             //testFile = dataFolder + "/a9a.t";
@@ -562,7 +563,7 @@ namespace KMLibUsageApp
             //numberOfFeatures = 2000;
 
             //trainningFile = dataFolder + "/leu";
-            //testFile = dataFolder + "/leu.t";
+             
             //numberOfFeatures = 7129;
 
             //trainningFile = dataFolder + "/duke";
@@ -606,10 +607,21 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/dominionstats.test"; //#1125
             //numberOfFeatures = 596;
 
-            ////#train	177862 test	76227 dim	52242
+
+            //http://mlcomp.org/datasets/469
+            ////#train	177862 test	76227 dim	52242, min error=0.046 liblinear
             //trainningFile = dataFolder + "/tweet.train"; //#2626 inst
             //testFile = dataFolder + "/tweet.test"; //#1125
             //numberOfFeatures = 52242;
+
+
+            //http://mlcomp.org/datasets/513
+            ////#train	3963546 test	180370, train dim=8446390, test dim=8683737 
+            //trainningFile = dataFolder + "/kytea-msr.train";
+            //testFile = dataFolder + "/kytea-msr.test";
+            //numberOfFeatures = 8683737;
+
+
 
             //for test
             //trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
@@ -630,14 +642,15 @@ namespace KMLibUsageApp
             float paramC)
         {
 
-            //IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            IDataTransform<SparseVec> dataTransform = new NullTransform();
+            IDataTransform<SparseVec> dataTransform = new LpNorm(1);
+            //IDataTransform<SparseVec> dataTransform = new NullTransform();
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
 
             Console.WriteLine("read vectors");
+            //Problem<SparseVec> test1 = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
             Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
             train.Elements = dataTransform.Transform(train.Elements);
 
@@ -646,18 +659,19 @@ namespace KMLibUsageApp
             Model<SparseVec> model;
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
             //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
-            Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+            //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
 
             #region Cuda kernels
             
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
             //IKernel<SparseVec> kernel = new CuRBFKernel(gamma );
-            IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel2(gamma);
+            
             //IKernel<SparseVec> kernel = new CuChiSquaredEllpackKernel();
-            //IKernel<SparseVec> kernel = new CuChiSquaredNormEllpackKernel();
+            IKernel<SparseVec> kernel = new CuChiSquaredNormEllpackKernel();
 
 
             #endregion
@@ -678,7 +692,7 @@ namespace KMLibUsageApp
 
             Stopwatch timer = Stopwatch.StartNew();
             model = Solver.ComputeModel();
-            Console.WriteLine("Model computed {0}  miliseconds={1} obj={2} iter={3} #sv={4}", timer.Elapsed, timer.ElapsedMilliseconds, model.Obj, model.Iter,model.SupportElements.Length);
+            Console.Write(model.ToString());
 
             var disSolver = Solver as IDisposable;
             if (disSolver != null)

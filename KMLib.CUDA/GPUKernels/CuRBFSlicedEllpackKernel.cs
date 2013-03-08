@@ -25,15 +25,17 @@ namespace KMLib.GPU
     /// <summary>
     /// Class for computing RBF kernel using cuda.
     /// Data are stored in Ellpack-R format.
-    /// 
     /// </summary>
+    /// <remarks>
+    /// this implementation use cudafy
+    /// </remarks>
     public class CuRBFSlicedEllpackKernel :  VectorKernel<SparseVec>, IDisposable
     {
 
         #region cuda module constant and names
 
         string moduleName = "rbfSlicedEllpackKernel";
-              
+                             
 
         #endregion
 

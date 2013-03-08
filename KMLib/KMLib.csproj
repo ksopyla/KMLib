@@ -127,7 +127,7 @@
     <Compile Include="Evaluate\EvaluatorBase.cs" />
     <Compile Include="Evaluate\LinearPrimalEvaluator.cs" />
     <Compile Include="Evaluate\RBFEvaluator.cs" />
-    <Compile Include="Evaluate\SequentialEvaluator.cs" />
+    <Compile Include="Evaluate\DualEvaluator.cs" />
     <Compile Include="Helpers\Pair.cs" />
     <Compile Include="Helpers\AlphaInfo.cs" />
     <Compile Include="Helpers\StepVariable.cs" />

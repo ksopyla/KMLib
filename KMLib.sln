@@ -15,14 +15,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KMLibTests", "KMLibTests\KM
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{66F051CD-7774-44D5-9502-2DB43F298DD1}"
 	ProjectSection(SolutionItems) = preProject
-		KMLib.vsmdi = KMLib.vsmdi
+		KMLib1.vsmdi = KMLib1.vsmdi
 		Local.testsettings = Local.testsettings
 		TraceAndTestImpact.testsettings = TraceAndTestImpact.testsettings
 	EndProjectSection
 EndProject
 Global
 	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = KMLib.vsmdi
+		CategoryFile = KMLib1.vsmdi
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,8 +85,7 @@ Global
 		{363DCAF3-17AE-4686-93E0-7A8C7B8DAC3B}.Release|x86.Build.0 = Release|x86
 		{2D0A2EC5-0E3A-411C-A9B8-39B193CDBAAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2D0A2EC5-0E3A-411C-A9B8-39B193CDBAAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2D0A2EC5-0E3A-411C-A9B8-39B193CDBAAF}.Debug|x64.ActiveCfg = Debug|x64
-		{2D0A2EC5-0E3A-411C-A9B8-39B193CDBAAF}.Debug|x64.Build.0 = Debug|x64
+		{2D0A2EC5-0E3A-411C-A9B8-39B193CDBAAF}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{2D0A2EC5-0E3A-411C-A9B8-39B193CDBAAF}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{2D0A2EC5-0E3A-411C-A9B8-39B193CDBAAF}.Debug|x86.Build.0 = Debug|Any CPU
 		{2D0A2EC5-0E3A-411C-A9B8-39B193CDBAAF}.Release|Any CPU.ActiveCfg = Release|Any CPU

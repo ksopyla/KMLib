@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.IO;
 using KMLib.Helpers;
 using System.Diagnostics;
+using KMLib.GPU.GPUKernels;
 
 namespace KMLib.GPU
 {
@@ -153,6 +154,10 @@ namespace KMLib.GPU
 
         #endregion
 
+        protected bool MakeDenseVectorOnGPU = false;
+
+        protected EllpackDenseVectorBuilder vecBuilder;
+
 
         public override SparseVec[] ProblemElements
         {
@@ -243,22 +248,21 @@ namespace KMLib.GPU
             //set the last parameter for kernel
             mainVectorIdx = (uint)element1;
             cuda.SetParameter(cuFunc, mainVecIdxParamOffset, mainVectorIdx);
-            
             cuda.SetParameter(cuFunc, kernelResultParamOffset, devResultPtr);
 
             cuda.Launch(cuFunc, blocksPerGrid, 1);
             
 
             //when gpu solver is used all cuda Launch are queued, so we don't have to synchronize context
-            //cuda.SynchronizeContext();
+            cuda.SynchronizeContext();
             
         }
 
         protected void InitCudaModule()
         {
-
-            cuda = new CUDA(0, true);
-            cuCtx = cuda.CreateContext(0, CUCtxFlags.MapHost);
+            int deviceNr = 0;
+            cuda = new CUDA(deviceNr, true);
+            cuCtx = cuda.CreateContext(deviceNr, CUCtxFlags.MapHost);
             cuda.SetCurrentContext(cuCtx);
 
             string modluePath = Path.Combine(Environment.CurrentDirectory, cudaModuleName);

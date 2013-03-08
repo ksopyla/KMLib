@@ -7,6 +7,7 @@ using KMLib.Kernels;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Diagnostics;
 
 namespace KMLib.SVMSolvers
 {
@@ -267,7 +268,7 @@ namespace KMLib.SVMSolvers
         public override Model<TProblemElement> ComputeModel()
         {
 
-
+            Stopwatch timer = Stopwatch.StartNew();
 
             int problemSize = problem.ElementsCount;
             float[] Minus_ones = new float[problemSize];
@@ -289,13 +290,16 @@ namespace KMLib.SVMSolvers
             Solve(Minus_ones, y, alphaResult, si, Shrinking);
 
 
-
+            timer.Stop();
             Model<TProblemElement> model = new Model<TProblemElement>();
             model.NumberOfClasses = 2;
             model.Alpha = alphaResult;
             model.Bias = si.rho;
             model.Obj = si.obj;
             model.Iter = si.iter;
+
+            model.ModelTime = timer.Elapsed;
+            model.ModelTimeMs = timer.ElapsedMilliseconds;
 
             List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
             List<int> suporrtIndexes = new List<int>(alpha.Length);
@@ -310,6 +314,8 @@ namespace KMLib.SVMSolvers
                 }
 
             }
+
+
             model.SupportElements = supportElements.ToArray();
             model.SupportElementsIndexes = suporrtIndexes.ToArray();
             model.Y = supportLabels.ToArray();
