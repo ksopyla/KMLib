@@ -1,10 +1,8 @@
 ﻿/*
-
-author: Krzysztof Sopyła
+author: Krzysztof Sopyla
 mail: krzysztofsopyla@gmail.com
-
-Licence: contact with author
-web page: http://wmii.uwm.edu.pl/wydzial/kadra/get/143
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 */
 
 texture<float,1,cudaReadModeElementType> mainVecTexRef;

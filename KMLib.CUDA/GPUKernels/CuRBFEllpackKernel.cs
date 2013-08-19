@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -44,6 +51,7 @@ namespace KMLib.GPU
             linKernel = new LinearKernel();
             Gamma = gamma;
             cudaProductKernelName = "rbfEllpackFormatKernel";
+            //cudaProductKernelName = "rbfEllpackFormatKernel_ILP_sum";
             //cudaProductKernelName = "rbfEllpackFormatKernel_shared";
             //cudaProductKernelName = "rbfEllpackFormatKernel_ILP";
             //cudaProductKernelName = "rbfEllpackFormatKernel_ILP_shared";

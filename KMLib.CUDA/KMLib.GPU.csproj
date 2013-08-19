@@ -179,25 +179,35 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="CUDAmodules\chiKernels.cu">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Content Include="CUDAmodules\Config.h">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <None Include="CUDAmodules\gpuFanSmoSolver.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="CUDAmodules\cudaSVMKernels.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="CUDAmodules\linKernels.cu" />
     <None Include="CUDAmodules\linSVMSolver.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="CUDAmodules\rbfSlicedEllpackKernel.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="KMLib.CUDA.licenseheader" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(TargetDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
+xcopy "$(TargetDir)CUDAmodules\*.h" "$(TargetDir)" /Y
 del *.cubin
-nvcc cudaSVMKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu --cubin   -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64 -arch=sm_12
+nvcc -I./ cudaSVMKernels.cu chiKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu    -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
+xcopy "$(TargetDir)*.ptx" "$(SolutionDir)Libs" /Y
 xcopy "$(TargetDir)*.cu" "$(SolutionDir)Libs" /Y
 </PostBuildEvent>
   </PropertyGroup>

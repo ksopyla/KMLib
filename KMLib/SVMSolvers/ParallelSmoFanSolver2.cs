@@ -179,6 +179,7 @@ namespace KMLib.SVMSolvers
         /// size of each problem chunk
         /// </summary>
         int rangeSize;
+        private int IterMaX=3000000;
 
         #endregion
 
@@ -398,7 +399,7 @@ namespace KMLib.SVMSolvers
 
             int processors = Environment.ProcessorCount;
 
-            while (true)
+            while (iter<IterMaX)
             {
                 if (--counter == 0)
                 {

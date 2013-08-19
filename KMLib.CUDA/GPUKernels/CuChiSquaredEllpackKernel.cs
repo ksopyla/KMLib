@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,7 +23,7 @@ namespace KMLib.GPU
     /// <summary>
     /// Represents Chi^2 Kernel for computing product between two histograms
     /// 
-    /// K(x,y)= 1 - Sum( (xi-yi)^2/(xi+yi))
+    /// K(x,y)= 1 -0.5*Sum( (xi-yi)^2/(xi+yi))
     /// 
     /// vectors should contains positive numbers(like histograms does) and should be normalized
     /// sum(xi)=1

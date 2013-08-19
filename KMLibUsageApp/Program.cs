@@ -40,8 +40,10 @@ namespace KMLibUsageApp
             //Console.WriteLine("press any key to start");
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
+            
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
-            TestOneDataSet(dataFolder);
+            
+           // TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -111,8 +113,8 @@ namespace KMLibUsageApp
             Problem<SparseVec> test = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
             
             //Do dataset Normalization
-            IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            //IDataTransform<SparseVec> dataTransform = new NullTransform();            
+            //IDataTransform<SparseVec> dataTransform = new LpNorm(1);
+            IDataTransform<SparseVec> dataTransform = new NullTransform();            
             train.Elements = dataTransform.Transform(train.Elements);
             test.Elements = dataTransform.Transform(test.Elements);
 
@@ -122,10 +124,10 @@ namespace KMLibUsageApp
 
             // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-           //IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
             //IKernel<SparseVec> kernel = new ChiSquaredKernel();
-            IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
+            //IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
             //IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
             
             SVMClassify(train, test, kernel, evaluator, C);
@@ -493,6 +495,22 @@ namespace KMLibUsageApp
                 dataFolder + "/rcv1_train.binary",
                 47236));
 
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/dominionstats.train",
+                dataFolder + "/dominionstats.test",
+                596));
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/tweet.train",
+                dataFolder + "/tweet.test",
+                52242));
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/kytea-msr_first_500k.train",
+                dataFolder + "/kytea-msr.test",
+                8683737));
+
+
             return dataSets;
         }
 
@@ -536,17 +554,17 @@ namespace KMLibUsageApp
             #endregion
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.test";
-            //testFile = dataFolder + "/a1a.train";
-            //testFile= trainningFile = dataFolder + "/a1a.small.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////testFile = dataFolder + "/a1a.train";
+            ////testFile= trainningFile = dataFolder + "/a1a.small.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
 
 
             //trainningFile = dataFolder + "/a9a";
             //testFile = dataFolder + "/a9a.t";
-            ////testFile = dataFolder + "/a9a";
+            ////testfile = datafolder + "/a9a";
             //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a_128.train";
@@ -554,21 +572,9 @@ namespace KMLibUsageApp
             ////testFile = dataFolder + "/a9a";
             //numberOfFeatures = 123;
 
-            //trainningFile = dataFolder + "/w8a";
-            //testFile = dataFolder + "/w8a.t";
-            //numberOfFeatures = 300;
-
-            //trainningFile = dataFolder + "/colon-cancer.train";
-            //testFile = dataFolder + "/colon-cancer.train";
-            //numberOfFeatures = 2000;
-
-            //trainningFile = dataFolder + "/leu";
-             
-            //numberOfFeatures = 7129;
-
-            //trainningFile = dataFolder + "/duke";
-            //testFile = dataFolder + "/duke.tr";
-            //numberOfFeatures = 7129;
+            trainningFile = dataFolder + "/w8a";
+            testFile = dataFolder + "/w8a.t";
+            numberOfFeatures = 300;
 
             ////trainningFile = dataFolder + "/rcv1_train.binary";
             ////testFile = dataFolder + "/rcv1_test.binary";
@@ -585,9 +591,7 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/mnist.scale.t";
             //numberOfFeatures = 784;
 
-            //trainningFile = dataFolder + "/kdda";
-            //testFile = dataFolder + "/kdda.t";
-            //numberOfFeatures = 20216830;
+            
 
 
             //trainningFile = dataFolder + "/real-sim_small_3K";
@@ -596,17 +600,15 @@ namespace KMLibUsageApp
             //trainningFile = dataFolder + "/real-sim";
             //testFile = dataFolder + "/real-sim";
             //numberOfFeatures = 20958;
-
-            //trainningFile = dataFolder + "/test_history1.train"; //#2626 inst
-            //testFile = dataFolder + "/test_history1.test"; //#1125
-            //numberOfFeatures = 1776;
            
             
             //dominostats #train	193657  #test	82996 dim	596
             //trainningFile = dataFolder + "/dominionstats.train"; //#2626 inst
+            //trainningFile = dataFolder + "/dominionstats.01scale_r2.test"; //#2626 inst
+            ////testgFile = dataFolder + "/dominionstats.01scale_r2.test"; //#2626 inst
             //testFile = dataFolder + "/dominionstats.test"; //#1125
             //numberOfFeatures = 596;
-
+            
 
             //http://mlcomp.org/datasets/469
             ////#train	177862 test	76227 dim	52242, min error=0.046 liblinear
@@ -618,18 +620,38 @@ namespace KMLibUsageApp
             //http://mlcomp.org/datasets/513
             ////#train	3963546 test	180370, train dim=8446390, test dim=8683737 
             //trainningFile = dataFolder + "/kytea-msr.train";
+            //trainningFile = dataFolder + "/kytea-msr_first_500k.train";
+            //trainningFile = dataFolder + "/kytea-msr_first_1M.train";
             //testFile = dataFolder + "/kytea-msr.test";
             //numberOfFeatures = 8683737;
 
 
+            //trainningFile = dataFolder + "/webspam_wc_normalized_unigram.svm";
+            //testFile = dataFolder + "/webspam_wc_normalized_unigram.svm";
+            //numberOfFeatures = 254;
 
-            //for test
-            //trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //testFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //string trainningFile = dataFolder + "/liver-disorders_scale.txt";
-            //string testFile = dataFolder + "/liver-disorders_scale.txt";
-            //numberOfFeatures = 6;
-            //  string trainningFile = dataFolder + "/australian_scale.txt";
+
+            //trainningFile = dataFolder + "/url_combined";
+            //testFile = dataFolder + "/url_combined";
+            //numberOfFeatures = 3231961;
+
+            //trainningFile = dataFolder + "/url_combined_1.5M.train";
+            //testFile = dataFolder + "/url_combined_800k.test";
+            //numberOfFeatures = 3231961;
+
+
+            //trainningFile = dataFolder + "/kdda";
+            //testFile = dataFolder + "/kdda.t";
+            //numberOfFeatures = 20216830;
+
+            //trainningFile = dataFolder + "/kdda_4M";
+            //testFile = dataFolder + "/kdda.t";
+            //numberOfFeatures = 20216830;
+
+            //trainningFile = dataFolder + "/kdda_2M";
+            //testFile = dataFolder + "/kdda.t";
+            //numberOfFeatures = 20216830;
+
         }
 
 
@@ -642,8 +664,8 @@ namespace KMLibUsageApp
             float paramC)
         {
 
-            IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            //IDataTransform<SparseVec> dataTransform = new NullTransform();
+            //IDataTransform<SparseVec> dataTransform = new LpNorm(1);
+            IDataTransform<SparseVec> dataTransform = new NullTransform();
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
@@ -651,6 +673,8 @@ namespace KMLibUsageApp
 
             Console.WriteLine("read vectors");
             //Problem<SparseVec> test1 = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
+            //Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
+            
             Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
             train.Elements = dataTransform.Transform(train.Elements);
 
@@ -666,12 +690,12 @@ namespace KMLibUsageApp
             
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
             //IKernel<SparseVec> kernel = new CuRBFKernel(gamma );
-            //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel2(gamma);
             
             //IKernel<SparseVec> kernel = new CuChiSquaredEllpackKernel();
-            IKernel<SparseVec> kernel = new CuChiSquaredNormEllpackKernel();
+            //IKernel<SparseVec> kernel = new CuChiSquaredNormEllpackKernel();
 
 
             #endregion
@@ -685,14 +709,18 @@ namespace KMLibUsageApp
 
             //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
             //this solver works a bit faster and use less memory
-            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
-            var Solver = new GPUSmoFanSolver(train, kernel, C);
+            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            //var Solver = new GPUSmoFanSolver(train, kernel, C);
 
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 
             Stopwatch timer = Stopwatch.StartNew();
             model = Solver.ComputeModel();
             Console.Write(model.ToString());
+
+
+
+            model.WriteToFile("modelFileCU.txt");
 
             var disSolver = Solver as IDisposable;
             if (disSolver != null)
@@ -853,6 +881,8 @@ namespace KMLibUsageApp
             acc = validation.TrainAndTestValidation(train, test);
             //.TestValidation(train, test, kernel, penaltyC[i]);
             timer.Stop();
+
+            
 
             Console.WriteLine("Validation on test data best acuuracy = {0} C={1} time={2} ms={3}", acc, paramC, timer.Elapsed, timer.ElapsedMilliseconds);
 

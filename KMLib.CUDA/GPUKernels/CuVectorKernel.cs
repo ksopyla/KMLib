@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,6 +34,7 @@ namespace KMLib.GPU
         /// cuda module name
         /// </summary>
         protected string cudaModuleName = "cudaSVMKernels.cubin";
+        //protected string cudaModuleName = "cudaSVMKernels.ptx";
 
 
         /// <summary>
@@ -254,7 +262,7 @@ namespace KMLib.GPU
             
 
             //when gpu solver is used all cuda Launch are queued, so we don't have to synchronize context
-            cuda.SynchronizeContext();
+           // cuda.SynchronizeContext();
             
         }
 

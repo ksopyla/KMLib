@@ -10,7 +10,7 @@ namespace KMLib.Kernels
     /// <summary>
     /// Represents Chi^2 Kernel for computing product between two histograms
     /// 
-    /// K(x,y)= 1 -2* Sum( (xi-yi)^2/(xi+yi))
+    /// K(x,y)= 1 -0.5* Sum( (xi-yi)^2/(xi+yi))
     /// 
     /// vectors should contains positive numbers(like histograms does) and should be normalized
     /// sum(xi)=1
@@ -21,7 +21,7 @@ namespace KMLib.Kernels
         {
 
             float result = ChiSquareDist(element1, element2);
-            return 1.0f-2*result;
+            return 1.0f-0.5f*result;
 
         }
 

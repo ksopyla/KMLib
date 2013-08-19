@@ -48,7 +48,7 @@ namespace KMLib
         /// <summary>
         /// trained model
         /// </summary>
-        private Model<TProblemElement> model;
+        public Model<TProblemElement> model;
 
         /// <summary>
         /// Solver, solves C-SVM optimization problem 

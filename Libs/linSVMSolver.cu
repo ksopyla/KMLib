@@ -1,4 +1,11 @@
 ﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+/*
 	CUDA kernel for Linear SVM solver based on LIBLINEAR package
 	 http://www.csie.ntu.edu.tw/~cjlin/liblinear/
 	 Paper: "A Dual Coordinate Descent Method for Large-scale Linear SVM" Hsieh et al., ICML 2008

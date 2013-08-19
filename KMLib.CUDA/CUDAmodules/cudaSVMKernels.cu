@@ -1,188 +1,34 @@
 ﻿/*
-
-author: Krzysztof Sopyła
-
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 */
 
+/*
 //texture for vector, which is used for matrix vector multiplication
 //in SVM, when we have to compute many dot products (one vector with others)
 texture<float,1,cudaReadModeElementType> mainVectorTexRef;
-
 //texture fo labels assiociated with vectors
 texture<float,1,cudaReadModeElementType> labelsTexRef;
-
+#define BLOCK_SIZE 256
+#define WARP_SIZE 32
+#define PREFETCH_SIZE 2
+*/
+#include <Config.h>
 
 //texture for vector, which is used for evaluation procedure
 //in SVM prediction, its stores one dense support vector
 texture<float,1,cudaReadModeElementType> svTexRef;
-
-#define BLOCK_SIZE 256
-
-#define WARP_SIZE 32
-
-#define PREFETCH_SIZE 2
-
 #define VECDIM 597
 
-#define maxNNZ 100
+
 
 /******************************************************************
  *
  *			Cuda Kernels for SVM kernels
  */
 
-/*
-Based on cuda kernels from 
-"Efcient Sparse Matrix-Vector Multiplication on CUDA" Nathan Bell and Michael Garlandy
-December 11, 2008
-*/
-//
-//cuda kernel funtion for computing SVM linear kernel, uses 
-// CSR fromat for storing sparse matrix, labels and main vector are
-//in texture cache
-//Remarks: based on spmv_csr_vector_kernel from publication above
-//Params:
-//vals - array of vectors values
-//idx  - array of vectros indexes in CSR fromat
-//vecPointers -array of pointers(indexes) to idx and vals array to specific vectors
-//results - array of results Linear Kernel
-//num_rows - number of vectors, stored in CSR matrix format, each vector is stored in one row of matrix
-//mainVecIndex - main vector index, needed for retriving its label
-extern "C" __global__ void linearCsrFormatKernel(const float * vals,
-									   const int * idx, 
-									   const int * vecPointers, 
-									   float * results,
-									   const int num_rows,
-									   int mainVecIndex)
-{
-	__shared__ float sdata[BLOCK_SIZE + 16];                          // padded to avoid reduction ifs
-	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
-	__shared__ int shMainVecIdx;
-	if(threadIdx.x==0)
-		shMainVecIdx=mainVecIndex;
-	
-
-	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
-	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
-	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
-	const int warp_lane   = threadIdx.x / WARP_SIZE;                // warp index within the CTA
-	const int num_warps   = (BLOCK_SIZE / WARP_SIZE) * gridDim.x;   // total number of active warps
-
-	for(int row = warp_id; row < num_rows; row += num_warps){
-		// use two threads to fetch vecPointers[row] and vecPointers[row+1]
-		// this is considerably faster than the straightforward version
-		if(thread_lane < 2)
-			ptrs[warp_lane][thread_lane] = vecPointers[row + thread_lane];
-		const int row_start = ptrs[warp_lane][0];                   //same as: row_start = vecPointers[row];
-		const int row_end   = ptrs[warp_lane][1];                   //same as: row_end   = vecPointers[row+1];
-
-		// compute local sum
-		float sum = 0;
-		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
-			sum += vals[jj] * tex1Dfetch(mainVectorTexRef,idx[jj]);
-
-		// reduce local sums to row sum (ASSUME: warpsize 32)
-		sdata[threadIdx.x] = sum;
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x + 16]; __syncthreads(); 
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  8]; __syncthreads();
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  4]; __syncthreads();
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  2]; __syncthreads();
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
-	   
-
-		
-
-		// first thread writes warp result
-		if (thread_lane == 0){
-			//results[row] += sdata[threadIdx.x];
-			//results[row] += sdata[threadIdx.x];
-			//results[row] =tex1D(labelsTexRef,mainVecIndex)*tex1D(labelsTexRef,row) * sdata[threadIdx.x];
-			//results[row] = tex1D(labelsTexRef,mainVecIndex)*sdata[threadIdx.x];
-			//results[row] = tex1D(labelsTexRef,row);
-			results[row] = tex1Dfetch(labelsTexRef,row)*tex1Dfetch(labelsTexRef,shMainVecIdx)*sdata[threadIdx.x];
-		}
-
-			
-	}
-}
-
-
-//cuda kernel funtion for computing SVM linear kernel, uses 
-// CSR fromat for storing sparse matrix, labels are in texture cache, main vector
-//is in shared memeory
-//Remarks: based on spmv_csr_vector_kernel from publication above
-//Params:
-//vals - array of vectors values
-//idx  - array of vectros indexes in CSR fromat
-//vecPointers -array of pointers(indexes) to idx and vals array to specific vectors
-//results - array of results Linear Kernel
-//num_rows - number of vectors, stored in CSR matrix format, each vector is stored in one row of matrix
-//mainVecIndex - main vector index, needed for retriving its label
-extern "C" __global__ void linearCsrFormatKernelShared(const float * vals,
-									   const int * idx, 
-									   const int * vecPointers, 
-									   float * results,
-									   const int num_rows,
-									   int mainVecIndex)
-{
-	__shared__ float sdata[BLOCK_SIZE + 16];                          // padded to avoid reduction ifs
-	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
-	
-	extern __shared__ float shMainVec[];
-
-	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
-	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
-	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
-	const int warp_lane   = threadIdx.x / WARP_SIZE;                // warp index within the CTA
-	const int num_warps   = (BLOCK_SIZE / WARP_SIZE) * gridDim.x;   // total number of active warps
-
-	int mainStart=vecPointers[mainVecIndex];
-	int mainEnd=vecPointers[mainVecIndex+1];
-	int diff=mainEnd-mainStart;
-	if(thread_id<diff)
-	{
-		shMainVec[idx[mainStart+thread_id]]=vals[mainStart+thread_id];
-	}
-	__syncthreads(); 
-
-	for(int row = warp_id; row < num_rows; row += num_warps){
-		// use two threads to fetch vecPointers[row] and vecPointers[row+1]
-		// this is considerably faster than the straightforward version
-		if(thread_lane < 2)
-			ptrs[warp_lane][thread_lane] = vecPointers[row + thread_lane];
-		const int row_start = ptrs[warp_lane][0];                   //same as: row_start = vecPointers[row];
-		const int row_end   = ptrs[warp_lane][1];                   //same as: row_end   = vecPointers[row+1];
-
-		// compute local sum
-		float sum = 0;
-		for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
-			sum += vals[jj] *  shMainVec[idx[jj]];
-
-		// reduce local sums to row sum (ASSUME: warpsize 32)
-		sdata[threadIdx.x] = sum;
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x + 16]; __syncthreads(); 
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  8]; __syncthreads();
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  4]; __syncthreads();
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  2]; __syncthreads();
-		sdata[threadIdx.x] = sum = sum + sdata[threadIdx.x +  1]; __syncthreads();
-	   
-
-		
-
-		// first thread writes warp result
-		if (thread_lane == 0){
-			//results[row] += sdata[threadIdx.x];
-			//results[row] += sdata[threadIdx.x];
-			//results[row] =tex1D(labelsTexRef,mainVecIndex)*tex1D(labelsTexRef,row) * sdata[threadIdx.x];
-			//results[row] = tex1D(labelsTexRef,mainVecIndex)*sdata[threadIdx.x];
-			//results[row] = tex1D(labelsTexRef,row);
-			results[row] = tex1Dfetch(labelsTexRef,row)*tex1Dfetch(labelsTexRef,mainVecIndex)*sdata[threadIdx.x];
-		}
-
-			
-	}
-	
-}
 
 
 //cuda kernel funtion for computing SVM RBF kernel, uses 
@@ -329,17 +175,13 @@ extern "C" __global__ void rbfEllpackFormatKernel_ILP(const float * vals,
 			{
 				preColls[j]=colIdx[ (i*PREFETCH_SIZE+j)*num_rows+row];
 				preVals[j]=vals[ (i*PREFETCH_SIZE+j)*num_rows+row];
-			}			
-
 			
-			for(int j=0; j<subIter;j++)
-			{
-				preVecVals[j] = tex1Dfetch(mainVectorTexRef,preColls[j]);
+				//preVecVals[j] = tex1Dfetch(mainVectorTexRef,preColls[j]);
 			}
 
 			for(int j=0; j<subIter;j++){
-				dot+=preVals[j]*preVecVals[j];
-				//dot+=preVals[j]*tex1Dfetch(mainVectorTexRef,preColls[j]);
+				//dot+=preVals[j]*preVecVals[j];
+				dot+=preVals[j]*tex1Dfetch(mainVectorTexRef,preColls[j]);
 			}
 		}
 		results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
@@ -561,14 +403,17 @@ extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
 			val= vals[num_rows*i+row];
 			dot+=val*tex1Dfetch(mainVectorTexRef,col);
 		}
+
+	
+
 		//results[row]=shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
 		
 		//results[row]=labelProd*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
 		//results[row]=labelProd*exp(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
 
-		val = expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		//val = expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
 		//val = floorf(val*10000+0.5)/10000;
-		results[row]=labelProd*val;
+		results[row]=labelProd*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));;
 		
 		//results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
 		
@@ -577,48 +422,29 @@ extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
 }
 
 
-//cuda kernel funtion for computing SVM Chi-Square kernel, 
-// K(x,y)= 1 - Sum( (xi-yi)^2/(xi+yi))
-//
-//uses Ellpack-R fromat for storing sparse matrix, labels are in texture cache
-//
-//Params:
-//vals - array of vectors values
-//colIdx  - array of column indexes in ellpack-r fromat
-//rowLength -array, contains number of nonzero elements in each row
-//selfDot - array of precomputed self linear product 
-//results - array of results Linear Kernel
-//num_rows -number of vectors
-//mainVecIndex - main vector index, needed for retriving its label
-extern "C" __global__ void chiSquaredEllpackKernel(const float * vals,
+extern "C" __global__ void rbfEllpackFormatKernel_ILP_sum(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength, 
+									   const float* selfDot,
 									   float * results,
 									   const int numRows,
-									   const int mainVecIndex)
+									   const int mainVecIndex,
+									   const float gamma)
 {
 	
 
+	__shared__ float shGamma;
 	__shared__ int shMainVecIdx;
+	__shared__ float shMainSelfDot;
 	__shared__ float shLabel;
-	__shared__ int shMainCols[maxNNZ];
-	__shared__ float shMainVals[maxNNZ];
-	__shared__ int shMainNNZ;
 	
 	if(threadIdx.x==0)
 	{
 		shMainVecIdx=mainVecIndex;
+		shGamma = gamma;
+		shMainSelfDot = selfDot[shMainVecIdx];
 		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
-		shMainNNZ=  rowLength[mainVecIndex];
 	}
-
-	__syncthreads();
-	
-	for(int s=threadIdx.x;s<shMainNNZ;s+=blockDim.x){
-		shMainCols[s] = colIdx[numRows*s+shMainVecIdx];
-		shMainVals[s]=tex1Dfetch(mainVectorTexRef,shMainCols[s]);
-	}
-	
 	__syncthreads();
 	
 	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
@@ -627,109 +453,49 @@ extern "C" __global__ void chiSquaredEllpackKernel(const float * vals,
 	{
 		int maxEl = rowLength[row];
 		int labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
-		float chi=0;
+		float dot=0;
 		
-		int col1=-1;
-		float val1=0;
-		float val2=0;
+		int col[2]={-1,-1};
+		float val[2]={0,0};
+		float sum[2] = {0, 0};
 		int i=0;
-		int k=0;
-		int prevCol=shMainCols[k];
-
+		int sw=0;
 		for(i=0; i<maxEl;i++)
 		{
-			col1=colIdx[num_rows*i+row];
-			val1= vals[num_rows*i+row];
-			val2 = tex1Dfetch(mainVectorTexRef,col1);
-			
-			chi+= (val1-val2)*(val1-val2)/(val1+val2);
-			
-			//vector in Ellpack format might miss some previous columns which are non zero in dens vector
-			//we want to "catch up with main dense vector"
-			
-			while(k<shMainNNZ && prevCol<col1) //prevCol=cols[numRows*k+shMainVecIdx];
-			{
-				//it is sufficient to add only value of dense vector,
-				//because sparse vector values in this position is zero
-				chi+=tex1Dfetch(mainVectorTexRef,prevCol);
-				k++;
-				if(k<shMainNNZ)
-					prevCol=shMainCols[k];
-				
-			}
-			if(prevCol==col1){
-				k++;//increase k, to move to first grather than col1 index
-				if(k<shMainNNZ)
-					prevCol=shMainCols[k];
-			}
+			sw = i%2;
+			//sw = i&1; //equals i%2
+			col[sw]=colIdx[num_rows*i+row];
+			val[sw]= vals[num_rows*i+row];
+			sum[sw]+=val[sw]*tex1Dfetch(mainVectorTexRef,col[sw]);
 		}
+		dot=sum[0]+sum[1];
 
-		//add those values which left (were not added before)
-		while(k<shMainNNZ){
-			chi+=shMainVals[k++];		
-			
-			//prevCol=cols[numRows*k+shMainVecIdx];
-			//chi+=tex1Dfetch(mainVectorTexRef,prevCol);
+
+		/*int col[PREFETCH_SIZE];
+		float val[PREFETCH_SIZE];
+		float sum[PREFETCH_SIZE];
+		int i=0;
+		int sw=0;
+		for(i=0; i<maxEl;i++)
+		{
+			sw = i%PREFETCH_SIZE;
+			col[sw]=colIdx[num_rows*i+row];
+			val[sw]= vals[num_rows*i+row];
+			sum[sw]+=val[sw]*tex1Dfetch(mainVectorTexRef,col[sw]);
 		}
-		results[row]=labelProd*(1-2*chi);
+		for(int k=0; k<PREFETCH_SIZE;k++)
+			dot+=sum[k];*/
+
+		results[row]=labelProd*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		
 	}	
 
 }
 
-//cuda kernel funtion for computing SVM Chi-Square kernel in its normalized version,
-// K(x,y)= Sum( (xi*yi)/(xi+yi))
-// uses Ellpack-R fromat for storing sparse matrix, labels are in texture cache
-//Params:
-//vals - array of vectors values
-//colIdx  - array of column indexes in ellpack-r fromat
-//rowLength -array, contains number of nonzero elements in each row
-//selfDot - array of precomputed self linear product 
-//results - array of results Linear Kernel
-//num_rows -number of vectors
-//mainVecIndex - main vector index, needed for retriving its label
-extern "C" __global__ void chiSquaredNormEllpackKernel(const float * vals,
-									   const int * colIdx, 
-									   const int * rowLength, 
-									   float * results,
-									   const int numRows,
-									   const int mainVecIndex)
-{
-	
-	__shared__ float shLabel;
-	
-	if(threadIdx.x==0)
-	{
-		shLabel = tex1Dfetch(labelsTexRef,mainVecIndex);		
-	}
-	
-	__syncthreads();
-	
-	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
-	const int num_rows =numRows;
-	if(row<num_rows)
-	{
-		int maxEl = rowLength[row];
-		float labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
-		float chi=0;
-		
-		int col1=-1;
-		float val1=0;
-		float val2=0;
-		int i=0;
 
-		for(i=0; i<maxEl;i++)
-		{
-			col1=colIdx[num_rows*i+row];
-			val1= vals[num_rows*i+row];
-			val2 = tex1Dfetch(mainVectorTexRef,col1);
-			
-			chi+= (val1*val2)/(val1+val2);
-			
-		}
-		results[row]=labelProd*chi;
-	}	
 
-}
+
+
 
 
 /*******************************************************************************************/

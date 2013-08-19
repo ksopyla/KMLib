@@ -63,6 +63,19 @@ namespace KMLib
         }
 
 
+        public void WriteToFile(string fileName)
+        {
+
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName))
+            {
+                string mStr = this.ToString();
+                file.Write(mStr);
+
+                string.Join(System.Environment.NewLine, Alpha);
+
+            }
+
+        }
 
 
 

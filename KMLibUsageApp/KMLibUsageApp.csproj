@@ -155,6 +155,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>xcopy "$(SolutionDir)Libs\*.cubin" "$(TargetDir)" /Y
+xcopy "$(SolutionDir)Libs\*.ptx" "$(TargetDir)" /Y
 xcopy "$(SolutionDir)Libs\*.cu" "$(TargetDir)" /Y</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>

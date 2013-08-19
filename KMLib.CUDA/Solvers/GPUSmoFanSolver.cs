@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -126,11 +133,7 @@ namespace KMLib.GPU.Solvers
         private int updGThreadsPerBlock;
         private int updGBlocksPerGrid;
         private int iter;
-        private int MaxIter=500000;
-
-
-
-
+        private int MaxIter=3000000;
 
 
         public GPUSmoFanSolver(Problem<SparseVec> problem, IKernel<SparseVec> kernel, float C)
@@ -280,8 +283,6 @@ namespace KMLib.GPU.Solvers
 
             
             cuda.CopyDeviceToHost(gradPtr, G);
-
-            cuda.CopyDeviceToHost(alphaPtr, alpha);
 
             cuda.SynchronizeContext();
             // calculate rho
