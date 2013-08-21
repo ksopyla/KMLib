@@ -150,15 +150,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GPUKernels\CuChi2EllKernel.cs" />
+    <Compile Include="GPUKernels\CuExpChiEllKernel.cs" />
     <Compile Include="GPUKernels\CuChiSquaredNormEllpackKernel.cs" />
-    <Compile Include="GPUKernels\CuChiSquaredEllpackKernel.cs" />
-    <Compile Include="GPUKernels\CuRBFSlicedEllpackKernel2.cs" />
+    <Compile Include="GPUKernels\CuChiSquaredEllpackKernel2.cs" />
+    <Compile Include="GPUKernels\CuRBFSlicedEllpackKernel.cs" />
     <Compile Include="GPUKernels\CuRBFEllpackKernel.cs" />
     <Compile Include="CUDAConfig.cs" />
     <Compile Include="CudaLinearCSREvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
     <Compile Include="GPUKernels\CuLinearKernel.cs" />
-    <Compile Include="GPUKernels\CuRBFSlicedEllpackKernel.cs" />
+    <Compile Include="GPUKernels\CudafyRBFSlicedEllpackKernel.cs" />
     <Compile Include="GPUKernels\EllpackDenseVectorBuilder.cs" />
     <Compile Include="Solvers\GPUSmoFanSolver.cs">
       <SubType>Code</SubType>

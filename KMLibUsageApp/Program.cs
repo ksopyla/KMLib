@@ -43,7 +43,7 @@ namespace KMLibUsageApp
             
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
             
-           // TestOneDataSet(dataFolder);
+            TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -113,8 +113,8 @@ namespace KMLibUsageApp
             Problem<SparseVec> test = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
             
             //Do dataset Normalization
-            //IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            IDataTransform<SparseVec> dataTransform = new NullTransform();            
+            IDataTransform<SparseVec> dataTransform = new LpNorm(1);
+            //IDataTransform<SparseVec> dataTransform = new NullTransform();            
             train.Elements = dataTransform.Transform(train.Elements);
             test.Elements = dataTransform.Transform(test.Elements);
 
@@ -124,9 +124,9 @@ namespace KMLibUsageApp
 
             // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
-            //IKernel<SparseVec> kernel = new ChiSquaredKernel();
+            IKernel<SparseVec> kernel = new ChiSquaredKernel();
             //IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
             //IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
             
@@ -562,19 +562,19 @@ namespace KMLibUsageApp
             //numberOfFeatures = 123;
 
 
-            //trainningFile = dataFolder + "/a9a";
-            //testFile = dataFolder + "/a9a.t";
-            ////testfile = datafolder + "/a9a";
-            //numberOfFeatures = 123;
+            trainningFile = dataFolder + "/a9a";
+            testFile = dataFolder + "/a9a.t";
+            //testfile = datafolder + "/a9a";
+            numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a_128.train";
             //testFile = dataFolder + "/a9a.t";
             ////testFile = dataFolder + "/a9a";
             //numberOfFeatures = 123;
 
-            trainningFile = dataFolder + "/w8a";
-            testFile = dataFolder + "/w8a.t";
-            numberOfFeatures = 300;
+            //trainningFile = dataFolder + "/w8a";
+            //testFile = dataFolder + "/w8a.t";
+            //numberOfFeatures = 300;
 
             ////trainningFile = dataFolder + "/rcv1_train.binary";
             ////testFile = dataFolder + "/rcv1_test.binary";
@@ -664,8 +664,8 @@ namespace KMLibUsageApp
             float paramC)
         {
 
-            //IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            IDataTransform<SparseVec> dataTransform = new NullTransform();
+            IDataTransform<SparseVec> dataTransform = new LpNorm(1);
+            //IDataTransform<SparseVec> dataTransform = new NullTransform();
 
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
@@ -690,12 +690,15 @@ namespace KMLibUsageApp
             
             //IKernel<SparseVec> kernel = new CudaLinearKernel();
             //IKernel<SparseVec> kernel = new CuRBFKernel(gamma );
-            IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel(gamma);
-            //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel2(gamma);
-            
-            //IKernel<SparseVec> kernel = new CuChiSquaredEllpackKernel();
+            //IKernel<SparseVec> kernel = new CudafyRBFSlicedEllpackKernel(gamma);
+
+
+            IKernel<SparseVec> kernel = new CuChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuChiSquaredEllpackKernel2();
             //IKernel<SparseVec> kernel = new CuChiSquaredNormEllpackKernel();
+            //IKernel<SparseVec> kernel = new CuExpChiEllKernel(gamma);
 
 
             #endregion

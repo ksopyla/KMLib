@@ -16,39 +16,57 @@ using System.IO;
 using System.Runtime.InteropServices;
 using KMLib.Kernels;
 using KMLib.Helpers;
+using KMLib.GPU.GPUKernels;
 
 namespace KMLib.GPU
 {
 
     /// <summary>
-    /// Represents Chi^2 Kernel for computing product between two histograms
-    /// 
-    /// K(x,y)= 1 -0.5*Sum( (xi-yi)^2/(xi+yi))
-    /// 
-    /// vectors should contains positive numbers(like histograms does) and should be normalized
-    /// sum(xi)=1
+    /// Class for computing Exp(-gamma*chi2(x,y)) kernel using cuda.
     /// Data are stored in Ellpack-R format.
     /// 
     /// </summary>
-    public class CuChiSquaredEllpackKernel : CuVectorKernel, IDisposable
+    public class CuExpChiEllKernel : CuVectorKernel, IDisposable
     {
 
-        ChiSquaredKernel chiSquared;
+        /// <summary>
+        /// Array for self dot product 
+        /// </summary>
+        float[] selfSum;
+ 
+
+        private float Gamma;
 
 
-        public CuChiSquaredEllpackKernel()
+
+        /// <summary>
+        /// cuda device pointer for stroing self sum of each vector
+        /// </summary>
+        private CUdeviceptr selfSumPtr;
+
+
+
+        public CuExpChiEllKernel(float gamma)
         {
-            linKernel = new LinearKernel();
-            chiSquared = new ChiSquaredKernel();
+           
+            Gamma = gamma;
+            cudaProductKernelName = "expChi2EllpackKernel";
+
+            cudaModuleName = "chiKernels.cubin";
+
             
-            cudaProductKernelName = "chiSquaredEllpackKernel";
+            MakeDenseVectorOnGPU = false;
             
         }
 
 
         public override float Product(SparseVec element1, SparseVec element2)
         {
-            return chiSquared.Product(element1, element2);
+
+            float chi=ChiSquaredKernel.ChiSquareDist(element1, element2);
+
+            return (float)Math.Exp(-Gamma * chi);
+
         }
 
         public override float Product(int element1, int element2)
@@ -60,27 +78,42 @@ namespace KMLib.GPU
                 throw new IndexOutOfRangeException("element2 out of range");
 
 
-            return chiSquared.Product(element1, element2);
+            float prod = 0f;
+
+            if (element1 == element2)
+            {
+                    //all parts are the same
+                    //so we can prod set to 1 beceause exp(0)==1
+                    prod = 1f;
+                
+            }
+            else
+            {
+                //when element1 and element2 are different we have to compute all parts
+                float chi = ChiSquaredKernel.ChiSquareDist(problemElements[element1], problemElements[element2]);
+                prod= (float)Math.Exp(-Gamma * chi);
+            }
+            return prod;
         }
 
         public override ParameterSelection<SparseVec> CreateParameterSelection()
         {
             throw new NotImplementedException();
+            //return new RbfParameterSelection();
         }
 
-
+        public override void SetMemoryForDenseVector(int mainIndex)
+        {
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder.BuildDenseVector(mainIndex);
+            }else
+                base.SetMemoryForDenseVector(mainIndex);
+        }
 
 
         public override void Init()
         {
-            //linKernel.ProblemElements = problemElements;
-            //linKernel.Y = Y;
-            //linKernel.Init();
-
-            chiSquared.ProblemElements = problemElements;
-            chiSquared.Y = Y;
-            chiSquared.Init();
-
             base.Init();
 
             float[] vecVals;
@@ -88,6 +121,11 @@ namespace KMLib.GPU
             int[] vecLenght;
 
             CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
+
+
+            selfSum = problemElements.AsParallel().Select(x => x.Values.Sum()).ToArray();
+
+           
 
             #region cuda initialization
 
@@ -98,14 +136,18 @@ namespace KMLib.GPU
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 
+            
+            selfSumPtr = cuda.CopyHostToDevice(selfSum);
+
             uint memSize = (uint)(problemElements.Length * sizeof(float));
             //allocate mapped memory for our results
+            //CUDARuntime.cudaSetDeviceFlags(CUDARuntime.cudaDeviceMapHost);
+
+
+
+            
             outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
-
-            //normal memory allocation
-            //outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
-
 
             #endregion
 
@@ -120,8 +162,14 @@ namespace KMLib.GPU
 
             CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
 
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder = new EllpackDenseVectorBuilder(cuda, mainVecPtr, valsPtr, idxPtr, vecLengthPtr, problemElements.Length, problemElements[0].Dim);
+                vecBuilder.Init();
+            }
 
         }
+
 
 
 
@@ -139,7 +187,10 @@ namespace KMLib.GPU
 
             cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
-            
+
+            cuda.SetParameter(cuFunc, offset, selfSumPtr.Pointer);
+            offset += IntPtr.Size;
+
             kernelResultParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
             offset += IntPtr.Size;
@@ -150,6 +201,9 @@ namespace KMLib.GPU
             mainVecIdxParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
             offset += sizeof(int);
+
+            cuda.SetParameter(cuFunc, offset, Gamma);
+            offset += sizeof(float);
 
             cuda.SetParameterSize(cuFunc, (uint)offset);
 
@@ -172,6 +226,10 @@ namespace KMLib.GPU
                 idxPtr.Pointer = IntPtr.Zero;
                 cuda.Free(vecLengthPtr);
                 vecLengthPtr.Pointer = IntPtr.Zero;
+
+                cuda.Free(selfSumPtr);
+                selfSumPtr.Pointer = IntPtr.Zero;
+
 
                 cuda.FreeHost(outputIntPtr);
                 //cuda.Free(outputPtr);

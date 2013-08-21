@@ -5,6 +5,8 @@ License: MIT
 web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 */
 
+#include <float.h>
+
 texture<float,1,cudaReadModeElementType> mainVecTexRef;
 
 //texture fo labels assiociated with vectors
@@ -215,6 +217,172 @@ extern "C" __global__ void rbfSlicedEllpackKernel_shared(const float *vecVals,
 }//end func
 
 
+//TODO: impelmentacja rbfSlEll_ILP
+
+
+/****** nChi2 kernels *******************/
+//Use sliced Ellpack format for computing normalized Chi2 kernel, vectors should be histograms
+// and normalized according to l1 norm
+// K(x,y)= Sum( (xi*yi)/(xi+yi))
+//
+//vecVals - vectors values in Sliced Ellpack,
+//vecCols - array containning column indexes for non zero elements
+//vecLengths  - number of non zero elements in row
+//sliceStart   - determine where particular slice starts and ends
+//result  - for final result
+//mainVecIdx - index of main vector
+//nrows   - number of rows
+//ali	  - align
+extern "C" __global__ void nChi2SlEllKernel(const float *vecVals,
+											 const int *vecCols,
+											 const int *vecLengths, 
+											 const int * sliceStart, 
+											 const float* vecLabels,
+											 float *result,
+											 const int mainVecIdx,
+											 const int nrRows,
+											 const int align){
+  
+  //sh_data size = SliceSize*ThreadsPerRow*sizeof(float)
+  //float* sh_cache = (float*)sh_data;
+	__shared__  float sh_cache[ThreadPerRow*SliceSize];
+	
+	__shared__ int shMainVecIdx;
+	__shared__ float shLabel;
+	
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIdx;
+		shLabel = vecLabels[shMainVecIdx];
+	}
+
+  int tx = threadIdx.x;
+  int txm = tx % 4; //tx% ThreadPerRow
+  int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
+  
+  //map group of thread to row, in this case 4 threads are mapped to one row
+  int row =  thIdx>> 2; // 
+  
+  if (row < nrRows){
+	  float sub = 0.0;
+	   int maxRow = (int)ceil(vecLengths[row]/(float)ThreadPerRow);
+	  int col=-1;
+	  float val1 =0;
+	  float val2 =0;
+	  int ind=0;
+
+	  for(int i=0; i < maxRow; i++){
+		  ind = i*align+sliceStart[blockIdx.x]+tx;
+		 
+		  col     = vecCols[ind];
+		  val1 = vecVals[ind];
+		  val2 = tex1Dfetch(mainVecTexRef, col);
+		  sub += (val1*val2)/(val1+val2+FLT_MIN);
+	  }
+  
+   sh_cache[tx] = sub;
+   __syncthreads();
+
+	volatile float *shMem = sh_cache;
+   //for 4 thread per row
+  
+	if(txm < 2){
+	  shMem[tx]+=shMem[tx+2];
+	  shMem[tx] += shMem[tx+1];
+
+	  if(txm == 0 ){
+		  result[row]=vecLabels[row]*shLabel*sh_cache[tx];
+	  }
+   }
+  }//if row<nrRows  
+}//end func
+
+
+
+/************* ExpChi2 kernels *******************/
+
+//Use sliced Ellpack format for computing ExpChi2 kernel matrix kolumn
+// K(x,y)=exp( -gamma* Sum( (xi-yi)^2/(xi+yi)) =exp(-gamma (sum xi +sum yi -4*sum( (xi*yi)/(xi+yi)) ) )
+//vecVals - vectors values in Sliced Ellpack,
+//vecCols - array containning column indexes for non zero elements
+//vecLengths  - number of non zero elements in row
+//sliceStart   - determine where particular slice starts and ends
+//selfSum    - precomputed sum of each row
+//result  - for final result
+//mainVecIdx - index of main vector
+//nrows   - number of rows
+//ali	  - align
+extern "C" __global__ void expChi2SlEllKernel(const float *vecVals,
+											 const int *vecCols,
+											 const int *vecLengths, 
+											 const int * sliceStart, 
+											 const float* selfSum,
+											 const float* vecLabels,
+											 float *result,
+											 const int mainVecIdx,
+											 const int nrRows,
+											 const float gamma, 
+											 const int align){
+  
+	__shared__  float sh_cache[ThreadPerRow*SliceSize];
+	
+	__shared__ int shMainVecIdx;
+	__shared__ float shMainSelfSum;
+	__shared__ float shLabel;
+	__shared__ float shGamma;
+	
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIdx;
+		shMainSelfSum = selfSum[shMainVecIdx];
+		shLabel = vecLabels[shMainVecIdx];
+		shGamma=gamma;
+	}
+
+  int tx = threadIdx.x;
+  int txm = tx % 4; //tx% ThreadPerRow
+  int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
+  
+  //map group of thread to row, in this case 4 threads are mapped to one row
+  int row =  thIdx>> 2; // 
+  
+  if (row < nrRows){
+	  float sub = 0.0;
+	   int maxRow = (int)ceil(vecLengths[row]/(float)ThreadPerRow);
+	  int col=-1;
+	  float val1 =0;
+	  float val2 =0;
+	  int ind=0;
+
+	  for(int i=0; i < maxRow; i++){
+		  ind = i*align+sliceStart[blockIdx.x]+tx;
+		 
+		  col     = vecCols[ind];
+		  val1 = vecVals[ind];
+		  val2 = tex1Dfetch(mainVecTexRef, col);
+		  sub += (val1*val2)/(val1+val2+FLT_MIN);
+	  }
+  
+   sh_cache[tx] = sub;
+   __syncthreads();
+
+	volatile float *shMem = sh_cache;
+   //for 4 thread per row
+  
+	if(txm < 2){
+	  shMem[tx]+=shMem[tx+2];
+	  shMem[tx] += shMem[tx+1];
+
+	  if(txm == 0 ){
+		  result[row]=vecLabels[row]*shLabel*expf(-shGamma*(selfSum[row]+shMainSelfSum-4*sh_cache[tx]));
+	  }
+   }
+
+
+}//if row<nrRows 
+
+  
+}//end func
 
 
 

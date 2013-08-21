@@ -176,12 +176,12 @@ extern "C" __global__ void rbfEllpackFormatKernel_ILP(const float * vals,
 				preColls[j]=colIdx[ (i*PREFETCH_SIZE+j)*num_rows+row];
 				preVals[j]=vals[ (i*PREFETCH_SIZE+j)*num_rows+row];
 			
-				preVecVals[j] = tex1Dfetch(mainVectorTexRef,preColls[j]);
+				//preVecVals[j] = tex1Dfetch(mainVectorTexRef,preColls[j]);
 			}
 
 			for(int j=0; j<subIter;j++){
-				dot+=preVals[j]*preVecVals[j];
-				//dot+=preVals[j]*tex1Dfetch(mainVectorTexRef,preColls[j]);
+				//dot+=preVals[j]*preVecVals[j];
+				dot+=preVals[j]*tex1Dfetch(mainVectorTexRef,preColls[j]);
 			}
 		}
 		results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));

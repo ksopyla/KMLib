@@ -172,7 +172,7 @@ namespace KMLib.GPU
             set
             {
                 if (value == null) throw new ArgumentNullException("value");
-                linKernel.ProblemElements = value;
+                //linKernel.ProblemElements = value;
 
                 base.ProblemElements = value;
 
