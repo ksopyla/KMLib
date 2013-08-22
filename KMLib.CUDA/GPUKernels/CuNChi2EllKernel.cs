@@ -31,25 +31,27 @@ namespace KMLib.GPU
     /// Data are stored in Ellpack-R format.
     /// 
     /// </summary>
-    public class CuChiSquaredNormEllpackKernel : CuVectorKernel, IDisposable
+    public class CuNChi2EllKernel : CuVectorKernel, IDisposable
     {
 
         ChiSquaredNormKernel chiSquared;
 
 
-        public CuChiSquaredNormEllpackKernel()
+        public CuNChi2EllKernel()
         {
-            linKernel = new LinearKernel();
-            chiSquared = new ChiSquaredNormKernel();
+            //linKernel = new LinearKernel();
+            //chiSquared = new ChiSquaredNormKernel();
+
+            cudaProductKernelName = "nChi2EllpackKernel";
             
-            cudaProductKernelName = "chiSquaredNormEllpackKernel";
-            
+            cudaModuleName = "KernelsEllpack.cubin";
         }
 
 
         public override float Product(SparseVec element1, SparseVec element2)
         {
-            return chiSquared.Product(element1, element2);
+            //return chiSquared.Product(element1, element2);
+            return ChiSquaredNormKernel.ChiSquareNormDist(element1, element2);
         }
 
         public override float Product(int element1, int element2)
@@ -60,8 +62,7 @@ namespace KMLib.GPU
             if (element2 >= problemElements.Length)
                 throw new IndexOutOfRangeException("element2 out of range");
 
-
-            return chiSquared.Product(element1, element2);
+            return ChiSquaredNormKernel.ChiSquareNormDist(problemElements[element1], problemElements[element2]);
         }
 
         public override ParameterSelection<SparseVec> CreateParameterSelection()
@@ -70,14 +71,12 @@ namespace KMLib.GPU
         }
 
 
-
-
         public override void Init()
         {
             
-            chiSquared.ProblemElements = problemElements;
-            chiSquared.Y = Y;
-            chiSquared.Init();
+            //chiSquared.ProblemElements = problemElements;
+            //chiSquared.Y = Y;
+            //chiSquared.Init();
 
             base.Init();
 

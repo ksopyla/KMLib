@@ -52,7 +52,8 @@ namespace KMLib.GPU
             Gamma = gamma;
             cudaProductKernelName = "expChi2EllpackKernel";
 
-            cudaModuleName = "chiKernels.cubin";
+            
+            cudaModuleName = "KernelsEllpack.cubin";
 
             
             MakeDenseVectorOnGPU = false;

@@ -24,7 +24,7 @@ namespace KMLib.GPU
     /// Data are stored in CSR format.
     /// 
     /// </summary>
-    public class CuRBFKernel : CuVectorKernel, IDisposable
+    public class CuRBFCSRKernel : CuVectorKernel, IDisposable
     {
      
         /// <summary>
@@ -45,11 +45,14 @@ namespace KMLib.GPU
 
        
 
-        public CuRBFKernel(float gamma)
+        public CuRBFCSRKernel(float gamma)
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
             cudaProductKernelName = "rbfCsrFormatKernel";
+
+            cudaModuleName = "KernelsCSR.cubin";
+
         }
 
 

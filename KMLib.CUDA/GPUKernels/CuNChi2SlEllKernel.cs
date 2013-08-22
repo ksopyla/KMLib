@@ -21,40 +21,52 @@ namespace KMLib.GPU
 {
 
     /// <summary>
-    /// Represents Chi^2 Kernel for computing product between two histograms
-    /// 
-    /// K(x,y)= 1 -0.5*Sum( (xi-yi)^2/(xi+yi))
+    /// Class for computing Chi2 kernel using cuda.
+    /// Data are stored in sliced Ellpack-R format.
+    ///  K(x,y)= Sum( (xi*yi)/(xi+yi))
     /// 
     /// vectors should contains positive numbers(like histograms does) and should be normalized
     /// sum(xi)=1
-    /// Data are stored in Ellpack-R format.
-    /// 
     /// </summary>
-    /// <remarks>
-    /// Not optimal cuda kernel code.
-    /// </remarks>
-    [Obsolete]
-    public class CuChiSquaredEllpackKernel2 : CuVectorKernel, IDisposable
+    public class CuNChi2SlEllKernel : CuVectorKernel, IDisposable
     {
 
-        ChiSquaredKernel chiSquared;
+        
+        private int sliceSize;
+        private int threadsPerRow;
+        
+        //private int blockSize;
+        
+        private int align;
+        private CUdeviceptr sliceStartPtr;
+        private int blockSize;
 
 
-        public CuChiSquaredEllpackKernel2()
+
+
+        public CuNChi2SlEllKernel(float gamma)
         {
-           
-            chiSquared = new ChiSquaredKernel();
+            cudaProductKernelName = "nChi2SlEllKernel";
+            //cudaProductKernelName = "rbfSlicedEllpackKernel_shared";
 
-            cudaModuleName = "KernelsEllpack.cubin";
-            
-            cudaProductKernelName = "chiSquaredEllpackKernel";
-            
+            cudaModuleName = "KernelsSlicedEllpack.cubin";
+
+
+            threadsPerRow =  4;
+            sliceSize =  64;
+        }
+
+
+        public override void SetMemoryForDenseVector(int mainIndex)
+        {
+            base.SetMemoryForDenseVector(mainIndex);
         }
 
 
         public override float Product(SparseVec element1, SparseVec element2)
         {
-            return chiSquared.Product(element1, element2);
+            return ChiSquaredNormKernel.ChiSquareNormDist(element1, element2);
+
         }
 
         public override float Product(int element1, int element2)
@@ -65,13 +77,13 @@ namespace KMLib.GPU
             if (element2 >= problemElements.Length)
                 throw new IndexOutOfRangeException("element2 out of range");
 
-
-            return chiSquared.Product(element1, element2);
+            return ChiSquaredNormKernel.ChiSquareNormDist(problemElements[element1], problemElements[element2]);
         }
 
         public override ParameterSelection<SparseVec> CreateParameterSelection()
         {
             throw new NotImplementedException();
+            //return new RbfParameterSelection();
         }
 
 
@@ -79,19 +91,24 @@ namespace KMLib.GPU
 
         public override void Init()
         {
-           
-
-            chiSquared.ProblemElements = problemElements;
-            chiSquared.Y = Y;
-            chiSquared.Init();
-
+            
             base.Init();
+
+            blockSize = threadsPerRow * sliceSize;
+            int N = problemElements.Length;
+            blocksPerGrid = (int)Math.Ceiling(1.0 * N * threadsPerRow / blockSize);
+
+            align = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
+            
 
             float[] vecVals;
             int[] vecColIdx;
             int[] vecLenght;
+            int[] sliceStart;
 
-            CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
+            CudaHelpers.TransformToSlicedEllpack(out vecVals, out vecColIdx, out sliceStart, out vecLenght, problemElements, threadsPerRow, sliceSize);
+
+           
 
             #region cuda initialization
 
@@ -101,9 +118,13 @@ namespace KMLib.GPU
             valsPtr = cuda.CopyHostToDevice(vecVals);
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
+            sliceStartPtr = cuda.CopyHostToDevice(sliceStart);
+            
+            labelsPtr = cuda.CopyHostToDevice(Y);
+            
 
             uint memSize = (uint)(problemElements.Length * sizeof(float));
-            //allocate mapped memory for our results
+            
             outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
 
@@ -122,7 +143,7 @@ namespace KMLib.GPU
 
             CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
 
-            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
+           // CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
 
 
         }
@@ -133,7 +154,7 @@ namespace KMLib.GPU
         {
 
             #region cuda set function parameters
-            cuda.SetFunctionBlockShape(cuFunc, threadsPerBlock, 1, 1);
+            cuda.SetFunctionBlockShape(cuFunc,blockSize, 1, 1);
 
             int offset = 0;
             cuda.SetParameter(cuFunc, offset, valsPtr.Pointer);
@@ -143,17 +164,30 @@ namespace KMLib.GPU
 
             cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
-            
+            cuda.SetParameter(cuFunc, offset, sliceStartPtr.Pointer);
+            offset += IntPtr.Size;
+
+
+           
+
+            cuda.SetParameter(cuFunc, offset, labelsPtr.Pointer);
+            offset += IntPtr.Size;
             kernelResultParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFunc, offset, (uint)problemElements.Length);
-            offset += sizeof(int);
-
             mainVecIdxParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
             offset += sizeof(int);
+
+            cuda.SetParameter(cuFunc, offset, (uint)problemElements.Length);
+            offset += sizeof(int);
+
+            
+
+            cuda.SetParameter(cuFunc, offset, align);
+            offset += sizeof(int);
+
 
             cuda.SetParameterSize(cuFunc, (uint)offset);
 
@@ -177,12 +211,13 @@ namespace KMLib.GPU
                 cuda.Free(vecLengthPtr);
                 vecLengthPtr.Pointer = IntPtr.Zero;
 
+              
                 cuda.FreeHost(outputIntPtr);
                 //cuda.Free(outputPtr);
                 outputPtr.Pointer = IntPtr.Zero;
                 cuda.Free(labelsPtr);
                 labelsPtr.Pointer = IntPtr.Zero;
-                cuda.DestroyTexture(cuLabelsTexRef);
+                //cuda.DestroyTexture(cuLabelsTexRef);
 
                 cuda.Free(mainVecPtr);
                 mainVecPtr.Pointer = IntPtr.Zero;

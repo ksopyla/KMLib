@@ -26,7 +26,7 @@ namespace KMLib.GPU
     /// 
     /// </summary>
     /// <remarks>This implementation use only CUDA.net</remarks>
-    public class CuRBFSlicedEllpackKernel : CuVectorKernel, IDisposable
+    public class CuRBFSlEllKernel : CuVectorKernel, IDisposable
     {
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace KMLib.GPU
 
 
 
-        public CuRBFSlicedEllpackKernel(float gamma)
+        public CuRBFSlEllKernel(float gamma)
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
@@ -65,9 +65,7 @@ namespace KMLib.GPU
             cudaProductKernelName = "rbfSlicedEllpackKernel";
             //cudaProductKernelName = "rbfSlicedEllpackKernel_shared";
 
-            cudaModuleName = "rbfSlicedEllpackKernel.cubin";
-
-            cudaMainVecTexRefName = "mainVecTexRef";
+            cudaModuleName = "KernelsSlicedEllpack.cubin";
 
             threadsPerRow =  4;
             sliceSize =  64;

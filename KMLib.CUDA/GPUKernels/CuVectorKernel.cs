@@ -33,14 +33,13 @@ namespace KMLib.GPU
         /// <summary>
         /// cuda module name
         /// </summary>
-        protected string cudaModuleName = "cudaSVMKernels.cubin";
-        //protected string cudaModuleName = "cudaSVMKernels.ptx";
-
+        protected string cudaModuleName ="";
+        
 
         /// <summary>
         /// cuda texture name for main vector
         /// </summary>
-        protected string cudaMainVecTexRefName = "mainVectorTexRef";
+        protected string cudaMainVecTexRefName = "mainVecTexRef";
         /// <summary>
         /// cuda texture name for labels
         /// </summary>

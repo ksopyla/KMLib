@@ -150,11 +150,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GPUKernels\CuExpChiSlEllKernel.cs" />
+    <Compile Include="GPUKernels\CuNChi2SlEllKernel.cs" />
     <Compile Include="GPUKernels\CuChi2EllKernel.cs" />
     <Compile Include="GPUKernels\CuExpChiEllKernel.cs" />
-    <Compile Include="GPUKernels\CuChiSquaredNormEllpackKernel.cs" />
+    <Compile Include="GPUKernels\CuNChi2EllKernel.cs" />
     <Compile Include="GPUKernels\CuChiSquaredEllpackKernel2.cs" />
-    <Compile Include="GPUKernels\CuRBFSlicedEllpackKernel.cs" />
+    <Compile Include="GPUKernels\CuRBFSlEllKernel.cs" />
     <Compile Include="GPUKernels\CuRBFEllpackKernel.cs" />
     <Compile Include="CUDAConfig.cs" />
     <Compile Include="CudaLinearCSREvaluator.cs" />
@@ -169,7 +171,7 @@
     <Compile Include="Solvers\GPUnmBBLinSolver.cs" />
     <Compile Include="Solvers\CUDALinSolver.cs" />
     <Compile Include="CudaRBFCSREvaluator.cs" />
-    <Compile Include="GPUKernels\CuRBFKernel.cs" />
+    <Compile Include="GPUKernels\CuRBFCSRKernel.cs" />
     <Compile Include="CudaVectorEvaluator.cs" />
     <Compile Include="GPUKernels\CuVectorKernel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -181,7 +183,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CUDAmodules\chiKernels.cu">
+    <None Include="CUDAmodules\KernelsEllpack.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <Content Include="CUDAmodules\Config.h">
@@ -190,14 +192,14 @@
     <None Include="CUDAmodules\gpuFanSmoSolver.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="CUDAmodules\cudaSVMKernels.cu">
+    <None Include="CUDAmodules\KernelsCSR.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="CUDAmodules\linKernels.cu" />
     <None Include="CUDAmodules\linSVMSolver.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="CUDAmodules\rbfSlicedEllpackKernel.cu">
+    <None Include="CUDAmodules\KernelsSlicedEllpack.cu">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="KMLib.CUDA.licenseheader" />
@@ -207,7 +209,7 @@
     <PostBuildEvent>xcopy "$(TargetDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
 xcopy "$(TargetDir)CUDAmodules\*.h" "$(TargetDir)" /Y
 del *.cubin
-nvcc -I./ cudaSVMKernels.cu chiKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu    -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12
+nvcc -I./ KernelsCSR.cu KernelsEllpack.cu KernelsSlicedEllpack.cu gpuFanSmoSolver.cu    -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 xcopy "$(TargetDir)*.ptx" "$(SolutionDir)Libs" /Y
 xcopy "$(TargetDir)*.cu" "$(SolutionDir)Libs" /Y

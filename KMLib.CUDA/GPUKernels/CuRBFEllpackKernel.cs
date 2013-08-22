@@ -56,6 +56,8 @@ namespace KMLib.GPU
             //cudaProductKernelName = "rbfEllpackFormatKernel_ILP";
             //cudaProductKernelName = "rbfEllpackFormatKernel_ILP_shared";
 
+            cudaModuleName = "KernelsEllpack.cubin";
+
             MakeDenseVectorOnGPU = false;
             
         }

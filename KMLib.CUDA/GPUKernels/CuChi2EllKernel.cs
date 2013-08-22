@@ -48,8 +48,8 @@ namespace KMLib.GPU
         {
            
             chiSquared = new ChiSquaredKernel();
-            
-            cudaModuleName = "chiKernels.cubin";
+
+            cudaModuleName = "KernelsEllpack.cubin";
 
             cudaProductKernelName = "chi2EllpackKernel";
             

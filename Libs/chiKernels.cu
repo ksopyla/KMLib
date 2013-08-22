@@ -24,7 +24,7 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 //results - array of results Linear Kernel
 //num_rows -number of vectors
 //mainVecIndex - main vector index, needed for retriving its label
-extern "C" __global__ void chiSquaredNormEllpackKernel(const float * vals,
+extern "C" __global__ void nChi2EllpackKernel(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength, 
 									   float * results,

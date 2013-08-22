@@ -7,16 +7,14 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 
 #include <float.h>
 
-texture<float,1,cudaReadModeElementType> mainVecTexRef;
+#include <Config.h>
 
-//texture fo labels assiociated with vectors
-texture<float,1,cudaReadModeElementType> labelsTexRef;
 
 __device__ const int ThreadPerRow=4;
 __device__ const int SliceSize=64;
 
 
-#define VECDIM 784
+
 
 //gamma parameter in RBF
 //__constant__ float GammaDev=0.5;
