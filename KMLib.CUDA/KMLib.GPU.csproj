@@ -150,6 +150,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GPUKernels\CuRBFEllILPKernel.cs" />
     <Compile Include="GPUKernels\CuExpChiSlEllKernel.cs" />
     <Compile Include="GPUKernels\CuNChi2SlEllKernel.cs" />
     <Compile Include="GPUKernels\CuChi2EllKernel.cs" />
@@ -209,7 +210,7 @@
     <PostBuildEvent>xcopy "$(TargetDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
 xcopy "$(TargetDir)CUDAmodules\*.h" "$(TargetDir)" /Y
 del *.cubin
-nvcc -I./ KernelsCSR.cu KernelsEllpack.cu KernelsSlicedEllpack.cu gpuFanSmoSolver.cu    -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12
+nvcc -I./ KernelsCSR.cu KernelsEllpack.cu KernelsSlicedEllpack.cu gpuFanSmoSolver.cu    -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12 -Xptxas="-v"
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
 xcopy "$(TargetDir)*.ptx" "$(SolutionDir)Libs" /Y
 xcopy "$(TargetDir)*.cu" "$(SolutionDir)Libs" /Y

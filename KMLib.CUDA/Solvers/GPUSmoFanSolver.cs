@@ -209,17 +209,12 @@ namespace KMLib.GPU.Solvers
         {
 
             // initialize gradient
-            {
-                //G = new float[problemSize];
-
+            {   
                 int i;
                 for (i = 0; i < problemSize; i++)
                 {
                     G[i] = -1;
                 }
-
-                //G[9] = -12;
-
             }
 
 

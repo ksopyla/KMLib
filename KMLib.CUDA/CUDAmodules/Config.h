@@ -22,7 +22,7 @@ texture<float,1,cudaReadModeElementType> mainVecTexRef;
 
 #define WARP_SIZE 32
 
-#define PREFETCH_SIZE 2
+#define PREFETCH_SIZE 4
 
 #define VECDIM 1
 

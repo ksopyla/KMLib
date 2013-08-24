@@ -11,6 +11,7 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 
 //cuda kernel funtion for computing SVM RBF kernel, uses 
 // Ellpack-R fromat for storing sparse matrix, labels are in texture cache,  uses ILP - prefetch vector elements in registers
+// arrays vals and colIdx should be aligned to PREFETCH_SIZE
 //Params:
 //vals - array of vectors values
 //colIdx  - array of column indexes in ellpack-r fromat
@@ -35,49 +36,75 @@ extern "C" __global__ void rbfEllpackFormatKernel_ILP(const float * vals,
 	__shared__ int shMainVecIdx;
 	__shared__ float shMainSelfDot;
 	__shared__ float shLabel;
+	__shared__ int shRows;
+
+	//__shared__ float shDot[PREFETCH_SIZE*BLOCK_SIZE];
+	//for(int j=0; j<PREFETCH_SIZE;j++){
+	//	//shDot[threadIdx.x*PREFETCH_SIZE+j]=0.0;
+	//	shDot[threadIdx.x+PREFETCH_SIZE*j]=0.0;
+	//}
+			
 	
 	if(threadIdx.x==0)
 	{
+		shRows = num_rows;
 		shMainVecIdx=mainVecIndex;
 		shGamma = gamma;
 		shMainSelfDot = selfDot[shMainVecIdx];
 		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
 	}
-	
+		
 	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
 
-	if(row<num_rows)
+	if(row<shRows)
 	{
-		float dot=0;
-		int maxEl = rowLength[row];
-		
-		int i=0;
-		
 		float preVals[PREFETCH_SIZE];
 		int preColls[PREFETCH_SIZE];
-		float preVecVals[PREFETCH_SIZE];
-		
+		//float preVecVals[PREFETCH_SIZE];
+		//float dot=0;
+		float dot[PREFETCH_SIZE]={0};
+
+		int maxEl = rowLength[row];
 		//how many elements are the rest after division
-		int rest = maxEl%PREFETCH_SIZE;
-		int mainIter = ceilf( (maxEl+0.0)/PREFETCH_SIZE);
-		for(i=0; i<mainIter;i++)
+		//int rest = maxEl%PREFETCH_SIZE;
+		//int mainIter = ceilf( (maxEl+0.0)/PREFETCH_SIZE);
+		for(int i=0; i<maxEl;i++)
 		{
-			int subIter= min(maxEl-i*PREFETCH_SIZE,PREFETCH_SIZE);
+			//int subIter= min(maxEl-i*PREFETCH_SIZE,PREFETCH_SIZE);
 			
-			for(int j=0; j<subIter;j++)			
+			#pragma unroll
+			for(int j=0; j<PREFETCH_SIZE;j++)			
 			{
-				preColls[j]=colIdx[ (i*PREFETCH_SIZE+j)*num_rows+row];
-				preVals[j]=vals[ (i*PREFETCH_SIZE+j)*num_rows+row];
-			
-				//preVecVals[j] = tex1Dfetch(mainVecTexRef,preColls[j]);
+				preColls[j]=colIdx[ (i*PREFETCH_SIZE+j)*shRows+row];
+				preVals[j]=vals[ (i*PREFETCH_SIZE+j)*shRows+row];
 			}
 
-			for(int j=0; j<subIter;j++){
-				//dot+=preVals[j]*preVecVals[j];
-				dot+=preVals[j]*tex1Dfetch(mainVecTexRef,preColls[j]);
+			#pragma unroll
+			for(int j=0; j<PREFETCH_SIZE;j++){
+				//dot+=preVals[j]*tex1Dfetch(mainVecTexRef,preColls[j]);
+				dot[j]+=preVals[j]*tex1Dfetch(mainVecTexRef,preColls[j]);
+				
+				//bank confilict
+				//shDot[threadIdx.x*PREFETCH_SIZE+j]+=preVals[j]*tex1Dfetch(mainVecTexRef,preColls[j]);
+				//bank confilict free
+				//shDot[threadIdx.x+PREFETCH_SIZE*j]+=preVals[j]*tex1Dfetch(mainVecTexRef,preColls[j]);
 			}
 		}
-		results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		//
+		//float dot = 0;
+		//#pragma unroll
+		//for(int j=0; j<PREFETCH_SIZE;j++){
+		//		//dot+=shDot[threadIdx.x*PREFETCH_SIZE+j];
+		//		dot+=shDot[threadIdx.x+PREFETCH_SIZE*j];
+
+		//}
+		//results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+
+		#pragma unroll
+		for(int j=1; j<PREFETCH_SIZE;j++){
+				dot[0]+=dot[j];
+		}
+		results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot[0]));
 		
 	}	
 
@@ -139,7 +166,7 @@ extern "C" __global__ void rbfEllpackFormatKernel_ILP_shared(const float * vals,
 		//float preVecVals[PREFETCH_SIZE];
 		
 		//how many elements are the rest after division
-		int rest = maxEl%PREFETCH_SIZE;
+		
 		int mainIter = ceilf( (maxEl+0.0)/PREFETCH_SIZE);
 		for(i=0; i<mainIter;i++)
 		{

@@ -76,7 +76,6 @@ extern "C" __global__ void rbfSlicedEllpackKernel(const float *vecVals,
 
 	  for(int i=0; i < maxRow; i++){
 		  ind = i*align+sliceStart[blockIdx.x]+tx;
-		 
 		  col     = vecCols[ind];
 		  value = vecVals[ind];
 		  sub += value * tex1Dfetch(mainVecTexRef, col);

@@ -9,8 +9,7 @@ using System.Diagnostics;
 namespace KMLib.SVMSolvers
 {
     /// <summary>
-    ///  An SMO algorithm in Fan et al., JMLR 6(2005), p. 1889--1918, implementation based on 
-    /// SVM.net (http://matthewajohnson.org/software/svm.html) and original LibSVM (http://www.csie.ntu.edu.tw/~cjlin/libsvm/)
+    ///  An SMO algorithm 
     ///  Solves:
     /// Min 0.5(\alpha^T Q \alpha) + p^T \alpha
     /// y^T \alpha = \delta
@@ -20,26 +19,10 @@ namespace KMLib.SVMSolvers
     /// solution will be put in \alpha, objective value will be put in obj
     /// </summary>
     /// <typeparam name="TProblemElement">Problem elements</typeparam>
-    public class SmoFanSolver<TProblemElement> : Solver<TProblemElement>
+    public class SmoRandomSolver<TProblemElement> : Solver<TProblemElement>
     {
 
-        /// <summary>
-        /// Internal helper class, whitch store computed solution
-        /// </summary>
-        //internal class SolutionInfo
-        //{
-        //    /// <summary>
-        //    /// objective function value
-        //    /// </summary>
-        //    public float obj;
-        //    /// <summary>
-        //    /// rho == b prameter in function
-        //    /// </summary>
-        //    public float rho;
-        //    public float upper_bound_p;
-        //    public float upper_bound_n;
-        //   // public float r;	// for Solver_NU
-        //}
+       
 
         #region variables from LibSVM
         protected int active_size;
@@ -71,9 +54,9 @@ namespace KMLib.SVMSolvers
         /// </summary>
         private CachedKernel<TProblemElement> Q;
         private int problemSize;
-        
 
-        public SmoFanSolver(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
+
+        public SmoRandomSolver(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
             : base(problem, kernel, C)
         {
 
@@ -130,6 +113,7 @@ namespace KMLib.SVMSolvers
 
             model.ModelTime = timer.Elapsed;
             model.ModelTimeMs = timer.ElapsedMilliseconds;
+
 
             //------------------
             List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
@@ -222,33 +206,19 @@ namespace KMLib.SVMSolvers
             int counter = Math.Min(problemSize, 1000) + 1;
             int[] working_set = new int[2];
 
+
+            Random rand = new Random();
             while (true)
             {
                 // show progress and do shrinking
 
-                if (--counter == 0)
+                int i = rand.Next(active_size);
+                int j = i;
+                while (j==i)
                 {
-                    counter = Math.Min(problemSize, 1000);
-                    if (shrinking) do_shrinking();
-                    //Procedures.info(".");
+                    j = rand.Next(active_size);     
                 }
-
-                if (select_working_set(working_set) != 0)
-                {
-                    // reconstruct the whole gradient
-                    reconstruct_gradient();
-                    // reset active set size and check
-                    active_size = problemSize;
-                    // Procedures.info("*");
-                    if (select_working_set(working_set) != 0)
-                        break;
-                    else
-                        counter = 1;	// do shrinking next iteration
-                }
-
-                int i = working_set[0];
-                int j = working_set[1];
-
+                
                 ++iter;
 
                 // update alpha[i] and alpha[j], handle bounds carefully
@@ -354,44 +324,59 @@ namespace KMLib.SVMSolvers
                 float delta_alpha_i = alpha[i] - old_alpha_i;
                 float delta_alpha_j = alpha[j] - old_alpha_j;
 
+                update_alpha_status(i);
+                update_alpha_status(j);
+
+
+
+                double nG = 0;
+                double nL1G = 0;
+                double nMaxG = double.NegativeInfinity;
+
+                float GMax = -INF;
+                float GMax2 = -INF;
 
                 for (int k = 0; k < active_size; k++)
                 {
                     G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
-                   
-                }
-                
+                    //nG += G[k] * G[k];
+                    //nL1G += Math.Abs( G[k]);
+                    //nMaxG = Math.Max(nMaxG, Math.Abs(G[k]));
 
-                // update alpha_status and G_bar
-
-                {
-                    bool ui = is_upper_bound(i);
-                    bool uj = is_upper_bound(j);
-                    update_alpha_status(i);
-                    update_alpha_status(j);
-                    int k;
-                    if (ui != is_upper_bound(i))
+                    if (y[k] == +1)
                     {
-                        Q_i = Q.GetQ(i, problemSize);
-                        if (ui)
-                            for (k = 0; k < problemSize; k++)
-                                G_bar[k] -= C_i * Q_i[k];
-                        else
-                            for (k = 0; k < problemSize; k++)
-                                G_bar[k] += C_i * Q_i[k];
+                        if (!is_upper_bound(k))
+                        {
+                            if (-G[k] >= GMax)
+                                GMax = -G[k];
+                        }
+                        if (!is_lower_bound(k))
+                        {
+                            if (G[k] >= GMax2)
+                                GMax2 = G[k];
+                        }
                     }
-
-                    if (uj != is_upper_bound(j))
+                    else
                     {
-                        Q_j = Q.GetQ(j, problemSize);
-                        if (uj)
-                            for (k = 0; k < problemSize; k++)
-                                G_bar[k] -= C_j * Q_j[k];
-                        else
-                            for (k = 0; k < problemSize; k++)
-                                G_bar[k] += C_j * Q_j[k];
+                        if (!is_lower_bound(k))
+                        {
+                            if (G[k] >= GMax)
+                                GMax = G[k];
+                        }
+                        if (!is_upper_bound(k))
+                        {
+                            if (-G[k] >= GMax2)
+                                GMax2 = -G[k];
+                        }
                     }
                 }
+
+                if (GMax + GMax2 < EPS)
+                    break;
+
+              
+
+
 
             }
 
@@ -426,6 +411,7 @@ namespace KMLib.SVMSolvers
             si.upper_bound_p = Cp;
             si.upper_bound_n = Cn;
 
+            // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
 
 

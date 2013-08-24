@@ -287,6 +287,56 @@ namespace KMLib.GPU
 
         }
 
+        /// <summary>
+        /// Convert sparse vectors into ellpack-r format, all data has collumn majored ordering
+        /// 
+        /// </summary>
+        /// <param name="vecVals"></param>
+        /// <param name="vecCols"></param>
+        /// <param name="rowLength"></param>
+        /// <param name="problemElements"></param>
+        public static void TransformToEllpackRFormat(out float[] vecVals, out int[] vecCols, out int[] rowLength, SparseVec[] problemElements,int align)
+        {
+            int maxEl = 1;
+            //for (int i = 0; i < problemElements.Length; i++)
+            //{
+            //    if(maxEl<problemElements[i].Count)
+            //        maxEl=problemElements[i].Count;
+            //}
+            maxEl = (from m in problemElements
+                     select m.Count).AsParallel().Max();
+
+            //if align not divide maxEl
+            var rest = maxEl % align;
+            // we add small number in order to maxEll was divided by align
+            if (rest != 0)
+                maxEl = maxEl + align - rest;
+
+
+            double avgEl = (from t in problemElements
+                            select t.Count).Average();
+
+            int numRows = problemElements.Length;
+            //2d array stored in 1d array
+            vecVals = new float[numRows * maxEl];
+            vecCols = new int[numRows * maxEl];
+            //1d array
+            rowLength = new int[numRows];
+
+            for (int i = 0; i < numRows; i++)
+            {
+                var vec = problemElements[i];
+                for (int j = 0; j < vec.Count; j++)
+                {
+                    vecVals[j * numRows + i] = vec.Values[j];
+                    vecCols[j * numRows + i] = vec.Indices[j];
+                }
+                rowLength[i] = (int)Math.Ceiling((vec.Count+0.0)/align);
+                //rowLength[i] = vec.Count;
+            }
+
+        }
+
 
         /// <summary>
         /// Convert sparse vector into slice ellpack format, all data has column majored ordering, with group of <see cref="threadPerRow"/> elements
@@ -300,14 +350,14 @@ namespace KMLib.GPU
         /// <param name="sliceSize"></param>
         public static void TransformToSlicedEllpack(out float[] vecVals, out int[] vecCols,out int[] sliceStart,out int[] rowLenght, SparseVec[] problemElements, int threadsPerRow, int sliceSize)
         {
-            //int align = 128 *(int) Math.Ceiling((float)(sliceSize * threadsPerRow) / 128);
+            //int alignold = 128 *(int) Math.Ceiling((float)(sliceSize * threadsPerRow) / 128);
 
-            
-            int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 64.0)*64;
+            int alignParam = 64;
+
+            //int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 64.0)*64;
             //int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 2.0) * 2;
-            int align2 = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
+            int align = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / alignParam) * alignParam;
 
-            //Debug.Assert(align == align2);
 
             int numRows = problemElements.Length;
             int numSlices = (int)Math.Ceiling( (numRows+0.0)/ sliceSize);

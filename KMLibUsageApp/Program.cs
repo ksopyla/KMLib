@@ -23,6 +23,10 @@ namespace KMLibUsageApp
         private static float C = 4f;
         static float gamma = 0.5f;
         private static int folds = 5;
+
+        //IDataTransform<SparseVec> dataTransform = new LpNorm(1);
+        static IDataTransform<SparseVec> dataTransform = new NullTransform();
+
         private static void Main(string[] args)
         {
             if (args.Length < 1)
@@ -43,7 +47,7 @@ namespace KMLibUsageApp
             
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
             
-            TestOneDataSet(dataFolder);
+            //TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -55,7 +59,10 @@ namespace KMLibUsageApp
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-            SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+
+                  
+            //SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+            SVMClassifyLowLevelManyTests(trainningFile, testFile, numberOfFeatures, C,3);
 
             //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
@@ -113,8 +120,7 @@ namespace KMLibUsageApp
             Problem<SparseVec> test = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
             
             //Do dataset Normalization
-            IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            //IDataTransform<SparseVec> dataTransform = new NullTransform();            
+                        
             train.Elements = dataTransform.Transform(train.Elements);
             test.Elements = dataTransform.Transform(test.Elements);
 
@@ -124,9 +130,9 @@ namespace KMLibUsageApp
 
             // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
-            IKernel<SparseVec> kernel = new ChiSquaredKernel();
+           // IKernel<SparseVec> kernel = new ChiSquaredKernel();
             //IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
             //IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
             
@@ -546,7 +552,8 @@ namespace KMLibUsageApp
             // testFile = dataFolder + "/toy_2d.test";
             // numberOfFeatures = 2;
 
-
+            testFile = trainningFile = dataFolder + "/toy_8ins_6d.txt";
+            numberOfFeatures = 6;
 
             //trainningFile = dataFolder + "/toy_10d_10.train";
             //testFile = dataFolder + "/toy_10d_10.train";
@@ -562,10 +569,10 @@ namespace KMLibUsageApp
             //numberOfFeatures = 123;
 
 
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
-            //testfile = datafolder + "/a9a";
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            ////testfile = datafolder + "/a9a";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a_128.train";
             //testFile = dataFolder + "/a9a.t";
@@ -587,12 +594,9 @@ namespace KMLibUsageApp
             //numberOfFeatures = 1335191;
 
             //trainningFile = dataFolder + "/mnist.scale";
-            ////trainningFile = dataFolder + "/mnist.scale_10k";
-            //testFile = dataFolder + "/mnist.scale.t";
-            //numberOfFeatures = 784;
-
-            
-
+            trainningFile = dataFolder + "/mnist.scale20k";
+            testFile = dataFolder + "/mnist.scale1k.t";
+            numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
@@ -664,9 +668,6 @@ namespace KMLibUsageApp
             float paramC)
         {
 
-            IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            //IDataTransform<SparseVec> dataTransform = new NullTransform();
-
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
@@ -687,17 +688,15 @@ namespace KMLibUsageApp
             Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
 
             #region Cuda kernels
+
+            //IKernel<SparseVec> kernel = new CuLinearKernel();
+            //IKernel<SparseVec> kernel = new CuRBFCSRKernel(gamma );
+            IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
             
-            //IKernel<SparseVec> kernel = new CudaLinearKernel();
-            //IKernel<SparseVec> kernel = new CuRBFKernel(gamma );
-            //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
-            //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel(gamma);
-            //IKernel<SparseVec> kernel = new CudafyRBFSlicedEllpackKernel(gamma);
 
-
-            IKernel<SparseVec> kernel = new CuChi2EllKernel();
-            //IKernel<SparseVec> kernel = new CuChiSquaredEllpackKernel2();
-            //IKernel<SparseVec> kernel = new CuChiSquaredNormEllpackKernel();
+            //IKernel<SparseVec> kernel = new CuChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuNChi2EllKernel();
             //IKernel<SparseVec> kernel = new CuExpChiEllKernel(gamma);
 
 
@@ -713,6 +712,9 @@ namespace KMLibUsageApp
             //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
             //this solver works a bit faster and use less memory
             var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            //var Solver = new SmoFanSolver<SparseVec>(train, kernel, C);
+            //var Solver = new SmoRandomSolver<SparseVec>(train, kernel, C);
+
             //var Solver = new GPUSmoFanSolver(train, kernel, C);
 
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
@@ -778,6 +780,144 @@ namespace KMLibUsageApp
             Console.WriteLine("accuracy ={0}", accuracy);
 
         }
+
+
+
+        /// <summary>
+        /// Train and test SVM, using low level api, construct kernels, solver and evaluator by hand
+        /// </summary>
+        private static void SVMClassifyLowLevelManyTests(string trainningFile,
+            string testFile,
+            int numberOfFeatures,
+            float paramC,int numTests)
+        {
+
+            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
+            Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
+            Console.WriteLine();
+
+            Console.WriteLine("read vectors");
+            //Problem<SparseVec> test1 = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
+            //Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
+
+            Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
+            train.Elements = dataTransform.Transform(train.Elements);
+
+            Console.WriteLine("end read vectors");
+
+            Model<SparseVec> model=null;
+            //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+
+            #region Cuda kernels
+
+            //IKernel<SparseVec> kernel = new CuLinearKernel();
+            //IKernel<SparseVec> kernel = new CuRBFCSRKernel(gamma );
+            //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
+
+
+            //IKernel<SparseVec> kernel = new CuChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuNChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuExpChiEllKernel(gamma);
+
+
+            #endregion
+            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVec> kernel = new LinearKernel();
+
+            Console.WriteLine("kernel init");
+            kernel.ProblemElements = train.Elements;
+            kernel.Y = train.Y;
+            kernel.Init();
+
+            //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
+            //this solver works a bit faster and use less memory
+            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            //var Solver = new SmoFanSolver<SparseVec>(train, kernel, C);
+            //var Solver = new SmoRandomSolver<SparseVec>(train, kernel, C);
+
+            //var Solver = new GPUSmoFanSolver(train, kernel, C);
+
+            Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
+
+            long[] modelTimes = new long[numTests];
+
+            Stopwatch timer = Stopwatch.StartNew();
+
+            for (int i = 0; i < numTests; i++)
+            {
+                model = Solver.ComputeModel();
+
+                modelTimes[i]= model.ModelTimeMs;
+                
+                Console.Write(model.ToString());
+            }
+
+            Console.WriteLine("average time of {0} runs is:{1}", numTests, modelTimes.Average());
+
+
+
+            //model.WriteToFile("modelFileCU.txt");
+
+            var disSolver = Solver as IDisposable;
+            if (disSolver != null)
+                disSolver.Dispose();
+            Solver = null;
+
+            var disKernel = kernel as IDisposable;
+            if (disKernel != null)
+                disKernel.Dispose();
+
+
+
+
+            train.Dispose();
+
+            Console.WriteLine("Start Testing");
+
+
+            Problem<SparseVec> test = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
+            test.Elements = dataTransform.Transform(test.Elements);
+            evaluator.Kernel = kernel;
+            evaluator.TrainedModel = model;
+
+            evaluator.Init();
+
+
+            Stopwatch t = Stopwatch.StartNew();
+            float[] predictions = evaluator.Predict(test.Elements); //new float[1]; //
+
+            t.Stop();
+            //toremove: only for tests
+            Console.WriteLine("prediction takes {0}  ms={1}", t.Elapsed, t.ElapsedMilliseconds);
+
+
+
+            //todo: Free evaluator memories
+            var disposeEvaluator = evaluator as IDisposable;
+            if (disposeEvaluator != null)
+                disposeEvaluator.Dispose();
+
+
+            int correct = 0;
+            for (int i = 0; i < predictions.Length; i++)
+            {
+                float predictedLabel = predictions[i];
+
+                if (predictedLabel == test.Y[i])
+                    ++correct;
+            }
+            test.Dispose();
+            double accuracy = (float)correct / predictions.Length;
+            Console.WriteLine("accuracy ={0}", accuracy);
+
+        }
+
+
 
         /// <summary>
         /// Train and test Linear SVM, using low level api, construct kernels, solver and evaluator by hand
