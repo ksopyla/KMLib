@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,7 +29,7 @@ namespace KMLib.GPU
         /// </summary>
         /// <param name="mainVec"></param>
         /// <param name="fillVector"></param>
-        public static void FillDenseVector(SparseVec mainVec,float[] fillVector)
+        public static void FillDenseVector(SparseVec mainVec, float[] fillVector)
         {
             Array.Clear(fillVector, 0, fillVector.Length);
             for (int j = 0; j < mainVec.Count; j++)
@@ -40,7 +47,7 @@ namespace KMLib.GPU
         /// <param name="vecIdx"></param>
         /// <param name="vecLenght"></param>
         /// <param name="problemElements"></param>
-        public static void TransformToCSRFormat(out float[] vecVals, out int[] vecIdx, out int[] vecLenght,SparseVec[] problemElements)
+        public static void TransformToCSRFormat(out float[] vecVals, out int[] vecIdx, out int[] vecLenght, SparseVec[] problemElements)
         {
             //transform elements to specific array format -> CSR http://en.wikipedia.org/wiki/Sparse_matrix#Compressed_sparse_row_.28CSR_or_CRS.29
             int avgVectorLenght = problemElements[0].Count;
@@ -56,7 +63,7 @@ namespace KMLib.GPU
             //arrays for values, indexes and lenght
 
             int vecStartIdx = 0;
-           // Stopwatch timer = Stopwatch.StartNew();
+            // Stopwatch timer = Stopwatch.StartNew();
             for (int i = 0; i < problemElements.Length; i++)
             {
                 var vec = problemElements[i];
@@ -79,7 +86,7 @@ namespace KMLib.GPU
                 vecLenghtL.Add(vecStartIdx);
                 vecStartIdx += vec.Count;
             }
-          //  timer.Stop();
+            //  timer.Stop();
 
 
             //for last index
@@ -120,13 +127,13 @@ namespace KMLib.GPU
 
             int Dim = problemElements[0].Dim;
             //list of lenght of each vector, list of pointers
-            List<int> vecLenghtL = new List<int>(Dim+1 );
+            List<int> vecLenghtL = new List<int>(Dim + 1);
 
             //arrays for values, indexes and lenght
             int[] elementsCheckedDims = new int[problemElements.Length];
             int vecStartIdx = 0;
             int curColSize = 0;
-            
+
             for (int i = 1; i <= Dim; i++)
             {
                 curColSize = 0;
@@ -134,18 +141,18 @@ namespace KMLib.GPU
                 {
                     var vec = problemElements[k];
 
-                    int s=elementsCheckedDims[k];
-                    
+                    int s = elementsCheckedDims[k];
+
                     //find max index 
                     while (s < vec.Indices.Length && vec.Indices[s] < i)
                     {
                         s++;
                     }
 
-                   // int val = Array.BinarySearch(vec.Indices, s, vec.Indices.Length, i);
+                    // int val = Array.BinarySearch(vec.Indices, s, vec.Indices.Length, i);
 
                     elementsCheckedDims[k] = s;
-                    if (s<vec.Indices.Length && vec.Indices[s] == i)
+                    if (s < vec.Indices.Length && vec.Indices[s] == i)
                     {
                         //insert in to vals and idx
                         vecValsL.Add(vec.Values[s]);
@@ -158,7 +165,7 @@ namespace KMLib.GPU
                 vecLenghtL.Add(vecStartIdx);
                 vecStartIdx += curColSize;
             }
-             
+
             //for last index
             vecLenghtL.Add(vecStartIdx);
 
@@ -179,21 +186,21 @@ namespace KMLib.GPU
             int avgVectorLenght = problemElements[0].Count;
             int Dim = problemElements[0].Dim;
 
-            List<int>[] colIdx = new List<int>[Dim+1];
-            List<float>[] colVals = new List<float>[Dim+1];
+            List<int>[] colIdx = new List<int>[Dim + 1];
+            List<float>[] colVals = new List<float>[Dim + 1];
             for (int i = 1; i <= Dim; i++)
             {
                 colIdx[i] = new List<int>();
                 colVals[i] = new List<float>();
             }
-            
+
             //list for all vectors values
             List<float> vecValsL = new List<float>(problemElements.Length * avgVectorLenght);
             //list for all vectors indexes
             List<int> vecIdxL = new List<int>(problemElements.Length * avgVectorLenght);
             //list of lenght of each vector, list of pointers
             List<int> vecLenghtL = new List<int>(Dim + 1);
-            
+
             for (int k = 0; k < problemElements.Length; k++)
             {
                 var vec = problemElements[k];
@@ -214,7 +221,7 @@ namespace KMLib.GPU
             vecLenghtL.Add(curColSize);
             for (int i = 1; i <= Dim; i++)
             {
-                curColSize+= colIdx[i].Count;
+                curColSize += colIdx[i].Count;
                 vecLenghtL.Add(curColSize);
                 vecIdxL.AddRange(colIdx[i]);
                 vecValsL.AddRange(colVals[i]);
@@ -223,8 +230,8 @@ namespace KMLib.GPU
                 colVals[i] = null;
             }
 
-            
-            
+
+
             //convert list to arrays
             vecVals = vecValsL.ToArray();
             vecIdx = vecIdxL.ToArray();
@@ -238,6 +245,8 @@ namespace KMLib.GPU
 
 
 
+
+
         /// <summary>
         /// Convert sparse vectors into ellpack-r format, all data has collumn majored ordering
         /// 
@@ -246,7 +255,7 @@ namespace KMLib.GPU
         /// <param name="vecCols"></param>
         /// <param name="rowLength"></param>
         /// <param name="problemElements"></param>
-        public static void TransformToEllpackRFormat(out float[] vecVals,out int[] vecCols,out int[] rowLength, SparseVec[] problemElements)
+        public static void TransformToEllpackRFormat(out float[] vecVals, out int[] vecCols, out int[] rowLength, SparseVec[] problemElements)
         {
             int maxEl = 1;
             //for (int i = 0; i < problemElements.Length; i++)
@@ -280,6 +289,108 @@ namespace KMLib.GPU
 
         }
 
+        /// <summary>
+        /// Convert sparse vectors into ellpack-r format, all data has collumn majored ordering
+        /// 
+        /// </summary>
+        /// <param name="vecVals"></param>
+        /// <param name="vecCols"></param>
+        /// <param name="rowLength"></param>
+        /// <param name="problemElements"></param>
+        public static void TransformToEllpackRFormat(out float[] vecVals, out int[] vecCols, out int[] rowLength, SparseVec[] problemElements, int align)
+        {
+            int maxEl = 1;
+            //for (int i = 0; i < problemElements.Length; i++)
+            //{
+            //    if(maxEl<problemElements[i].Count)
+            //        maxEl=problemElements[i].Count;
+            //}
+            maxEl = (from m in problemElements
+                     select m.Count).AsParallel().Max();
+
+            //if align not divide maxEl
+            var rest = maxEl % align;
+            // we add small number in order to maxEll was divided by align
+            if (rest != 0)
+                maxEl = maxEl + align - rest;
+
+
+            double avgEl = (from t in problemElements
+                            select t.Count).Average();
+
+            int numRows = problemElements.Length;
+            //2d array stored in 1d array
+            vecVals = new float[numRows * maxEl];
+            vecCols = new int[numRows * maxEl];
+            //1d array
+            rowLength = new int[numRows];
+
+            for (int i = 0; i < numRows; i++)
+            {
+                var vec = problemElements[i];
+                for (int j = 0; j < vec.Count; j++)
+                {
+                    vecVals[j * numRows + i] = vec.Values[j];
+                    vecCols[j * numRows + i] = vec.Indices[j];
+                }
+                rowLength[i] = (int)Math.Ceiling((vec.Count + 0.0) / align);
+                //rowLength[i] = vec.Count;
+            }
+
+        }
+
+
+
+        /// <summary>
+        /// Convert sparse vectors into ERTILP format, all data has collumn majored ordering
+        /// 
+        /// </summary>
+        /// <param name="vecVals"></param>
+        /// <param name="vecCols"></param>
+        /// <param name="rowLength"></param>
+        /// <param name="problemElements"></param>
+        public static void TransformToERTILPFormat(out float[] vecVals, out int[] vecCols, out int[] rowLength, SparseVec[] problemElements, int align, int ThreadsPerRow)
+        {
+            int maxEl = 1;
+
+            maxEl = (from m in problemElements
+                     select m.Count).AsParallel().Max();
+
+            //if align not divide maxEl
+            var rest = maxEl % align;
+            // we add small number in order to maxEll was divided by align
+            if (rest != 0)
+                maxEl = maxEl + align - rest;
+
+
+            double avgEl = (from t in problemElements
+                            select t.Count).Average();
+
+            int numRows = problemElements.Length;
+            //2d array stored in 1d array
+            vecVals = new float[numRows * maxEl];
+            vecCols = new int[numRows * maxEl];
+            //1d array
+            rowLength = new int[numRows];
+
+            for (int i = 0; i < numRows; i++)
+            {
+                var vec = problemElements[i];
+
+                for (int j = 0; j < vec.Count; j++)
+                {
+                    int k = j / ThreadsPerRow;
+                    int t = j % ThreadsPerRow;
+                    vecVals[k * numRows * ThreadsPerRow + i * ThreadsPerRow + t] = vec.Values[j];
+                    vecCols[k * numRows * ThreadsPerRow + i * ThreadsPerRow + t] = vec.Indices[j];
+                }
+
+                rowLength[i] = (int)Math.Ceiling((vec.Count + 0.0) / align);
+
+            }
+
+        }
+
 
         /// <summary>
         /// Convert sparse vector into slice ellpack format, all data has column majored ordering, with group of <see cref="threadPerRow"/> elements
@@ -291,23 +402,23 @@ namespace KMLib.GPU
         /// <param name="problemElements"></param>
         /// <param name="threadsPerRow"></param>
         /// <param name="sliceSize"></param>
-        public static void TransformToSlicedEllpack(out float[] vecVals, out int[] vecCols,out int[] sliceStart,out int[] rowLenght, SparseVec[] problemElements, int threadsPerRow, int sliceSize)
+        public static void TransformToSlicedEllpack(out float[] vecVals, out int[] vecCols, out int[] sliceStart, out int[] rowLenght, SparseVec[] problemElements, int threadsPerRow, int sliceSize)
         {
-            //int align = 128 *(int) Math.Ceiling((float)(sliceSize * threadsPerRow) / 128);
+            //int alignold = 128 *(int) Math.Ceiling((float)(sliceSize * threadsPerRow) / 128);
 
-            
-            int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 64.0)*64;
+            int alignParam = 64;
+
+            //int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 64.0)*64;
             //int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 2.0) * 2;
-            int align2 = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
+            int align = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / alignParam) * alignParam;
 
-            //Debug.Assert(align == align2);
 
             int numRows = problemElements.Length;
-            int numSlices = (int)Math.Ceiling( (numRows+0.0)/ sliceSize);
+            int numSlices = (int)Math.Ceiling((numRows + 0.0) / sliceSize);
 
             rowLenght = new int[numRows];
 
-            sliceStart = new int[numSlices+1];
+            sliceStart = new int[numSlices + 1];
             //max non-zero in slice
             int[] sliceMax = new int[numSlices];
 
@@ -329,7 +440,7 @@ namespace KMLib.GPU
                         }
                     }
                 }
-                sliceStart[i + 1] = sliceStart[i] + (int)Math.Ceiling((sliceMax[i]+0.0) / threadsPerRow) * align;
+                sliceStart[i + 1] = sliceStart[i] + (int)Math.Ceiling((sliceMax[i] + 0.0) / threadsPerRow) * align;
                 //var ttt = sliceStart[i] + sliceMax[i]*sliceSize ;
 
             }
@@ -364,13 +475,105 @@ namespace KMLib.GPU
                     //eg. if sliceSize=8, threadsPerRow=4, for first vector (i=0) with size 9
                     //computed idx should be= [0 1 2 3 , 32,33,34,35, 64]
                     int idx = sliceStart[sliceNr] + align * rowSlice + rowInSlice * threadsPerRow + threadNr;
-                    
-                    vecVals[idx]=value;
+
+                    vecVals[idx] = value;
                     vecCols[idx] = col;
                 }
 
             }
-            
+
+        }
+
+        /// <summary>
+        /// Convert sparse vector into slice ellpack format, all data has column majored ordering, with group of <see cref="threadPerRow"/> elements
+        /// </summary>
+        /// <param name="vecVals">vector values</param>
+        /// <param name="vecCols"></param>
+        /// <param name="sliceStart"></param>
+        /// <param name="rowLenght"></param>
+        /// <param name="problemElements"></param>
+        /// <param name="threadsPerRow"></param>
+        /// <param name="sliceSize"></param>
+        public static void TransformToSERTILP(out float[] vecVals, out int[] vecCols, out int[] sliceStart, out int[] rowLenght, SparseVec[] problemElements, int threadsPerRow, int sliceSize,int preFetch)
+        {
+            //int alignold = 128 *(int) Math.Ceiling((float)(sliceSize * threadsPerRow) / 128);
+
+            int alignParam = 64;
+
+            //int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 64.0)*64;
+            //int align = (int)Math.Ceiling(sliceSize * threadsPerRow / 2.0) * 2;
+            int align = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / alignParam) * alignParam;
+
+
+            int numRows = problemElements.Length;
+            int numSlices = (int)Math.Ceiling((numRows + 0.0) / sliceSize);
+
+            rowLenght = new int[numRows];
+
+            sliceStart = new int[numSlices + 1];
+            //max non-zero in slice
+            int[] sliceMax = new int[numSlices];
+
+            int sliceNr = 0;
+            //find max in slice
+            for (int i = 0; i < numSlices; i++)
+            {
+                sliceMax[i] = -1;
+                int idx = -1;
+                for (int j = 0; j < sliceSize; j++)
+                {
+                    idx = j + i * sliceSize;
+                    if (idx < numRows)
+                    {
+                        rowLenght[idx] = problemElements[idx].Count; 
+                        if (sliceMax[i] < rowLenght[idx])
+                        {
+                            sliceMax[i] = rowLenght[idx];
+                        }
+                        rowLenght[idx] = (int)Math.Ceiling(1.0 * rowLenght[idx] / (threadsPerRow * preFetch));
+                    }
+                }
+                //different than original Slice EllR-T, multiplicated by preFech
+                sliceStart[i + 1] = sliceStart[i] + (int)Math.Ceiling( 1.0*sliceMax[i] /(preFetch* threadsPerRow) ) *preFetch * align;
+            }
+
+            //
+            int nnzEl = sliceStart[numSlices];
+            vecCols = new int[nnzEl];
+            vecVals = new float[nnzEl];
+
+            sliceNr = 0;
+            int rowInSlice = 0;
+            //fill slice ellpack values and cols arrays
+            for (int i = 0; i < numRows; i++)
+            {
+                //slice number in whole dataset
+                sliceNr = i / sliceSize;
+                //row number  in particular slice
+                rowInSlice = i % sliceSize;
+                var vec = problemElements[i];
+
+                int threadNr = -1;
+                float value = 0;
+                int col = -1;
+
+                int rowSlice = -1;// (int)Math.Ceiling((0.0 + vec.Count) / threadsPerRow);
+                for (int k = 0; k < vec.Count; k++)
+                {
+                    threadNr = k % threadsPerRow;
+                    rowSlice = k / threadsPerRow;
+                    value = vec.Values[k];
+                    col = vec.Indices[k];
+                    //eg. if sliceSize=8, threadsPerRow=4, for first vector (i=0) with size 9
+                    //computed idx should be= [0 1 2 3 , 32,33,34,35, 64]
+                    int idx = sliceStart[sliceNr] + align * rowSlice + rowInSlice * threadsPerRow + threadNr;
+
+                    vecVals[idx] = value;
+                    vecCols[idx] = col;
+                }
+
+            }
+
         }
 
         /// <summary>
@@ -472,7 +675,7 @@ namespace KMLib.GPU
         }
 
 
-        internal static void SetTextureMemory(CUDA cuda,CUmodule cuModule, ref CUtexref texture, string texName, float[] data, ref CUdeviceptr memPtr)
+        internal static void SetTextureMemory(CUDA cuda, CUmodule cuModule, ref CUtexref texture, string texName, float[] data, ref CUdeviceptr memPtr)
         {
             texture = cuda.GetModuleTexture(cuModule, texName);
             memPtr = cuda.CopyHostToDevice(data);

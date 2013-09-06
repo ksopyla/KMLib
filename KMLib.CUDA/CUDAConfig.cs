@@ -15,6 +15,7 @@ namespace KMLib.GPU
        public const int XBlockSize =256;
 
 
+
        /// <summary>
        /// The size of block in y-axis
        /// </summary>
