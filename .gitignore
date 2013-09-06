@@ -62,3 +62,12 @@ KMLibUsageApp/Data/news20.zip
 KMLibUsageApp/Data/w8a.zip
 .PowerFolder/*
 .SyncArchive/*
+Libs/cudafy1.25/Cudafy.NET.dll
+Libs/NMath/NMathMatrixMain.dll
+Libs/NMath/NMathMatrixKernelx86.dll
+Libs/NMath/*
+Libs/Cuda/*
+KMLibUsageApp/modelFile.txt
+KMLibUsageApp/Data/real-sim.t
+KMLibUsageApp/Data/real-sim*
+KMLibUsageApp/Data/real-sim.t
