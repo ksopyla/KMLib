@@ -13,7 +13,7 @@ namespace KMLib.GPU
 {
 
     /// <summary>
-    /// Represents RBF evaluator, its used for prediction unseen elements. For prediction use CUDA, data is in CSR fromat.
+    /// Represents RBF evaluator, its used for prediction an unseen elements. For prediction use CUDA, data is in CSR fromat.
     /// </summary>
     public class CudaRBFCSREvaluator : CudaVectorEvaluator, IDisposable
     {

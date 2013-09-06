@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,10 +22,10 @@ namespace KMLib.GPU
 
     /// <summary>
     /// Class for computing RBF kernel using cuda.
-    /// Data are stored in sliced Ellpack-R format use only CUDA.net library
+    /// Data are stored inSERTILP format 
     /// 
     /// </summary>
-    public class CuRBFSlicedEllpackKernel2 : CuVectorKernel, IDisposable
+    public class CuRBFSERTILPKernel : CuVectorKernel, IDisposable
     {
 
         /// <summary>
@@ -43,26 +50,34 @@ namespace KMLib.GPU
         private int align;
         private CUdeviceptr sliceStartPtr;
         private int blockSize;
+        
+        
+        /// <summary>
+        /// How many nonzeros are prefech by each thread
+        /// </summary>
+        private int preFechSize;
 
 
 
 
-        public CuRBFSlicedEllpackKernel2(float gamma)
+        public CuRBFSERTILPKernel(float gamma)
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
 
-            
-            
-            cudaProductKernelName = "rbfSlicedEllpackKernel";
+
+
+            cudaProductKernelName = "rbfSERTILP";
             //cudaProductKernelName = "rbfSlicedEllpackKernel_shared";
 
-            cudaModuleName = "rbfSlicedEllpackKernel.cubin";
-
-            cudaMainVecTexRefName = "mainVecTexRef";
+            cudaModuleName = "KernelsSlicedEllpack.cubin";
 
             threadsPerRow =  4;
             sliceSize =  64;
+            preFechSize = 2;
+
+            //threadsPerRow = 2;
+            //sliceSize = 4;
         }
 
 
@@ -154,7 +169,7 @@ namespace KMLib.GPU
             int[] vecLenght;
             int[] sliceStart;
 
-            CudaHelpers.TransformToSlicedEllpack(out vecVals, out vecColIdx, out sliceStart, out vecLenght, problemElements, threadsPerRow, sliceSize);
+            CudaHelpers.TransformToSERTILP(out vecVals, out vecColIdx, out sliceStart, out vecLenght, problemElements, threadsPerRow, sliceSize,preFechSize);
 
             selfLinDot = linKernel.DiagonalDotCache;
 
@@ -279,11 +294,18 @@ namespace KMLib.GPU
                 cuda.DestroyTexture(cuMainVecTexRef);
 
                 cuda.UnloadModule(cuModule);
+
+
+                base.Dispose();
                 cuda.Dispose();
                 cuda = null;
             }
         }
 
         #endregion
+        public override string ToString()
+        {
+            return "CuRBF_SERTILP";
+        }
     }
 }

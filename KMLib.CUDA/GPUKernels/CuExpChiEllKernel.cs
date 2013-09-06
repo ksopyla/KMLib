@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,17 +22,17 @@ namespace KMLib.GPU
 {
 
     /// <summary>
-    /// Class for computing RBF kernel using cuda.
+    /// Class for computing Exp(-gamma*chi2(x,y)) kernel using cuda.
     /// Data are stored in Ellpack-R format.
     /// 
     /// </summary>
-    public class CuRBFEllpackKernel : CuVectorKernel, IDisposable
+    public class CuExpChiEllKernel : CuVectorKernel, IDisposable
     {
 
         /// <summary>
         /// Array for self dot product 
         /// </summary>
-        float[] selfLinDot;
+        float[] selfSum;
  
 
         private float Gamma;
@@ -33,21 +40,22 @@ namespace KMLib.GPU
 
 
         /// <summary>
-        /// cuda device pointer for stroing self linear dot product
+        /// cuda device pointer for stroing self sum of each vector
         /// </summary>
-        private CUdeviceptr selfLinDotPtr;
+        private CUdeviceptr selfSumPtr;
 
 
 
-        public CuRBFEllpackKernel(float gamma)
+        public CuExpChiEllKernel(float gamma)
         {
-            linKernel = new LinearKernel();
+           
             Gamma = gamma;
-            cudaProductKernelName = "rbfEllpackFormatKernel";
-            //cudaProductKernelName = "rbfEllpackFormatKernel_shared";
-            //cudaProductKernelName = "rbfEllpackFormatKernel_ILP";
-            //cudaProductKernelName = "rbfEllpackFormatKernel_ILP_shared";
+            cudaProductKernelName = "expChi2EllpackKernel";
+
+            
             cudaModuleName = "KernelsEllpack.cubin";
+
+            
             MakeDenseVectorOnGPU = false;
             
         }
@@ -56,14 +64,9 @@ namespace KMLib.GPU
         public override float Product(SparseVec element1, SparseVec element2)
         {
 
-            float x1Squere = linKernel.Product(element1, element1);
-            float x2Squere = linKernel.Product(element2, element2);
+            float chi=ChiSquaredKernel.ChiSquareDist(element1, element2);
 
-            float dot = linKernel.Product(element1, element2);
-
-            float prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
-
-            return prod;
+            return (float)Math.Exp(-Gamma * chi);
 
         }
 
@@ -76,29 +79,20 @@ namespace KMLib.GPU
                 throw new IndexOutOfRangeException("element2 out of range");
 
 
-            float x1Squere = 0f, x2Squere = 0f, dot = 0f, prod = 0f;
+            float prod = 0f;
 
             if (element1 == element2)
             {
-                if (DiagonalDotCacheBuilded)
-                    return DiagonalDotCache[element1];
-                else
-                {
                     //all parts are the same
-                    // x1Squere = x2Squere = dot = linKernel.Product(element1, element1);
-                    //prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
-                    // (x1Squere + x2Squere - 2 * dot)==0 this expresion is equal zero
                     //so we can prod set to 1 beceause exp(0)==1
                     prod = 1f;
-                }
+                
             }
             else
             {
                 //when element1 and element2 are different we have to compute all parts
-                x1Squere = linKernel.Product(element1, element1);
-                x2Squere = linKernel.Product(element2, element2);
-                dot = linKernel.Product(element1, element2);
-                prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+                float chi = ChiSquaredKernel.ChiSquareDist(problemElements[element1], problemElements[element2]);
+                prod= (float)Math.Exp(-Gamma * chi);
             }
             return prod;
         }
@@ -121,12 +115,6 @@ namespace KMLib.GPU
 
         public override void Init()
         {
-            throw new ArgumentOutOfRangeException("hohoho");
-
-            linKernel.ProblemElements = problemElements;
-            linKernel.Y = Y;
-            linKernel.Init();
-
             base.Init();
 
             float[] vecVals;
@@ -135,7 +123,10 @@ namespace KMLib.GPU
 
             CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
 
-            selfLinDot = linKernel.DiagonalDotCache;
+
+            selfSum = problemElements.AsParallel().Select(x => x.Values.Sum()).ToArray();
+
+           
 
             #region cuda initialization
 
@@ -147,7 +138,7 @@ namespace KMLib.GPU
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 
             
-            selfLinDotPtr = cuda.CopyHostToDevice(selfLinDot);
+            selfSumPtr = cuda.CopyHostToDevice(selfSum);
 
             uint memSize = (uint)(problemElements.Length * sizeof(float));
             //allocate mapped memory for our results
@@ -155,16 +146,9 @@ namespace KMLib.GPU
 
 
 
-            // var e= CUDADriver.cuMemHostAlloc(ref outputIntPtr, memSize, 8);
-            //CUDARuntime.cudaHostAlloc(ref outputIntPtr, memSize, CUDARuntime.cudaHostAllocMapped);
-            //var errMsg=CUDARuntime.cudaGetErrorString(e);
-            //cuda.HostRegister(outputIntPtr,memSize, Cuda)
+            
             outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
-
-            //normal memory allocation
-            //outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
-
 
             #endregion
 
@@ -189,6 +173,7 @@ namespace KMLib.GPU
 
 
 
+
         protected override void SetCudaFunctionParameters()
         {
 
@@ -204,7 +189,7 @@ namespace KMLib.GPU
             cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFunc, offset, selfLinDotPtr.Pointer);
+            cuda.SetParameter(cuFunc, offset, selfSumPtr.Pointer);
             offset += IntPtr.Size;
 
             kernelResultParamOffset = offset;
@@ -243,8 +228,8 @@ namespace KMLib.GPU
                 cuda.Free(vecLengthPtr);
                 vecLengthPtr.Pointer = IntPtr.Zero;
 
-                cuda.Free(selfLinDotPtr);
-                selfLinDotPtr.Pointer = IntPtr.Zero;
+                cuda.Free(selfSumPtr);
+                selfSumPtr.Pointer = IntPtr.Zero;
 
 
                 cuda.FreeHost(outputIntPtr);
@@ -262,7 +247,6 @@ namespace KMLib.GPU
                 cuda.UnloadModule(cuModule);
 
 
-                
                 base.Dispose();
 
                 cuda.Dispose();
@@ -271,10 +255,5 @@ namespace KMLib.GPU
         }
 
         #endregion
-
-        public override string ToString()
-        {
-            return "CuRBFEllpack";
-        }
     }
 }

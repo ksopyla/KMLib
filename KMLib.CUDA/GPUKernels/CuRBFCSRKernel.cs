@@ -1,4 +1,10 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,7 +24,7 @@ namespace KMLib.GPU
     /// Data are stored in CSR format.
     /// 
     /// </summary>
-    public class CuRBFKernel : CuVectorKernel, IDisposable
+    public class CuRBFCSRKernel : CuVectorKernel, IDisposable
     {
      
         /// <summary>
@@ -39,11 +45,14 @@ namespace KMLib.GPU
 
        
 
-        public CuRBFKernel(float gamma)
+        public CuRBFCSRKernel(float gamma)
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
             cudaProductKernelName = "rbfCsrFormatKernel";
+
+            cudaModuleName = "KernelsCSR.cubin";
+
         }
 
 
@@ -232,11 +241,23 @@ namespace KMLib.GPU
                 cuda.DestroyTexture(cuMainVecTexRef);
 
                 cuda.UnloadModule(cuModule);
+
+
+
+
+
+                base.Dispose();
+                
                 cuda.Dispose();
                 cuda = null;
             }
         }
 
         #endregion
+
+        public override string ToString()
+        {
+            return "CuRBFCSR";
+        }
     }
 }

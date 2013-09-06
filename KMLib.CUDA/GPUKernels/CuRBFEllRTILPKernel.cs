@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,39 +16,68 @@ using System.IO;
 using System.Runtime.InteropServices;
 using KMLib.Kernels;
 using KMLib.Helpers;
+using KMLib.GPU.GPUKernels;
 
 namespace KMLib.GPU
 {
 
     /// <summary>
-    /// Represents Chi^2 Kernel for computing product between two histograms
-    /// 
-    /// K(x,y)= Sum( (xi*yi)/(xi+yi))
-    /// 
-    /// vectors should contains positive numbers(like histograms does) and should be normalized
-    /// sum(xi)=1
-    /// Data are stored in Ellpack-R format.
+    /// Class for computing RBF kernel using cuda.
+    /// Data are stored in Ellpack-R-T format with utilization of ILP technique.
+    /// T threads are operate on single row,
+    /// Values and columns are algined to T*PrefetchSize
     /// 
     /// </summary>
-    public class CuChiSquaredNormEllpackKernel : CuVectorKernel, IDisposable
+    public class CuRBFEllRTILPKernel : CuVectorKernel, IDisposable
     {
 
-        ChiSquaredNormKernel chiSquared;
+        /// <summary>
+        /// Array for self dot product 
+        /// </summary>
+        float[] selfLinDot;
+ 
+
+        private float Gamma;
 
 
-        public CuChiSquaredNormEllpackKernel()
+
+        /// <summary>
+        /// cuda device pointer for stroing self linear dot product
+        /// </summary>
+        private CUdeviceptr selfLinDotPtr;
+        private int ThreadsPerRow;
+        private int Prefetch;
+
+
+
+        public CuRBFEllRTILPKernel(float gamma)
         {
             linKernel = new LinearKernel();
-            chiSquared = new ChiSquaredNormKernel();
-            
-            cudaProductKernelName = "chiSquaredNormEllpackKernel";
+            Gamma = gamma;
+            cudaProductKernelName = "rbfEllRTILP";
+
+            cudaModuleName = "KernelsEllpack.cubin";
+
+            MakeDenseVectorOnGPU = false;
+
+            ThreadsPerRow = 4;
+            Prefetch =2;
             
         }
 
 
         public override float Product(SparseVec element1, SparseVec element2)
         {
-            return chiSquared.Product(element1, element2);
+
+            float x1Squere = linKernel.Product(element1, element1);
+            float x2Squere = linKernel.Product(element2, element2);
+
+            float dot = linKernel.Product(element1, element2);
+
+            float prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+
+            return prod;
+
         }
 
         public override float Product(int element1, int element2)
@@ -53,23 +89,54 @@ namespace KMLib.GPU
                 throw new IndexOutOfRangeException("element2 out of range");
 
 
-            return chiSquared.Product(element1, element2);
+            float x1Squere = 0f, x2Squere = 0f, dot = 0f, prod = 0f;
+
+            if (element1 == element2)
+            {
+                if (DiagonalDotCacheBuilded)
+                    return DiagonalDotCache[element1];
+                else
+                {
+                    //all parts are the same
+                    // x1Squere = x2Squere = dot = linKernel.Product(element1, element1);
+                    //prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+                    // (x1Squere + x2Squere - 2 * dot)==0 this expresion is equal zero
+                    //so we can prod set to 1 beceause exp(0)==1
+                    prod = 1f;
+                }
+            }
+            else
+            {
+                //when element1 and element2 are different we have to compute all parts
+                x1Squere = linKernel.Product(element1, element1);
+                x2Squere = linKernel.Product(element2, element2);
+                dot = linKernel.Product(element1, element2);
+                prod = (float)Math.Exp(-Gamma * (x1Squere + x2Squere - 2 * dot));
+            }
+            return prod;
         }
 
         public override ParameterSelection<SparseVec> CreateParameterSelection()
         {
             throw new NotImplementedException();
+            //return new RbfParameterSelection();
         }
 
-
+        public override void SetMemoryForDenseVector(int mainIndex)
+        {
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder.BuildDenseVector(mainIndex);
+            }else
+                base.SetMemoryForDenseVector(mainIndex);
+        }
 
 
         public override void Init()
         {
-            
-            chiSquared.ProblemElements = problemElements;
-            chiSquared.Y = Y;
-            chiSquared.Init();
+            linKernel.ProblemElements = problemElements;
+            linKernel.Y = Y;
+            linKernel.Init();
 
             base.Init();
 
@@ -77,7 +144,15 @@ namespace KMLib.GPU
             int[] vecColIdx;
             int[] vecLenght;
 
-            CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
+            
+            //change the blocksPerGrid, because we launch many threads per row
+            blocksPerGrid =(int) Math.Ceiling((ThreadsPerRow * problemElements.Length+0.0) / threadsPerBlock);
+
+
+             int align = ThreadsPerRow*Prefetch;
+            CudaHelpers.TransformToERTILPFormat(out vecVals, out vecColIdx, out vecLenght, problemElements,align,ThreadsPerRow);
+           
+            selfLinDot = linKernel.DiagonalDotCache;
 
             #region cuda initialization
 
@@ -88,8 +163,19 @@ namespace KMLib.GPU
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 
+            
+            selfLinDotPtr = cuda.CopyHostToDevice(selfLinDot);
+
             uint memSize = (uint)(problemElements.Length * sizeof(float));
             //allocate mapped memory for our results
+            //CUDARuntime.cudaSetDeviceFlags(CUDARuntime.cudaDeviceMapHost);
+
+
+
+            // var e= CUDADriver.cuMemHostAlloc(ref outputIntPtr, memSize, 8);
+            //CUDARuntime.cudaHostAlloc(ref outputIntPtr, memSize, CUDARuntime.cudaHostAllocMapped);
+            //var errMsg=CUDARuntime.cudaGetErrorString(e);
+            //cuda.HostRegister(outputIntPtr,memSize, Cuda)
             outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
 
@@ -110,6 +196,11 @@ namespace KMLib.GPU
 
             CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
 
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder = new EllpackDenseVectorBuilder(cuda, mainVecPtr, valsPtr, idxPtr, vecLengthPtr, problemElements.Length, problemElements[0].Dim);
+                vecBuilder.Init();
+            }
 
         }
 
@@ -129,7 +220,10 @@ namespace KMLib.GPU
 
             cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
-            
+
+            cuda.SetParameter(cuFunc, offset, selfLinDotPtr.Pointer);
+            offset += IntPtr.Size;
+
             kernelResultParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
             offset += IntPtr.Size;
@@ -140,6 +234,9 @@ namespace KMLib.GPU
             mainVecIdxParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
             offset += sizeof(int);
+
+            cuda.SetParameter(cuFunc, offset, Gamma);
+            offset += sizeof(float);
 
             cuda.SetParameterSize(cuFunc, (uint)offset);
 
@@ -163,6 +260,10 @@ namespace KMLib.GPU
                 cuda.Free(vecLengthPtr);
                 vecLengthPtr.Pointer = IntPtr.Zero;
 
+                cuda.Free(selfLinDotPtr);
+                selfLinDotPtr.Pointer = IntPtr.Zero;
+
+
                 cuda.FreeHost(outputIntPtr);
                 //cuda.Free(outputPtr);
                 outputPtr.Pointer = IntPtr.Zero;
@@ -176,6 +277,9 @@ namespace KMLib.GPU
                 cuda.DestroyTexture(cuMainVecTexRef);
 
                 cuda.UnloadModule(cuModule);
+
+
+                base.Dispose();
                 cuda.Dispose();
                 cuda = null;
             }
@@ -185,8 +289,7 @@ namespace KMLib.GPU
 
         public override string ToString()
         {
-            return "Cuda Chi-Squared Norm Kernel";
+            return "CuRBF_ERTILP";
         }
     }
-
 }

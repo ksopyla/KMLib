@@ -119,7 +119,8 @@ namespace KMLib.Helpers
             
             if (indexes.Count != vals.Count)
             {
-                throw new ArgumentOutOfRangeException("collections have different sizes");
+                string expMsg = string.Format("collections have different sizes, {0}!={1}", indexes.Count, vals.Count);
+                throw new ArgumentOutOfRangeException(expMsg);
             }
             Indices = new int[indexes.Count];
             Values = new float[vals.Count];
@@ -193,7 +194,8 @@ namespace KMLib.Helpers
 
             if (otherVector.Dim != Dim)
             {
-                throw new ArgumentException("different dimensions", "otherVector");
+                string expMsg = string.Format("different dimensions vec1={0} vec2={1}", this.ToString(), otherVector.ToString());
+                throw new ArgumentException(expMsg, "otherVector");
             }
 
             float result = 0;

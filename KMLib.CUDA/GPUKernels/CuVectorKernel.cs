@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.IO;
 using KMLib.Helpers;
 using System.Diagnostics;
+using KMLib.GPU.GPUKernels;
 
 namespace KMLib.GPU
 {
@@ -18,20 +19,20 @@ namespace KMLib.GPU
     /// Based clas for all cuda enable svm kernel
     /// This class encapsulates all necessary variables for cuda.net library
     /// </summary>
-    public abstract class CuVectorKernel : VectorKernel<SparseVec>
+    public abstract class CuVectorKernel : VectorKernel<SparseVec>, IDisposable
     {
 
         #region cuda names
         /// <summary>
         /// cuda module name
         /// </summary>
-        protected string cudaModuleName = "cudaSVMKernels.cubin";
+        protected string cudaModuleName = "";
 
 
         /// <summary>
         /// cuda texture name for main vector
         /// </summary>
-        protected string cudaMainVecTexRefName = "mainVectorTexRef";
+        protected string cudaMainVecTexRefName = "mainVecTexRef";
         /// <summary>
         /// cuda texture name for labels
         /// </summary>
@@ -148,10 +149,14 @@ namespace KMLib.GPU
         /// <summary>
         /// cuda context for svm kernel
         /// </summary>
-        private CUcontext cuCtx;
+        protected CUcontext cuCtx;
 
 
         #endregion
+
+        protected bool MakeDenseVectorOnGPU = false;
+
+        protected EllpackDenseVectorBuilder vecBuilder;
 
 
         public override SparseVec[] ProblemElements
@@ -219,7 +224,7 @@ namespace KMLib.GPU
             Marshal.Copy(outputIntPtr, results, 0, results.Length);
 
 
-        }
+         }
 
 
         
@@ -243,23 +248,28 @@ namespace KMLib.GPU
             //set the last parameter for kernel
             mainVectorIdx = (uint)element1;
             cuda.SetParameter(cuFunc, mainVecIdxParamOffset, mainVectorIdx);
-            
             cuda.SetParameter(cuFunc, kernelResultParamOffset, devResultPtr);
 
             cuda.Launch(cuFunc, blocksPerGrid, 1);
             
 
             //when gpu solver is used all cuda Launch are queued, so we don't have to synchronize context
-            //cuda.SynchronizeContext();
+            cuda.SynchronizeContext();
             
         }
 
         protected void InitCudaModule()
         {
+            int deviceNr = 0;
 
-            cuda = new CUDA(0, true);
-            cuCtx = cuda.CreateContext(0, CUCtxFlags.MapHost);
-            cuda.SetCurrentContext(cuCtx);
+            
+            cuda = new CUDA(deviceNr,true);
+            cuCtx = cuda.CreateContext(deviceNr, CUCtxFlags.MapHost);
+            //cuda.SetCurrentContext(cuCtx);
+
+            //var ctx = cuda.PopCurrentContext();
+            //var ctx2 = cuda.PopCurrentContext();
+            //var ctx3 = cuda.PopCurrentContext();
 
             string modluePath = Path.Combine(Environment.CurrentDirectory, cudaModuleName);
             if (!File.Exists(modluePath))
@@ -291,5 +301,18 @@ namespace KMLib.GPU
             //base.SwapIndex(i, j);
         }
 
+
+        public void Dispose()
+        {
+            if (cuda != null)
+            {
+                var c = cuda.PopCurrentContext();
+                cuda.DestroyContext();
+                var c1 = cuda.PopCurrentContext();
+                cuda.DestroyContext();
+            }
+
+
+        }
     }
 }

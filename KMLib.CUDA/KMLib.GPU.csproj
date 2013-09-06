@@ -134,9 +134,13 @@
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
     <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
   </PropertyGroup>
+  <PropertyGroup>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Cudafy.NET">
-      <HintPath>..\Libs\Cudafy.NET.dll</HintPath>
+    <Reference Include="Cudafy.NET, Version=1.25.4963.10126, Culture=neutral, PublicKeyToken=63a4c9931616906b, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Libs\cudafy1.25\Cudafy.NET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -147,15 +151,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GPUKernels\CuChiSquaredNormEllpackKernel.cs" />
-    <Compile Include="GPUKernels\CuChiSquaredEllpackKernel.cs" />
-    <Compile Include="GPUKernels\CuRBFSlicedEllpackKernel2.cs" />
+    <Compile Include="GPUKernels\CuRBFSERTILPKernel.cs" />
+    <Compile Include="GPUKernels\CuRBFEllRTILPKernel.cs" />
+    <Compile Include="GPUKernels\CuRBFEllILPKernel.cs" />
+    <Compile Include="GPUKernels\CuExpChiSlEllKernel.cs" />
+    <Compile Include="GPUKernels\CuNChi2SlEllKernel.cs" />
+    <Compile Include="GPUKernels\CuChi2EllKernel.cs" />
+    <Compile Include="GPUKernels\CuExpChiEllKernel.cs" />
+    <Compile Include="GPUKernels\CuNChi2EllKernel.cs" />
+    <Compile Include="GPUKernels\CuChiSquaredEllpackKernel2.cs" />
+    <Compile Include="GPUKernels\CuRBFSlEllKernel.cs" />
     <Compile Include="GPUKernels\CuRBFEllpackKernel.cs" />
     <Compile Include="CUDAConfig.cs" />
     <Compile Include="CudaLinearCSREvaluator.cs" />
     <Compile Include="CudaHelpers.cs" />
     <Compile Include="GPUKernels\CuLinearKernel.cs" />
-    <Compile Include="GPUKernels\CuRBFSlicedEllpackKernel.cs" />
+    <Compile Include="GPUKernels\CudafyRBFSlicedEllpackKernel.cs" />
     <Compile Include="GPUKernels\EllpackDenseVectorBuilder.cs" />
     <Compile Include="Solvers\GPUSmoFanSolver.cs">
       <SubType>Code</SubType>
@@ -164,7 +175,7 @@
     <Compile Include="Solvers\GPUnmBBLinSolver.cs" />
     <Compile Include="Solvers\CUDALinSolver.cs" />
     <Compile Include="CudaRBFCSREvaluator.cs" />
-    <Compile Include="GPUKernels\CuRBFKernel.cs" />
+    <Compile Include="GPUKernels\CuRBFCSRKernel.cs" />
     <Compile Include="CudaVectorEvaluator.cs" />
     <Compile Include="GPUKernels\CuVectorKernel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -176,26 +187,26 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CUDAmodules\gpuFanSmoSolver.cu">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="CUDAmodules\cudaSVMKernels.cu">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="CUDAmodules\linSVMSolver.cu">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="CUDAmodules\rbfSlicedEllpackKernel.cu">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <None Include="CUDAmodules\KernelsEllpack.cu" />
+    <None Include="CUDAmodules\Config.h" />
+    <None Include="CUDAmodules\gpuFanSmoSolver.cu" />
+    <None Include="CUDAmodules\KernelsCSR.cu" />
+    <None Include="CUDAmodules\linKernels.cu" />
+    <None Include="CUDAmodules\linSVMSolver.cu" />
+    <None Include="CUDAmodules\KernelsSlicedEllpack.cu" />
+    <None Include="KMLib.CUDA.licenseheader" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
-del *.cubin
-nvcc cudaSVMKernels.cu linSVMSolver.cu rbfSlicedEllpackKernel.cu gpuFanSmoSolver.cu --cubin   -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m32 -arch=sm_30
-xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs" /Y
-</PostBuildEvent>
+    <PostBuildEvent>del *.cubin, *.cu, *.ptx, *.h
+xcopy "$(ProjectDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
+xcopy "$(ProjectDir)CUDAmodules\*.h" "$(TargetDir)" /Y
+nvcc  -I./ KernelsCSR.cu KernelsEllpack.cu KernelsSlicedEllpack.cu gpuFanSmoSolver.cu    -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12 -Xptxas="-v"
+xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs\Cuda\" /Y
+xcopy "$(TargetDir)*.ptx" "$(SolutionDir)Libs\Cuda\" /Y
+xcopy "$(TargetDir)*.cu" "$(SolutionDir)Libs\Cuda\" /Y
+xcopy "$(TargetDir)*.h" "$(SolutionDir)Libs\Cuda\" /Y
+del *.cu,  *.h</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

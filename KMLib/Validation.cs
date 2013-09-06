@@ -377,11 +377,13 @@ namespace KMLib
             Console.WriteLine("SVM init time {0}", t.Elapsed);
            // Debug.WriteLine("SVM init time {0}", t.Elapsed);
 
-            t.Restart();
+            
             svm.Train();
-            Console.WriteLine("Svm train takes {0}", t.Elapsed);
+            
+            Console.WriteLine("Svm train takes {0}", svm.model.ModelTimeMs);
+            svm.model.WriteToFile("modelFile.txt");
             int correct = 0;
-
+            
             Debug.WriteLine("Start Predict");
             t.Restart();
            

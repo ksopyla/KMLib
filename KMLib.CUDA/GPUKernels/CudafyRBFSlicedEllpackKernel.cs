@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,15 +32,19 @@ namespace KMLib.GPU
     /// <summary>
     /// Class for computing RBF kernel using cuda.
     /// Data are stored in Ellpack-R format.
-    /// 
     /// </summary>
-    public class CuRBFSlicedEllpackKernel :  VectorKernel<SparseVec>, IDisposable
+    /// <remarks>
+    /// this implementation use cudafy
+    /// </remarks>
+    /// 
+    [Obsolete]
+    public class CudafyRBFSlicedEllpackKernel :  VectorKernel<SparseVec>, IDisposable
     {
 
         #region cuda module constant and names
 
         string moduleName = "rbfSlicedEllpackKernel";
-              
+                             
 
         #endregion
 
@@ -124,7 +135,7 @@ namespace KMLib.GPU
         
         
 
-        public CuRBFSlicedEllpackKernel(float gamma)
+        public CudafyRBFSlicedEllpackKernel(float gamma)
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
@@ -309,7 +320,7 @@ namespace KMLib.GPU
             module = CudafyModule.TryDeserialize(moduleName);
             if (module == null || !module.TryVerifyChecksums())
             {
-                module = CudafyTranslator.Cudafy(typeof(CuRBFSlicedEllpackKernel));
+                module = CudafyTranslator.Cudafy(typeof(CudafyRBFSlicedEllpackKernel));
                 module.Serialize();
             }
             gpu.LoadModule(module);

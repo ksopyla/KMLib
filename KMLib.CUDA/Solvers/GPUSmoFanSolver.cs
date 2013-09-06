@@ -8,9 +8,11 @@ using KMLib.SVMSolvers;
 using GASS.CUDA;
 using System.IO;
 using GASS.CUDA.Types;
+using System.Diagnostics;
 
 namespace KMLib.GPU.Solvers
 {
+
     /// <summary>
     /// SVM GPU L2 - solver
     ///  Solves:
@@ -125,11 +127,7 @@ namespace KMLib.GPU.Solvers
         private int updGThreadsPerBlock;
         private int updGBlocksPerGrid;
         private int iter;
-        private int MaxIter=500000;
-
-
-
-
+        private int MaxIter=3000000;
 
 
         public GPUSmoFanSolver(Problem<SparseVec> problem, IKernel<SparseVec> kernel, float C)
@@ -152,18 +150,23 @@ namespace KMLib.GPU.Solvers
         /// <returns>Model</returns>
         public override Model<SparseVec> ComputeModel()
         {
+            Stopwatch timer = Stopwatch.StartNew();
+
             int problemSize = problem.ElementsCount;
             //float[] alphaResult = new float[problem.ElementsCount];
 
             SolutionInfo si = new SolutionInfo();
             Solve(problem.Y, si);
 
+            timer.Stop();
             Model<SparseVec> model = new Model<SparseVec>();
             model.NumberOfClasses = 2;
             model.Alpha = alpha;//alphaResult;
             model.Bias = si.rho;
             model.Iter = si.iter;
             model.Obj = si.obj;
+            model.ModelTime = timer.Elapsed;
+            model.ModelTimeMs = timer.ElapsedMilliseconds;
 
             //------------------
             List<SparseVec> supportElements = new List<SparseVec>(alpha.Length);
@@ -207,6 +210,7 @@ namespace KMLib.GPU.Solvers
                 for (i = 0; i < problemSize; i++)
                 {
                     G[i] = -1;
+                    alpha[i] = 0;
                 }
 
                 //G[9] = -12;
@@ -231,7 +235,7 @@ namespace KMLib.GPU.Solvers
                 int i = maxPair.Item1;
                 GMaxI = maxPair.Item2;
                 
-                if (iter % 255 == 0)
+                if (iter % 250 == 0)
                 {
                     GMaxJ = FindStoppingGradVal();
 
@@ -274,6 +278,8 @@ namespace KMLib.GPU.Solvers
 
             
             cuda.CopyDeviceToHost(gradPtr, G);
+
+            cuda.SynchronizeContext();
             // calculate rho
             si.rho = calculate_rho();
 
@@ -322,6 +328,9 @@ namespace KMLib.GPU.Solvers
             cuda.CopyDeviceToHost(gradPtr + sizeof(float) * j, gradJ);
             G[j] = gradJ[0];
 
+
+            cuda.SynchronizeContext();
+
             ////copy alpha[i]
             //float[] aI = new float[] { 0.0f };
             //cuda.CopyDeviceToHost(alphaPtr + sizeof(float) * i, aI);
@@ -337,11 +346,14 @@ namespace KMLib.GPU.Solvers
             if (quad_coef <= 0)
                 quad_coef = 1e-12f;
 
+            float delta = 0;
+            float diff = 0;
+            float sum = 0;
 
             if (y[i] != y[j])
             {
-                float delta = (-G[i] - G[j]) / quad_coef;
-                float diff = alpha[i] - alpha[j];
+                 delta = (-G[i] - G[j]) / quad_coef;
+                 diff = alpha[i] - alpha[j];
                 alpha[i] += delta;
                 alpha[j] += delta;
 
@@ -361,7 +373,7 @@ namespace KMLib.GPU.Solvers
                         alpha[j] = -diff;
                     }
                 }
-                if (diff > C)
+                if (diff > 0)
                 {
                     if (alpha[i] > C)
                     {
@@ -380,8 +392,8 @@ namespace KMLib.GPU.Solvers
             }
             else
             {
-                float delta = (G[i] - G[j]) / quad_coef;
-                float sum = alpha[i] + alpha[j];
+                delta = (G[i] - G[j]) / quad_coef;
+                sum = alpha[i] + alpha[j];
                 alpha[i] -= delta;
                 alpha[j] += delta;
 
@@ -423,7 +435,8 @@ namespace KMLib.GPU.Solvers
             cuda.CopyHostToDevice(alphaPtr + sizeof(float) * i, new float[] { alpha[i] });
             cuda.CopyHostToDevice(alphaPtr + sizeof(float) * j, new float[] { alpha[j] });
 
-
+            //todo: remove it
+            //cuda.SynchronizeContext();
 
             //todo: remove it, only for debuging
             //cuda.CopyDeviceToHost(alphaPtr, a);
@@ -532,10 +545,6 @@ namespace KMLib.GPU.Solvers
         private void ComputeKernel(int i, CUdeviceptr ptr)
         {
             gpuKernel.AllProductsGPU(i, ptr);
-
-            //todo: removie it
-            //float[] ki = new float[problemSize];
-            //cuda.CopyDeviceToHost(ptr, ki);
 
         }
 

@@ -20,10 +20,7 @@ namespace KMLib
     public class CSVM<TProblemElement>
     {
 
-        /// <summary>
-        /// type of SVM solver
-        /// </summary>
-        public SolverVariant solverType = SolverVariant.ParallelSmoFanSolver2;
+        
         /// <summary>
         /// 
         /// </summary>
@@ -48,7 +45,7 @@ namespace KMLib
         /// <summary>
         /// trained model
         /// </summary>
-        private Model<TProblemElement> model;
+        public Model<TProblemElement> model;
 
         /// <summary>
         /// Solver, solves C-SVM optimization problem 

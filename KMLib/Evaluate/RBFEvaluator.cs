@@ -12,7 +12,7 @@ namespace KMLib.Evaluate
 
     /// <summary>
     /// Rerpesents evaluator for RBF kernel, use some optimization
-    /// is faster for RBF than <see cref="SequentialEvalutor"/>
+    /// is faster for RBF than <see cref="DualEvalutor"/>
     /// Prediction is based on dual form of SVM, use alpha coeficient in model to predict.
     /// </summary>
     public class RBFDualEvaluator : Evaluator<SparseVec>

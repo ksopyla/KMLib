@@ -3,7 +3,7 @@
 
 __constant__ float C;
 // minimal coeficient
-__constant__ float COEF_EPS = 0.00001f;
+__constant__ float COEF_EPS = 0.000001f;
 
 // constat for kernel diagonal for index i
 //__constant__ float QD_i;

@@ -23,24 +23,30 @@ namespace KMLibUsageApp
         private static float C = 4f;
         static float gamma = 0.5f;
         private static int folds = 5;
+
+        //IDataTransform<SparseVec> dataTransform = new LpNorm(1);
+        static IDataTransform<SparseVec> dataTransform = new NullTransform();
+
         private static void Main(string[] args)
         {
             if (args.Length < 1)
                 throw new ArgumentException("to liitle arguments");
             string dataFolder = args[0];
-            //string dataFolder = @"../../../Data";
+            //dataFolder = @"./Data";
 
-
+           
 
             Debug.Listeners.Add(new ConsoleTraceListener());
 
-            
+                        
             IList<Tuple<string, string, int>> dataSetsToTest = CreateDataSetList(dataFolder);
 
             //Console.WriteLine("press any key to start");
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
-            //GroupedTestingLowLevelDataSets(dataSetsToTest);
+            
+            GroupedTestingLowLevelDataSets(dataSetsToTest);
+            
             //TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
@@ -53,7 +59,10 @@ namespace KMLibUsageApp
             string testFile;
             int numberOfFeatures;
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
-            SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+
+                  
+            //SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+            //SVMClassifyLowLevelManyTests(trainningFile, testFile, numberOfFeatures, C,3);
 
             //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
 
@@ -62,7 +71,7 @@ namespace KMLibUsageApp
 
             //SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
             Console.WriteLine("Press any button");
-            // Console.ReadKey();
+             Console.ReadKey();
 
         }
 
@@ -111,9 +120,9 @@ namespace KMLibUsageApp
             Problem<SparseVec> test = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
             
             //Do dataset Normalization
-            IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            //train.Elements = dataTransform.Transform(train.Elements);
-            //test.Elements = dataTransform.Transform(test.Elements);
+                        
+            train.Elements = dataTransform.Transform(train.Elements);
+            test.Elements = dataTransform.Transform(test.Elements);
 
             
             //EvaluatorBase<SparseVec> evaluator = new RBFDualEvaluator(gamma);
@@ -123,7 +132,7 @@ namespace KMLibUsageApp
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
             IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
-            //IKernel<SparseVec> kernel = new ChiSquaredKernel();
+           // IKernel<SparseVec> kernel = new ChiSquaredKernel();
             //IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
             //IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
             
@@ -421,21 +430,177 @@ namespace KMLibUsageApp
             string testFile;
             int numberOfFeatures;
 
+            //FileStream filestream = new FileStream("out.txt", FileMode.Create);
+            //var streamwriter = new StreamWriter(filestream);
+            //streamwriter.AutoFlush = true;
+            //Console.SetOut(streamwriter);
+            //Console.SetError(streamwriter);
+
+            Trace.Listeners.Clear();
+
+            String fileName = string.Format("results_{0:yyyy-MM-dd_H_mm_ss}.txt", DateTime.Now);
+            //String fileName = "out.txt";
+            FileStream filestream = new FileStream(fileName, FileMode.Create);
+            var streamwriter = new StreamWriter(filestream);
+            TextWriterTraceListener twL = new TextWriterTraceListener(streamwriter);
+            //TextWriterTraceListener twL = new TextWriterTraceListener("out.txt");
+            twL.Name = "TextLogger";
+            twL.TraceOutputOptions = TraceOptions.ThreadId | TraceOptions.DateTime;
+            ConsoleTraceListener ctl = new ConsoleTraceListener(false);
+            ctl.TraceOutputOptions = TraceOptions.DateTime;
+
+            Trace.Listeners.Add(twL);
+            Trace.Listeners.Add(ctl);
+            Trace.AutoFlush = true;
+
+
+            
+
+
+            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+            Model<SparseVec> model=null;
+
+            IList<IKernel<SparseVec>> kernelsCollection = CreateKernels();
+
+            IList<string> solversStr = new List<string> { "ParallelSMO","GpuFanSolver" };// "ParallelSMO", 
+
+            int numTests = 4;
+
             foreach (var data in dataSetsToTest)
             {
                 trainningFile = data.Item1;
                 testFile = data.Item2;
                 numberOfFeatures = data.Item3;
 
-                Console.WriteLine("\n----------------------------------------------\n");
-                Console.WriteLine("DataSets , trainning={1} testing={2} , atr={0}", numberOfFeatures, trainningFile, testFile);
-                Console.WriteLine();
+                //Read sets into problem class
+                Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
+                train.Elements = dataTransform.Transform(train.Elements);
+                Problem<SparseVec> test = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
+                test.Elements = dataTransform.Transform(test.Elements);
 
-                SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+                var tr = Path.GetFileName(trainningFile);
+                var tst = Path.GetFileName(testFile);
 
-                Console.WriteLine("***************************\n");
+                Trace.WriteLine(DateTime.Now);
+                Trace.WriteLine(string.Format("DataSet: tr={0} tst={1} , el={2}/{3}  atr={4}", tr, tst, train.ElementsCount, test.ElementsCount, numberOfFeatures));
+                Trace.WriteLine("-----------------------------------------------------------------");
+
+                foreach (var solverStr in solversStr)
+                {
+                    Trace.WriteLine(string.Format("Solver: {0}", solverStr));
+                    Trace.WriteLine(string.Format("Results time[s]:{0,77} {1,9} {2,12} {3,9}", "it", "obj","nSV","acc" ));
+                    foreach (var kernel in kernelsCollection)
+                    {
+                        string kernelStr = kernel.ToString();
+                        Trace.Write(string.Format("{0}  {1,-17}:", DateTime.Now, kernelStr));
+
+                        Solver<SparseVec> solver = null;
+
+                        try
+                        {
+
+
+                            kernel.ProblemElements = train.Elements;
+                            kernel.Y = train.Y;
+                            kernel.Init();
+                            solver = CreateSolver(solverStr, train, kernel, C);
+
+                            long[] modelTimes = new long[numTests];
+
+
+                            for (int i = 0; i < numTests; i++)
+                            {
+                                model = solver.ComputeModel();
+
+                                modelTimes[i] = model.ModelTimeMs;
+                                double mTime = modelTimes[i] / 1000.0;
+                                Trace.Write(string.Format(" {0,9}; ", mTime.ToString("n1")));
+
+                            }
+                        }
+                        catch (Exception e)
+                        {
+
+                            Trace.WriteLine(string.Format(" {0,9}; ", "xxxx"));
+                            //Trace.TraceError(e.Message);
+                            continue;
+                        }
+                        finally
+                        {
+
+                            var disSolver = solver as IDisposable;
+                            if (disSolver != null)
+                                disSolver.Dispose();
+                            solver = null;
+
+                            var disKernel = kernel as IDisposable;
+                            if (disKernel != null)
+                                disKernel.Dispose();
+
+                        }
+
+                        evaluator.Kernel = kernel;
+                        evaluator.TrainedModel = model;
+
+                        evaluator.Init();
+ 
+                        float[] predictions = evaluator.Predict(test.Elements);
+                        double acc = GetAccuracy(test, predictions);
+
+                        int it = model.Iter;
+                        float obj = model.Obj;
+                        int nSv = model.SupportElements.Length;
+
+                        Trace.WriteLine(string.Format("{0,7}\t{1}\t{2}\t{3} ", it, obj.ToString("n3"), nSv, acc.ToString("n5")));
+                        
+                    }
+
+                }
+
+
+                train.Dispose();
+                test.Dispose();
+                Trace.WriteLine("***************************\n");
 
             }
+        }
+
+        private static IList<IKernel<SparseVec>> CreateKernels()
+        {
+            IList<IKernel<SparseVec>> kernelsCollection = new List<IKernel<SparseVec>> { 
+                new CuRBFCSRKernel(gamma), 
+                new CuRBFEllpackKernel(gamma),
+                new CuRBFSlEllKernel(gamma),
+                new CuRBFEllILPKernel(gamma),
+                new CuRBFEllRTILPKernel(gamma)
+            };
+            return kernelsCollection;
+        }
+
+        private static double GetAccuracy(Problem<SparseVec> test, float[] predictions)
+        {
+            int correct = 0;
+            for (int i = 0; i < predictions.Length; i++)
+            {
+                float predictedLabel = predictions[i];
+
+                if (predictedLabel == test.Y[i])
+                    ++correct;
+            }
+
+            double acc = (float)correct / predictions.Length;
+            return acc;
+        }
+
+        private static Solver<SparseVec> CreateSolver(string solverType,Problem<SparseVec> train, IKernel<SparseVec> kernel, float C)
+        {
+            if (solverType.Equals("ParallelSMO"))
+                return new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            else if(solverType.Equals("GpuFanSolver"))
+                return new GPUSmoFanSolver(train, kernel, C);
+
+            return null;
+ 
         }
 
         private static IList<Tuple<string, string, int>> CreateDataSetList(string dataFolder)
@@ -443,10 +608,25 @@ namespace KMLibUsageApp
             List<Tuple<string, string, int>> dataSets = new List<Tuple<string, string, int>>(8);
 
 
+
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/a1a.train",
-                dataFolder + "/a1a.test",
+                dataFolder + "/a1a.train",
                 123));
+
+
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/mnist.scale20k",
+                dataFolder + "/mnist.scale1k.t",
+                784));
+
+
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/w8a",
+                dataFolder + "/w8a.t",
+                300));
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/a9a",
@@ -454,24 +634,20 @@ namespace KMLibUsageApp
                 123));
 
             dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/w8a",
-                dataFolder + "/w8a.t",
-                300));
-
-
-
-            dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/news20.binary",
                 dataFolder + "/news20.binary",
                 1335191));
 
-            //string trainningFile = dataFolder + "/real-sim_small_3K";
-            //string trainningFile = dataFolder + "/real-sim_med_6K";
-            //string trainningFile = dataFolder + "/real-sim_med_10K";
+           
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/real-sim",
                 dataFolder + "/real-sim",
                 20958));
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/rcv1_test.binary",
+                dataFolder + "/rcv1_train.binary",
+                47236));
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/mnist.scale",
@@ -480,17 +656,40 @@ namespace KMLibUsageApp
 
 
 
-
-            //string testFile = dataFolder + "/rcv1_train_test.binary";
             dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/rcv1_train.binary",
-                dataFolder + "/rcv1_test.binary",
-                47236));
+                dataFolder + "/dominionstats.01scale_r2.train",
+                dataFolder + "/dominionstats.01scale_r2.test",
+                596));
 
             dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/rcv1_test.binary",
-                dataFolder + "/rcv1_train.binary",
-                47236));
+                dataFolder + "/tweet.train",
+                dataFolder + "/tweet.test",
+                52242));
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/kytea-msr_first_1M.train",
+                dataFolder + "/kytea-msr.test",
+                8683737));
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/kytea-msr_first_500k.train",
+                dataFolder + "/kytea-msr.test",
+                8683737));
+
+            dataSets.Add(new Tuple<string, string, int>(
+               dataFolder + "/webspam_wc_normalized_unigram.svm",
+               dataFolder + "/webspam_wc_normalized_unigram.svm",
+               254));
+
+            dataSets.Add(new Tuple<string, string, int>(
+               dataFolder + "/url_combined_1.5M.train",
+               dataFolder + "/url_combined_800k.test",
+               3231961));
+
+            dataSets.Add(new Tuple<string, string, int>(
+               dataFolder + "/kdda_2M",
+               dataFolder + "/kdda.t",
+               20216830));
 
             return dataSets;
         }
@@ -527,7 +726,8 @@ namespace KMLibUsageApp
             // testFile = dataFolder + "/toy_2d.test";
             // numberOfFeatures = 2;
 
-
+            //testFile = trainningFile = dataFolder + "/toy_8ins_6d.txt";
+            //numberOfFeatures = 6;
 
             //trainningFile = dataFolder + "/toy_10d_10.train";
             //testFile = dataFolder + "/toy_10d_10.train";
@@ -536,17 +736,17 @@ namespace KMLibUsageApp
 
 
             //trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            ////testFile= trainningFile = dataFolder + "/a1a.small.train";
+            ////testFile = dataFolder + "/a1a.test";
+            //////testFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.train";
             ////in a1a problem max index is 123
             //numberOfFeatures = 123;
 
 
-            trainningFile = dataFolder + "/a9a";
-            testFile = dataFolder + "/a9a.t";
-            //testFile = dataFolder + "/a9a";
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a9a";
+            //testFile = dataFolder + "/a9a.t";
+            ////testfile = datafolder + "/a9a";
+            //numberOfFeatures = 123;
 
             //trainningFile = dataFolder + "/a9a_128.train";
             //testFile = dataFolder + "/a9a.t";
@@ -556,18 +756,6 @@ namespace KMLibUsageApp
             //trainningFile = dataFolder + "/w8a";
             //testFile = dataFolder + "/w8a.t";
             //numberOfFeatures = 300;
-
-            //trainningFile = dataFolder + "/colon-cancer.train";
-            //testFile = dataFolder + "/colon-cancer.train";
-            //numberOfFeatures = 2000;
-
-            //trainningFile = dataFolder + "/leu";
-            //testFile = dataFolder + "/leu.t";
-            //numberOfFeatures = 7129;
-
-            //trainningFile = dataFolder + "/duke";
-            //testFile = dataFolder + "/duke.tr";
-            //numberOfFeatures = 7129;
 
             ////trainningFile = dataFolder + "/rcv1_train.binary";
             ////testFile = dataFolder + "/rcv1_test.binary";
@@ -580,14 +768,9 @@ namespace KMLibUsageApp
             //numberOfFeatures = 1335191;
 
             //trainningFile = dataFolder + "/mnist.scale";
-            ////trainningFile = dataFolder + "/mnist.scale_10k";
-            //testFile = dataFolder + "/mnist.scale.t";
-            //numberOfFeatures = 784;
-
-            //trainningFile = dataFolder + "/kdda";
-            //testFile = dataFolder + "/kdda.t";
-            //numberOfFeatures = 20216830;
-
+            trainningFile = dataFolder + "/mnist.scale20k";
+            testFile = dataFolder + "/mnist.scale1k.t";
+            numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
@@ -595,29 +778,58 @@ namespace KMLibUsageApp
             //trainningFile = dataFolder + "/real-sim";
             //testFile = dataFolder + "/real-sim";
             //numberOfFeatures = 20958;
-
-            //trainningFile = dataFolder + "/test_history1.train"; //#2626 inst
-            //testFile = dataFolder + "/test_history1.test"; //#1125
-            //numberOfFeatures = 1776;
            
             
             //dominostats #train	193657  #test	82996 dim	596
             //trainningFile = dataFolder + "/dominionstats.train"; //#2626 inst
+            //trainningFile = dataFolder + "/dominionstats.01scale_r2.test"; //#2626 inst
+            ////testgFile = dataFolder + "/dominionstats.01scale_r2.test"; //#2626 inst
             //testFile = dataFolder + "/dominionstats.test"; //#1125
             //numberOfFeatures = 596;
+            
 
-            ////#train	177862 test	76227 dim	52242
+            //http://mlcomp.org/datasets/469
+            ////#train	177862 test	76227 dim	52242, min error=0.046 liblinear
             //trainningFile = dataFolder + "/tweet.train"; //#2626 inst
             //testFile = dataFolder + "/tweet.test"; //#1125
             //numberOfFeatures = 52242;
 
-            //for test
-            //trainningFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //testFile = dataFolder + "/liver-disorders_scale_small.txt";
-            //string trainningFile = dataFolder + "/liver-disorders_scale.txt";
-            //string testFile = dataFolder + "/liver-disorders_scale.txt";
-            //numberOfFeatures = 6;
-            //  string trainningFile = dataFolder + "/australian_scale.txt";
+
+            //http://mlcomp.org/datasets/513
+            ////#train	3963546 test	180370, train dim=8446390, test dim=8683737 
+            //trainningFile = dataFolder + "/kytea-msr.train";
+            //trainningFile = dataFolder + "/kytea-msr_first_500k.train";
+            //trainningFile = dataFolder + "/kytea-msr_first_1M.train";
+            //testFile = dataFolder + "/kytea-msr.test";
+            //numberOfFeatures = 8683737;
+
+
+            //trainningFile = dataFolder + "/webspam_wc_normalized_unigram.svm";
+            //testFile = dataFolder + "/webspam_wc_normalized_unigram.svm";
+            //numberOfFeatures = 254;
+
+
+            //trainningFile = dataFolder + "/url_combined";
+            //testFile = dataFolder + "/url_combined";
+            //numberOfFeatures = 3231961;
+
+            //trainningFile = dataFolder + "/url_combined_1.5M.train";
+            //testFile = dataFolder + "/url_combined_800k.test";
+            //numberOfFeatures = 3231961;
+
+
+            //trainningFile = dataFolder + "/kdda";
+            //testFile = dataFolder + "/kdda.t";
+            //numberOfFeatures = 20216830;
+
+            //trainningFile = dataFolder + "/kdda_4M";
+            //testFile = dataFolder + "/kdda.t";
+            //numberOfFeatures = 20216830;
+
+            //trainningFile = dataFolder + "/kdda_2M";
+            //testFile = dataFolder + "/kdda.t";
+            //numberOfFeatures = 20216830;
+
         }
 
 
@@ -630,14 +842,14 @@ namespace KMLibUsageApp
             float paramC)
         {
 
-            //IDataTransform<SparseVec> dataTransform = new LpNorm(1);
-            IDataTransform<SparseVec> dataTransform = new NullTransform();
-
             // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
             Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
             Console.WriteLine();
 
             Console.WriteLine("read vectors");
+            //Problem<SparseVec> test1 = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
+            //Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
+            
             Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
             train.Elements = dataTransform.Transform(train.Elements);
 
@@ -646,18 +858,23 @@ namespace KMLibUsageApp
             Model<SparseVec> model;
             //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
             //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
-            Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+            //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
 
             #region Cuda kernels
+
+            //IKernel<SparseVec> kernel = new CuLinearKernel();
+            //IKernel<SparseVec> kernel = new CuRBFCSRKernel(gamma );
+            //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFEllRTILPKernel(gamma);
+            IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
             
-            //IKernel<SparseVec> kernel = new CudaLinearKernel();
-            //IKernel<SparseVec> kernel = new CuRBFKernel(gamma );
-            IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
-            //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel(gamma);
-            //IKernel<SparseVec> kernel = new CuRBFSlicedEllpackKernel2(gamma);
-            //IKernel<SparseVec> kernel = new CuChiSquaredEllpackKernel();
-            //IKernel<SparseVec> kernel = new CuChiSquaredNormEllpackKernel();
+
+            //IKernel<SparseVec> kernel = new CuChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuNChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuExpChiEllKernel(gamma);
 
 
             #endregion
@@ -671,14 +888,22 @@ namespace KMLibUsageApp
 
             //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
             //this solver works a bit faster and use less memory
-            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
-            var Solver = new GPUSmoFanSolver(train, kernel, C);
+            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            //var Solver = new SmoFanSolver<SparseVec>(train, kernel, C);
+            //var Solver = new SmoRandomSolver<SparseVec>(train, kernel, C);
+
+            
+            //var Solver = new GPUSmoFanSolver(train, kernel, C);
 
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 
             Stopwatch timer = Stopwatch.StartNew();
             model = Solver.ComputeModel();
-            Console.WriteLine("Model computed {0}  miliseconds={1} obj={2} iter={3} #sv={4}", timer.Elapsed, timer.ElapsedMilliseconds, model.Obj, model.Iter,model.SupportElements.Length);
+            Console.Write(model.ToString());
+
+
+
+            model.WriteToFile("modelFileCU.txt");
 
             var disSolver = Solver as IDisposable;
             if (disSolver != null)
@@ -733,6 +958,146 @@ namespace KMLibUsageApp
             Console.WriteLine("accuracy ={0}", accuracy);
 
         }
+
+
+
+        /// <summary>
+        /// Train and test SVM, using low level api, construct kernels, solver and evaluator by hand
+        /// </summary>
+        private static void SVMClassifyLowLevelManyTests(string trainningFile,
+            string testFile,
+            int numberOfFeatures,
+            float paramC,int numTests)
+        {
+
+            // Problem<Vector> train = IOHelper.ReadVectorsFromFile(trainningFile);
+            Console.WriteLine("DataSets atr={0}, trainning={1} testing={2}", numberOfFeatures, trainningFile, testFile);
+            Console.WriteLine();
+
+            Console.WriteLine("read vectors");
+            //Problem<SparseVec> test1 = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
+            //Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
+
+            Problem<SparseVec> train = IOHelper.ReadVectorsFromFile(trainningFile, numberOfFeatures);
+            train.Elements = dataTransform.Transform(train.Elements);
+
+            Console.WriteLine("end read vectors");
+
+            Model<SparseVec> model=null;
+            //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
+            //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+
+            #region Cuda kernels
+
+            //IKernel<SparseVec> kernel = new CuLinearKernel();
+            //IKernel<SparseVec> kernel = new CuRBFCSRKernel(gamma );
+            //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFEllRTILPKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
+            IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
+
+
+            //IKernel<SparseVec> kernel = new CuChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuNChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuExpChiEllKernel(gamma);
+
+
+            #endregion
+            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVec> kernel = new LinearKernel();
+
+            Console.WriteLine("kernel init");
+            kernel.ProblemElements = train.Elements;
+            kernel.Y = train.Y;
+            kernel.Init();
+
+            //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
+            //this solver works a bit faster and use less memory
+            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            //var Solver = new SmoFanSolver<SparseVec>(train, kernel, C);
+            //var Solver = new SmoRandomSolver<SparseVec>(train, kernel, C);
+
+            var Solver = new GPUSmoFanSolver(train, kernel, C);
+
+            Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
+
+            long[] modelTimes = new long[numTests];
+
+            Stopwatch timer = Stopwatch.StartNew();
+
+            for (int i = 0; i < numTests; i++)
+            {
+                model = Solver.ComputeModel();
+
+                modelTimes[i]= model.ModelTimeMs;
+                
+                Console.Write(model.ToString());
+            }
+
+            Console.WriteLine("average time of {0} runs is:{1}", numTests, modelTimes.Average());
+
+
+
+            //model.WriteToFile("modelFileCU.txt");
+
+            var disSolver = Solver as IDisposable;
+            if (disSolver != null)
+                disSolver.Dispose();
+            Solver = null;
+
+            var disKernel = kernel as IDisposable;
+            if (disKernel != null)
+                disKernel.Dispose();
+
+
+
+
+            train.Dispose();
+
+            Console.WriteLine("Start Testing");
+
+
+            Problem<SparseVec> test = IOHelper.ReadVectorsFromFile(testFile, numberOfFeatures);
+            test.Elements = dataTransform.Transform(test.Elements);
+            evaluator.Kernel = kernel;
+            evaluator.TrainedModel = model;
+
+            evaluator.Init();
+
+
+            Stopwatch t = Stopwatch.StartNew();
+            float[] predictions = evaluator.Predict(test.Elements); //new float[1]; //
+
+            t.Stop();
+            //toremove: only for tests
+            Console.WriteLine("prediction takes {0}  ms={1}", t.Elapsed, t.ElapsedMilliseconds);
+
+
+
+            //todo: Free evaluator memories
+            var disposeEvaluator = evaluator as IDisposable;
+            if (disposeEvaluator != null)
+                disposeEvaluator.Dispose();
+
+
+            int correct = 0;
+            for (int i = 0; i < predictions.Length; i++)
+            {
+                float predictedLabel = predictions[i];
+
+                if (predictedLabel == test.Y[i])
+                    ++correct;
+            }
+            test.Dispose();
+            double accuracy = (float)correct / predictions.Length;
+            Console.WriteLine("accuracy ={0}", accuracy);
+
+        }
+
+
 
         /// <summary>
         /// Train and test Linear SVM, using low level api, construct kernels, solver and evaluator by hand
@@ -839,6 +1204,8 @@ namespace KMLibUsageApp
             acc = validation.TrainAndTestValidation(train, test);
             //.TestValidation(train, test, kernel, penaltyC[i]);
             timer.Stop();
+
+            
 
             Console.WriteLine("Validation on test data best acuuracy = {0} C={1} time={2} ms={3}", acc, paramC, timer.Elapsed, timer.ElapsedMilliseconds);
 

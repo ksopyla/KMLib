@@ -13,10 +13,6 @@ namespace KMLib
 	{
 
 		/// <summary>
-		/// type of SVM solver
-		/// </summary>
-		public SolverVariant solverType = SolverVariant.ParallelSmoFanSolver2;
-		/// <summary>
 		/// 
 		/// </summary>
 		private Problem<TProblemElement> mainProblem;

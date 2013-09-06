@@ -45,20 +45,37 @@ namespace KMLib
         public double[] W;
         public float Obj;
         public int Iter;
+        public TimeSpan ModelTime;
+        public long ModelTimeMs;
 
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder(100);
 
-            sb.AppendFormat("number of SV={0} \n", SupportElements.Length);
-            sb.AppendFormat("number of alpha = {0} \n", Alpha.Length);
-            sb.AppendFormat("number of alpha non zero ={0}", SupportElementsIndexes.Length);
-            sb.AppendFormat("rho={0}", Bias);
+            sb.AppendFormat("\nModel time={0} ms={1} ", ModelTime, ModelTimeMs);
+            sb.AppendFormat("iter={0} \n", Iter);
+            sb.AppendFormat("obj={0} ", Obj);
+            sb.AppendFormat("rho={0} ", Bias);
+            sb.AppendFormat("nSV={0} \n", SupportElements.Length);
+            
 
             return sb.ToString();
         }
 
 
+        public void WriteToFile(string fileName)
+        {
+
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(fileName))
+            {
+                string mStr = this.ToString();
+                file.Write(mStr);
+
+                string.Join(System.Environment.NewLine, Alpha);
+
+            }
+
+        }
 
 
 

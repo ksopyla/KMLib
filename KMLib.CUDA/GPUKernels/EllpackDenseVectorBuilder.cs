@@ -108,9 +108,10 @@ namespace KMLib.GPU.GPUKernels
         {
             cuda.SetParameter(cuFuncDense, mainVecIdxParamOffset, idx);
             cuda.Launch(cuFuncDense, blocksPerGrid, 1);
+            cuda.SynchronizeContext();
 
             //only for test
-            //float[] result1 = new float[vecDim];
+            //float[] result1 = new float[vecDim+1];
             //cuda.CopyDeviceToHost(vecPtr, result1);
 
         }

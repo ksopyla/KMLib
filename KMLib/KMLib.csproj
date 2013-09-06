@@ -98,21 +98,6 @@
     <Reference Include="dnAnalytics, Version=2009.8.0.0, Culture=neutral, PublicKeyToken=47f8433cf19ffb12, processorArchitecture=x86">
       <HintPath>..\Libs\dnAnalytics.dll</HintPath>
     </Reference>
-    <Reference Include="NMathCoreKernelx86">
-      <HintPath>..\Libs\NMathCoreKernelx86.dll</HintPath>
-    </Reference>
-    <Reference Include="NMathCoreMath">
-      <HintPath>..\Libs\NMathCoreMath.dll</HintPath>
-    </Reference>
-    <Reference Include="NMathCoreShared">
-      <HintPath>..\Libs\NMathCoreShared.dll</HintPath>
-    </Reference>
-    <Reference Include="NMathMatrixKernelx86">
-      <HintPath>..\Libs\NMathMatrixKernelx86.dll</HintPath>
-    </Reference>
-    <Reference Include="NMathMatrixMain">
-      <HintPath>..\Libs\NMathMatrixMain.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -127,7 +112,7 @@
     <Compile Include="Evaluate\EvaluatorBase.cs" />
     <Compile Include="Evaluate\LinearPrimalEvaluator.cs" />
     <Compile Include="Evaluate\RBFEvaluator.cs" />
-    <Compile Include="Evaluate\SequentialEvaluator.cs" />
+    <Compile Include="Evaluate\DualEvaluator.cs" />
     <Compile Include="Helpers\Pair.cs" />
     <Compile Include="Helpers\AlphaInfo.cs" />
     <Compile Include="Helpers\StepVariable.cs" />
@@ -155,7 +140,6 @@
     <Compile Include="SVMSolvers\ParallelSmoFanSolver.cs" />
     <Compile Include="SVMSolvers\ParallelSMOSolver.cs" />
     <Compile Include="Helpers\SortedNVal.cs" />
-    <Compile Include="SVMSolvers\SolverFactory.cs" />
     <Compile Include="Transforms\IDataTransform.cs" />
     <Compile Include="Transforms\LpNorm.cs" />
     <Compile Include="Transforms\MaxMinTransform.cs" />
