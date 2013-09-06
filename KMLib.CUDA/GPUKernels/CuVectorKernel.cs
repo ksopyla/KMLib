@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,7 +34,7 @@ namespace KMLib.GPU
         /// cuda module name
         /// </summary>
         protected string cudaModuleName = "";
-
+        
 
         /// <summary>
         /// cuda texture name for main vector
@@ -164,7 +171,7 @@ namespace KMLib.GPU
             set
             {
                 if (value == null) throw new ArgumentNullException("value");
-                linKernel.ProblemElements = value;
+                //linKernel.ProblemElements = value;
 
                 base.ProblemElements = value;
 
@@ -260,11 +267,9 @@ namespace KMLib.GPU
 
         protected void InitCudaModule()
         {
-            int deviceNr = 0;
-
-            
-            cuda = new CUDA(deviceNr,true);
-            cuCtx = cuda.CreateContext(deviceNr, CUCtxFlags.MapHost);
+            int deviceNr = 0; 
+            cuda = new CUDA(deviceNr, true);
+            cuCtx = cuda.CreateContext(deviceNr, CUCtxFlags.MapHost); 
             //cuda.SetCurrentContext(cuCtx);
 
             //var ctx = cuda.PopCurrentContext();

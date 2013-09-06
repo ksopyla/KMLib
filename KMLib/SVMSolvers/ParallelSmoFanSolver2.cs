@@ -608,8 +608,6 @@ namespace KMLib.SVMSolvers
 
             si.upper_bound_p = Cp;
             si.upper_bound_n = Cn;
-
-            // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
 
         private void UpdateGradients(float[] Q_i, float[] Q_j, float delta_alpha_i, float delta_alpha_j)

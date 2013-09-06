@@ -269,9 +269,6 @@ namespace KMLib.GPU
                 cuda.DestroyTexture(cuMainVecTexRef);
 
                 cuda.UnloadModule(cuModule);
-
-
-                base.Dispose();
                 cuda.Dispose();
                 cuda = null;
             }

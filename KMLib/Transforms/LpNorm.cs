@@ -6,6 +6,10 @@ using KMLib.Helpers;
 
 namespace KMLib.Transforms
 {
+
+    /// <summary>
+    /// Normalize vectors according to lp - norm, p>=1
+    /// </summary>
     public class LpNorm: IDataTransform<SparseVec>
     {
 

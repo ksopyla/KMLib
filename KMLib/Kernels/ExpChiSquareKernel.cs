@@ -26,7 +26,7 @@ namespace KMLib.Kernels
 
         public override float Product(SparseVec element1, SparseVec element2)
         {
-            float chiSquare =2* ChiSquaredKernel.ChiSquareDist(element1, element2);
+            float chiSquare = ChiSquaredKernel.ChiSquareDist(element1, element2);
 
             return (float)Math.Exp(-Gamma * chiSquare);
         }

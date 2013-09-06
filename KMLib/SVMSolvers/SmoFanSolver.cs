@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using KMLib.Helpers;
 using KMLib.Kernels;
+using System.Diagnostics;
 
 namespace KMLib.SVMSolvers
 {
@@ -96,6 +97,9 @@ namespace KMLib.SVMSolvers
         /// <returns>Model</returns>
         public override Model<TProblemElement> ComputeModel()
         {
+
+            Stopwatch timer = Stopwatch.StartNew();
+
             int problemSize = problem.ElementsCount;
             float[] Minus_ones = new float[problemSize];
             sbyte[] y = new sbyte[problemSize];
@@ -116,16 +120,16 @@ namespace KMLib.SVMSolvers
             Solve(Minus_ones, y, alphaResult, si, Shrinking);
 
 
-            //for (int i = 0; i < problemSize; i++)
-            //{
-            //    alphaResult[i] *= y[i];
-            //}
-
+            timer.Stop();
             Model<TProblemElement> model = new Model<TProblemElement>();
             model.NumberOfClasses = 2;
             model.Alpha = alphaResult;
             model.Bias = si.rho;
+            model.Obj = si.obj;
+            model.Iter = si.iter;
 
+            model.ModelTime = timer.Elapsed;
+            model.ModelTimeMs = timer.ElapsedMilliseconds;
 
             //------------------
             List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
@@ -350,10 +354,13 @@ namespace KMLib.SVMSolvers
                 float delta_alpha_i = alpha[i] - old_alpha_i;
                 float delta_alpha_j = alpha[j] - old_alpha_j;
 
+
                 for (int k = 0; k < active_size; k++)
                 {
                     G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
+                   
                 }
+                
 
                 // update alpha_status and G_bar
 
@@ -391,6 +398,7 @@ namespace KMLib.SVMSolvers
             // calculate rho
 
             si.rho = calculate_rho();
+            si.iter = iter;
 
             // calculate objective value
             {
@@ -418,7 +426,6 @@ namespace KMLib.SVMSolvers
             si.upper_bound_p = Cp;
             si.upper_bound_n = Cn;
 
-            // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
 
 

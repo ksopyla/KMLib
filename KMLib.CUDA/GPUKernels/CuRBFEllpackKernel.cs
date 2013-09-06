@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+author: Krzysztof Sopyla
+mail: krzysztofsopyla@gmail.com
+License: MIT
+web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -44,10 +51,13 @@ namespace KMLib.GPU
             linKernel = new LinearKernel();
             Gamma = gamma;
             cudaProductKernelName = "rbfEllpackFormatKernel";
+            
             //cudaProductKernelName = "rbfEllpackFormatKernel_shared";
             //cudaProductKernelName = "rbfEllpackFormatKernel_ILP";
             //cudaProductKernelName = "rbfEllpackFormatKernel_ILP_shared";
             cudaModuleName = "KernelsEllpack.cubin";
+            MakeDenseVectorOnGPU = false;
+
             MakeDenseVectorOnGPU = false;
             
         }
@@ -134,7 +144,7 @@ namespace KMLib.GPU
             int[] vecLenght;
 
             CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
-
+            
             selfLinDot = linKernel.DiagonalDotCache;
 
             #region cuda initialization

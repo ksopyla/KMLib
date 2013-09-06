@@ -195,6 +195,8 @@
     <None Include="CUDAmodules\linSVMSolver.cu" />
     <None Include="CUDAmodules\KernelsSlicedEllpack.cu" />
     <None Include="KMLib.CUDA.licenseheader" />
+    <None Include="CUDAmodules\linKernels.cu" />
+    <None Include="KMLib.CUDA.licenseheader" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

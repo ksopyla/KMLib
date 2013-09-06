@@ -95,9 +95,6 @@
     <CodeAnalysisRuleDirectories>;D:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\FxCop\\Rules</CodeAnalysisRuleDirectories>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="dnAnalytics, Version=2009.8.0.0, Culture=neutral, PublicKeyToken=47f8433cf19ffb12, processorArchitecture=x86">
-      <HintPath>..\Libs\dnAnalytics.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -120,11 +117,8 @@
     <Compile Include="Kernels\ChiSquaredKernel.cs" />
     <Compile Include="Kernels\ChiSquaredNormKernel.cs" />
     <Compile Include="Kernels\ExpChiSquareKernel.cs" />
-    <Compile Include="Kernels\FrobeniusKernel.cs" />
-    <Compile Include="Kernels\FrobeniusParameterSelection.cs" />
     <Compile Include="Kernels\LinearKernel.cs" />
     <Compile Include="Kernels\LinearParameterSelection.cs" />
-    <Compile Include="Kernels\MatrixKernel.cs" />
     <Compile Include="Kernels\ParameterSelection.cs" />
     <Compile Include="Kernels\PolinominalKernel.cs">
       <SubType>Code</SubType>
@@ -135,6 +129,7 @@
     <Compile Include="Helpers\ByValueComparer.cs" />
     <Compile Include="SVMSolvers\ConjugateLinSolver.cs" />
     <Compile Include="SVMSolvers\BBLinSolver.cs" />
+    <Compile Include="SVMSolvers\SmoRandomSolver.cs" />
     <Compile Include="SVMSolvers\LinearSolver.cs" />
     <Compile Include="SVMSolvers\ParallelSmoFanSolver2.cs" />
     <Compile Include="SVMSolvers\ParallelSmoFanSolver.cs" />
