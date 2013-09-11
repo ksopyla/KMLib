@@ -137,9 +137,13 @@ namespace KMLib.GPU
 
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
+
+           
+
             idxPtr = cuda.CopyHostToDevice(vecIdx);
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 
+            
             //!!!!!
             selfLinDotPtr = cuda.CopyHostToDevice(selfLinDot);
 
@@ -216,35 +220,13 @@ namespace KMLib.GPU
         {
             if (cuda != null)
             {
-                //free all resources
-                cuda.Free(valsPtr);
-                valsPtr.Pointer =IntPtr.Zero;
-                cuda.Free(idxPtr);
-                idxPtr.Pointer =IntPtr.Zero;
-                cuda.Free(vecLengthPtr);
-                vecLengthPtr.Pointer =IntPtr.Zero;
-
                 cuda.Free(selfLinDotPtr);
                 selfLinDotPtr.Pointer =IntPtr.Zero;
-
-
-                cuda.FreeHost(outputIntPtr);
-                //cuda.Free(outputPtr);
-                outputPtr.Pointer =IntPtr.Zero;
-                cuda.Free(labelsPtr);
-                labelsPtr.Pointer =IntPtr.Zero;
-                cuda.DestroyTexture(cuLabelsTexRef);
-
-                cuda.Free(mainVecPtr);
-                mainVecPtr.Pointer =IntPtr.Zero;
-
-                cuda.DestroyTexture(cuMainVecTexRef);
+                
+                
+                DisposeResourses();
 
                 cuda.UnloadModule(cuModule);
-
-
-
-
 
                 base.Dispose();
                 

@@ -19,14 +19,14 @@ using KMLib.Helpers;
 using System.Diagnostics;
 using KMLib.GPU.GPUKernels;
 
-namespace KMLib.GPU
+namespace KMLib.GPU.GPUKernels.Col2
 {
 
     /// <summary>
-    /// Based clas for all cuda enable svm kernel
+    /// Based clas for all cuda enable svm kernel with computing 2 kernel matrix columns at once
     /// This class encapsulates all necessary variables for cuda.net library
     /// </summary>
-    public abstract class CuVectorKernel : VectorKernel<SparseVec>, IDisposable
+    public abstract class CuVectorKernelCol2 : VectorKernel<SparseVec>, IDisposable
     {
 
         #region cuda names
@@ -39,11 +39,14 @@ namespace KMLib.GPU
         /// <summary>
         /// cuda texture name for main vector
         /// </summary>
-        protected string cudaMainVecTexRefName = "mainVecTexRef";
+        protected string cuVecITexRefName = "VecI_TexRef";
+
+
         /// <summary>
-        /// cuda texture name for labels
+        /// cuda texture name for main vector
         /// </summary>
-        protected string cudaLabelsTexRefName = "labelsTexRef";
+        protected string cuVecJTexRefName = "VecJ_TexRef";
+
 
         /// <summary>
         /// cuda function name for computing product
@@ -64,7 +67,9 @@ namespace KMLib.GPU
         /// vector for computing kernel product with other vectors
         /// </summary>
         /// <remarks>all the time this vector will be modified and copied to cuda array</remarks>
-        protected float[] mainVector;
+        protected float[] VectorI;
+
+        protected float[] VectorJ;
 
         /// <summary>
         /// native pointer to output memory region
@@ -75,7 +80,9 @@ namespace KMLib.GPU
         /// <summary>
         /// parameter offset in cuda function kernel for changing mainVectorIdx
         /// </summary>
-        protected int mainVecIdxParamOffset=-1;
+        protected int IdxIParamOffset=-1;
+
+        protected int IdxJParamOffset = -1;
 
         /// <summary>
         /// parameter offset in cuda kernel for result 
@@ -84,7 +91,10 @@ namespace KMLib.GPU
         /// <summary>
         /// index of current main problem element (vector)
         /// </summary>
-        protected uint mainVectorIdx = 0;
+        protected uint IVectorIdx = 0;
+
+
+        protected uint JVectorIdx = 0;
 
 
         /// <summary>
@@ -137,16 +147,27 @@ namespace KMLib.GPU
         public CUdeviceptr outputPtr;
 
         /// <summary>
-        /// cuda reference to texture for main problem element(vector), 
+        /// cuda reference to texture for main "I" vector problem 
         /// </summary>
-        protected CUtexref cuMainVecTexRef;
-
-        protected CUdeviceptr mainVecPtr;
+        protected CUtexref cuVecI_TexRef;
 
         /// <summary>
-        /// cuda refeerenc to texture for labels
+        /// cuda reference to texture for main "J" vector problem 
         /// </summary>
-        protected CUtexref cuLabelsTexRef;
+        protected CUtexref cuVecJ_TexRef;
+
+
+        /// <summary>
+        /// cuda device pointer to "I" vector problem 
+        /// </summary>
+        protected CUdeviceptr VecIPtr;
+
+        /// <summary>
+        /// cuda device pointer to "J" vector problem 
+        /// </summary>
+        protected CUdeviceptr VecJPtr;
+
+       
 
         /// <summary>
         /// cuda pointer to labels, neded for coping to texture
@@ -163,8 +184,7 @@ namespace KMLib.GPU
 
         protected bool MakeDenseVectorOnGPU = false;
 
-        protected EllpackDenseVectorBuilder vecBuilder;
-
+        
 
         public override SparseVec[] ProblemElements
         {
@@ -180,101 +200,82 @@ namespace KMLib.GPU
             }
         }
 
+
         public override void AllProducts(int element1, float[] results)
         {
 
-            //cuda calculation
-            //todo: possible small improvements
-            //if mainVectorIdx==element1 then we don't have to copy to device
-            //SparseVec mainVec = problemElements[element1];
+            throw new NotSupportedException("Computing one kernel column not supported");
+        }
 
-            //if (mainVectorIdx != element1)
-            //{
-            //    CudaHelpers.FillDenseVector(mainVec, mainVector);
+        
 
-            //    cuda.CopyHostToDevice(mainVecPtr, mainVector);
+        public override void AllProducts(int i,int j, float[][] results)
+        {
 
-            //}
-
-            SetMemoryForDenseVector(element1);
-
-            //uint align = cuda.SetTextureAddress(cuMainVecTexRef, mainVecPtr, (uint)(sizeof(float) * mainVector.Length));
-
-            //copy to texture
-            // cuda.CopyHostToArray(cuMainVecArray, mainVector, 0);
-
-
-            //set the last parameter for kernel
-            mainVectorIdx = (uint)element1;
-            cuda.SetParameter(cuFunc, mainVecIdxParamOffset, mainVectorIdx);
             
-            /*
-            CUevent start = cuda.CreateEvent();
-            CUevent end = cuda.CreateEvent();
-            cuda.RecordEvent(start);
-            var st = Stopwatch.StartNew();
-            */
+
+            SetMemoryForDenseVector(i,j);
+
+            
+            //set the last parameter for kernel
+            IVectorIdx =(uint) i;
+            JVectorIdx = (uint) j;
+            
+            cuda.SetParameter(cuFunc, IdxIParamOffset, IVectorIdx);
+            cuda.SetParameter(cuFunc, IdxJParamOffset, JVectorIdx);
+            
+            
             cuda.Launch(cuFunc, blocksPerGrid, 1);
 
-            //cuda.RecordEvent(end);
+            
             cuda.SynchronizeContext();
-
-            //st.Stop();
-            //var elapsed2 = st.ElapsedMilliseconds;
-            //var elapsed = cuda.ElapsedTime(start, end);
-
 
             //copy resulsts form device to host
             //cuda.CopyDeviceToHost(outputPtr, results);
             //copy results from native mapped memory pointer to array,
             //faster then copyDtH function
-            Marshal.Copy(outputIntPtr, results, 0, results.Length);
 
+            float[] test = new float[2 * problemElements.Length];
+            Marshal.Copy(outputIntPtr, test, 0, test.Length);
+            
+            
+            Marshal.Copy(outputIntPtr, results[0], 0, results[0].Length);
+            Marshal.Copy(outputIntPtr + sizeof(float)*results[0].Length, results[1], 0, results[1].Length);
 
+          
          }
 
 
         
 
-        public virtual void SetMemoryForDenseVector(int mainIndex)
+        public virtual void SetMemoryForDenseVector(int i,int j)
         {
-            SparseVec mainVec = problemElements[mainIndex];
-            if (mainVectorIdx != mainIndex)
+            
+            if (IVectorIdx != i )
             {
-                CudaHelpers.FillDenseVector(mainVec, mainVector);
-                cuda.CopyHostToDevice(mainVecPtr, mainVector);
+                SparseVec vecI = problemElements[i];
+                CudaHelpers.FillDenseVector(vecI, VectorI);
+                cuda.CopyHostToDevice(VecIPtr, VectorI);
+            }
+
+
+            if (JVectorIdx != j)
+            {
+                SparseVec vecJ = problemElements[j];
+                CudaHelpers.FillDenseVector(vecJ, VectorJ);
+                cuda.CopyHostToDevice(VecJPtr, VectorJ);
             }
         }
 
 
-        public void AllProductsGPU(int element1,CUdeviceptr devResultPtr)
-        {
-
-            SetMemoryForDenseVector(element1);
-
-            //set the last parameter for kernel
-            mainVectorIdx = (uint)element1;
-            cuda.SetParameter(cuFunc, mainVecIdxParamOffset, mainVectorIdx);
-            cuda.SetParameter(cuFunc, kernelResultParamOffset, devResultPtr);
-
-            cuda.Launch(cuFunc, blocksPerGrid, 1);
-            
-
-            //when gpu solver is used all cuda Launch are queued, so we don't have to synchronize context
-            cuda.SynchronizeContext();
-            
-        }
+       
 
         protected void InitCudaModule()
         {
             int deviceNr = 0; 
             cuda = new CUDA(deviceNr, true);
             cuCtx = cuda.CreateContext(deviceNr, CUCtxFlags.MapHost); 
-            //cuda.SetCurrentContext(cuCtx);
-
-            //var ctx = cuda.PopCurrentContext();
-            //var ctx2 = cuda.PopCurrentContext();
-            //var ctx3 = cuda.PopCurrentContext();
+            
 
             string modluePath = Path.Combine(Environment.CurrentDirectory, cudaModuleName);
             if (!File.Exists(modluePath))
@@ -341,18 +342,31 @@ namespace KMLib.GPU
 
             cuda.Free(labelsPtr);
             labelsPtr.Pointer = IntPtr.Zero;
-            if (cuLabelsTexRef.Pointer != IntPtr.Zero)
-                cuda.DestroyTexture(cuLabelsTexRef);
+            
 
-            if (mainVecPtr.Pointer != IntPtr.Zero)
+            if (VecIPtr.Pointer != IntPtr.Zero)
             {
-                cuda.Free(mainVecPtr);
-                mainVecPtr.Pointer = IntPtr.Zero;
+                cuda.Free(VecIPtr);
+                VecIPtr.Pointer = IntPtr.Zero;
 
             }
 
-            if (cuMainVecTexRef.Pointer != IntPtr.Zero)
-                cuda.DestroyTexture(cuMainVecTexRef);
+            if (VecJPtr.Pointer != IntPtr.Zero)
+            {
+                cuda.Free(VecJPtr);
+                VecJPtr.Pointer = IntPtr.Zero;
+
+            }
+
+
+
+            if (cuVecI_TexRef.Pointer != IntPtr.Zero)
+                cuda.DestroyTexture(cuVecI_TexRef);
+
+            if (cuVecJ_TexRef.Pointer != IntPtr.Zero)
+                cuda.DestroyTexture(cuVecJ_TexRef);
+
+
         }
     }
 }

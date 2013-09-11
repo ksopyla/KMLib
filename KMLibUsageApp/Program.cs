@@ -14,6 +14,7 @@ using KMLib.SVMSolvers;
 using System.IO;
 using KMLib.GPU.Solvers;
 using KMLib.Transforms;
+using KMLib.GPU.GPUKernels.Col2;
 
 
 namespace KMLibUsageApp
@@ -45,7 +46,7 @@ namespace KMLibUsageApp
             //Console.ReadKey();
             //GroupedTestingDataSets(dataSetsToTest);
             
-            GroupedTestingLowLevelDataSets(dataSetsToTest);
+            //GroupedTestingLowLevelDataSets(dataSetsToTest);
             
             //TestOneDataSet(dataFolder);
 
@@ -61,7 +62,7 @@ namespace KMLibUsageApp
             ChooseDataSet(dataFolder, out trainningFile, out testFile, out numberOfFeatures);
 
                   
-            //SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
+            SVMClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
             //SVMClassifyLowLevelManyTests(trainningFile, testFile, numberOfFeatures, C,3);
 
             //SVMLinearClassifyLowLevel(trainningFile, testFile, numberOfFeatures, C);
@@ -572,7 +573,8 @@ namespace KMLibUsageApp
                 new CuRBFEllpackKernel(gamma),
                 new CuRBFSlEllKernel(gamma),
                 new CuRBFEllILPKernel(gamma),
-                new CuRBFEllRTILPKernel(gamma)
+                new CuRBFEllRTILPKernel(gamma),
+                new CuRBFSERTILPKernel(gamma)
             };
             return kernelsCollection;
         }
@@ -609,29 +611,29 @@ namespace KMLibUsageApp
 
 
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/a1a.train",
-                dataFolder + "/a1a.train",
-                123));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/a1a.train",
+            //    dataFolder + "/a1a.train",
+            //    123));
 
 
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/mnist.scale20k",
-                dataFolder + "/mnist.scale1k.t",
-                784));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/mnist.scale20k",
+            //    dataFolder + "/mnist.scale1k.t",
+            //    784));
 
 
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/w8a",
-                dataFolder + "/w8a.t",
-                300));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/w8a",
+            //    dataFolder + "/w8a.t",
+            //    300));
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/a9a",
-                dataFolder + "/a9a.t",
-                123));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/a9a",
+            //    dataFolder + "/a9a.t",
+            //    123));
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/news20.binary",
@@ -868,9 +870,10 @@ namespace KMLibUsageApp
             //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFEllRTILPKernel(gamma);
-            IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
-            
+
+            IKernel<SparseVec> kernel = new CuRBFEllILPKernelCol2(gamma);
 
             //IKernel<SparseVec> kernel = new CuChi2EllKernel();
             //IKernel<SparseVec> kernel = new CuNChi2EllKernel();
@@ -888,10 +891,11 @@ namespace KMLibUsageApp
 
             //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
             //this solver works a bit faster and use less memory
-            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
             //var Solver = new SmoFanSolver<SparseVec>(train, kernel, C);
             //var Solver = new SmoRandomSolver<SparseVec>(train, kernel, C);
 
+            var Solver = new SmoFirstOrderSolver<SparseVec>(train, kernel, C);
             
             //var Solver = new GPUSmoFanSolver(train, kernel, C);
 

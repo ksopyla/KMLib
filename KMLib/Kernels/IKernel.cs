@@ -63,5 +63,7 @@
 
 
         void SwapIndex(int i, int j);
+
+        void AllProducts(int i, int j, float[][] results);
     }
 }

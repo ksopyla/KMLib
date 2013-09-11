@@ -47,6 +47,7 @@ namespace KMLib
         public int Iter;
         public TimeSpan ModelTime;
         public long ModelTimeMs;
+        public int CacheHit;
 
         public override string ToString()
         {
@@ -57,6 +58,8 @@ namespace KMLib
             sb.AppendFormat("obj={0} ", Obj);
             sb.AppendFormat("rho={0} ", Bias);
             sb.AppendFormat("nSV={0} \n", SupportElements.Length);
+            sb.AppendFormat("cache Hit={0} \n", CacheHit);
+
             
 
             return sb.ToString();

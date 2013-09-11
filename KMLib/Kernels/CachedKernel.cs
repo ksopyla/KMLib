@@ -44,6 +44,7 @@ namespace KMLib.Kernels
         private Problem<TProblemElement> problem;
 
         private readonly IKernel<TProblemElement> kernel;
+        public int CacheHit;
 
 
 
@@ -102,8 +103,8 @@ namespace KMLib.Kernels
             //with cache
             if ((start = cache.GetData(i, ref data, len)) < len)
             {
-                
-                
+
+
                 kernel.AllProducts(i, data);
 
                 // for (j = start; j < len; j++)
@@ -132,6 +133,8 @@ namespace KMLib.Kernels
 
 
             }
+            else
+                CacheHit++;
 
             //string debStr = i.ToString() + " ->" + string.Join("; ", data);
             //Debug.WriteLine(debStr);
