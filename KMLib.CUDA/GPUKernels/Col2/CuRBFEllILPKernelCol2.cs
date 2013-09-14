@@ -52,8 +52,8 @@ namespace KMLib.GPU.GPUKernels.Col2
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
-            cudaProductKernelName = "rbfEllpackILPcol2";
-            //cudaProductKernelName = "rbfEllpackFormatKernel_ILP_shared";
+            //cudaProductKernelName = "rbfEllpackILPcol2";
+            cudaProductKernelName = "rbfEllpackILPcol2_Prefetch2";
 
             cudaModuleName = "KernelsEllpackCol2.cubin";
 
@@ -61,7 +61,7 @@ namespace KMLib.GPU.GPUKernels.Col2
 
             preFetch = 2;
 
-           
+            //threadsPerBlock = 128;
             
         }
 

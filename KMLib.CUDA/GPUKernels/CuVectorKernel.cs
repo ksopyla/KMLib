@@ -255,6 +255,7 @@ namespace KMLib.GPU
             //set the last parameter for kernel
             mainVectorIdx = (uint)element1;
             cuda.SetParameter(cuFunc, mainVecIdxParamOffset, mainVectorIdx);
+           
             cuda.SetParameter(cuFunc, kernelResultParamOffset, devResultPtr);
 
             cuda.Launch(cuFunc, blocksPerGrid, 1);

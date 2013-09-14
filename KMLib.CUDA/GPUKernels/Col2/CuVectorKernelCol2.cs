@@ -235,8 +235,8 @@ namespace KMLib.GPU.GPUKernels.Col2
             //copy results from native mapped memory pointer to array,
             //faster then copyDtH function
 
-            float[] test = new float[2 * problemElements.Length];
-            Marshal.Copy(outputIntPtr, test, 0, test.Length);
+            //float[] test = new float[2 * problemElements.Length];
+            //Marshal.Copy(outputIntPtr, test, 0, test.Length);
             
             
             Marshal.Copy(outputIntPtr, results[0], 0, results[0].Length);
@@ -245,7 +245,30 @@ namespace KMLib.GPU.GPUKernels.Col2
           
          }
 
+        public void AllProductsGPU(int i, int j, CUdeviceptr QiPtr)
+        {
 
+
+            SetMemoryForDenseVector(i, j);
+
+
+            //set the last parameter for kernel
+            IVectorIdx = (uint)i;
+            JVectorIdx = (uint)j;
+
+            cuda.SetParameter(cuFunc, IdxIParamOffset, IVectorIdx);
+            cuda.SetParameter(cuFunc, IdxJParamOffset, JVectorIdx);
+            //this cuda kernel computes results as one long block of memory
+            //first bytes stores the i-kernel kolumn elements, last stores j-kernel column elements
+            //so as a pointer to result is passed QiPtr and QjPtr is computed accordingly
+            //QjPtr = QiPtr + sizeof(float) * problemElements.Length;
+            cuda.SetParameter(cuFunc, kernelResultParamOffset, QiPtr);
+            cuda.Launch(cuFunc, blocksPerGrid, 1);
+            cuda.SynchronizeContext();
+
+            
+            
+        }
         
 
         public virtual void SetMemoryForDenseVector(int i,int j)
@@ -368,5 +391,7 @@ namespace KMLib.GPU.GPUKernels.Col2
 
 
         }
+
+        
     }
 }

@@ -35,8 +35,6 @@ namespace KMLibUsageApp
             string dataFolder = args[0];
             //dataFolder = @"./Data";
 
-           
-
             Debug.Listeners.Add(new ConsoleTraceListener());
 
                         
@@ -465,7 +463,7 @@ namespace KMLibUsageApp
 
             IList<string> solversStr = new List<string> { "ParallelSMO","GpuFanSolver" };// "ParallelSMO", 
 
-            int numTests = 4;
+            int numTests = 3;
 
             foreach (var data in dataSetsToTest)
             {
@@ -489,7 +487,7 @@ namespace KMLibUsageApp
                 foreach (var solverStr in solversStr)
                 {
                     Trace.WriteLine(string.Format("Solver: {0}", solverStr));
-                    Trace.WriteLine(string.Format("Results time[s]:{0,77} {1,9} {2,12} {3,9}", "it", "obj","nSV","acc" ));
+                    Trace.WriteLine(string.Format("Results time[s]:{0,68} {1,9} {2,12} {3,9}", "it", "obj","nSV","acc" ));
                     foreach (var kernel in kernelsCollection)
                     {
                         string kernelStr = kernel.ToString();
@@ -515,7 +513,7 @@ namespace KMLibUsageApp
 
                                 modelTimes[i] = model.ModelTimeMs;
                                 double mTime = modelTimes[i] / 1000.0;
-                                Trace.Write(string.Format(" {0,9}; ", mTime.ToString("n1")));
+                                Trace.Write(string.Format(" {0,9}; ", mTime.ToString("0.0")));
 
                             }
                         }
@@ -552,7 +550,7 @@ namespace KMLibUsageApp
                         float obj = model.Obj;
                         int nSv = model.SupportElements.Length;
 
-                        Trace.WriteLine(string.Format("{0,7}\t{1}\t{2}\t{3} ", it, obj.ToString("n3"), nSv, acc.ToString("n5")));
+                        Trace.WriteLine(string.Format("{0,7}\t{1}\t{2}\t{3} ", it, obj.ToString("0.00"), nSv, acc.ToString("n5")));
                         
                     }
 
@@ -635,26 +633,26 @@ namespace KMLibUsageApp
             //    dataFolder + "/a9a.t",
             //    123));
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/news20.binary",
-                dataFolder + "/news20.binary",
-                1335191));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/news20.binary",
+            //    dataFolder + "/news20.binary",
+            //    1335191));
 
            
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/real-sim",
-                dataFolder + "/real-sim",
-                20958));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/real-sim",
+            //    dataFolder + "/real-sim",
+            //    20958));
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/rcv1_test.binary",
-                dataFolder + "/rcv1_train.binary",
-                47236));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/rcv1_test.binary",
+            //    dataFolder + "/rcv1_train.binary",
+            //    47236));
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/mnist.scale",
-                dataFolder + "/mnist.scale.t",
-                784));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/mnist.scale",
+            //    dataFolder + "/mnist.scale.t",
+            //    784));
 
 
 
@@ -668,6 +666,12 @@ namespace KMLibUsageApp
                 dataFolder + "/tweet.test",
                 52242));
 
+
+            dataSets.Add(new Tuple<string, string, int>(
+               dataFolder + "/webspam_wc_normalized_unigram.svm",
+               dataFolder + "/webspam_wc_normalized_unigram.svm",
+               254));
+
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/kytea-msr_first_1M.train",
                 dataFolder + "/kytea-msr.test",
@@ -678,10 +682,7 @@ namespace KMLibUsageApp
                 dataFolder + "/kytea-msr.test",
                 8683737));
 
-            dataSets.Add(new Tuple<string, string, int>(
-               dataFolder + "/webspam_wc_normalized_unigram.svm",
-               dataFolder + "/webspam_wc_normalized_unigram.svm",
-               254));
+            
 
             dataSets.Add(new Tuple<string, string, int>(
                dataFolder + "/url_combined_1.5M.train",
@@ -894,10 +895,12 @@ namespace KMLibUsageApp
             //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
             //var Solver = new SmoFanSolver<SparseVec>(train, kernel, C);
             //var Solver = new SmoRandomSolver<SparseVec>(train, kernel, C);
+            //var Solver = new GPUSmoFanSolver(train, kernel, C);
 
             var Solver = new SmoFirstOrderSolver<SparseVec>(train, kernel, C);
+            //var Solver = new GPUSmoFOSolver(train, kernel, C);
             
-            //var Solver = new GPUSmoFanSolver(train, kernel, C);
+            
 
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 
