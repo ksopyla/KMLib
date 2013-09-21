@@ -15,6 +15,7 @@ using System.IO;
 using KMLib.GPU.Solvers;
 using KMLib.Transforms;
 using KMLib.GPU.GPUKernels.Col2;
+using KMLib.GPU.GPUEvaluators;
 
 
 namespace KMLibUsageApp
@@ -484,8 +485,13 @@ namespace KMLibUsageApp
                 Trace.WriteLine(string.Format("DataSet: tr={0} tst={1} , el={2}/{3}  atr={4}", tr, tst, train.ElementsCount, test.ElementsCount, numberOfFeatures));
                 Trace.WriteLine("-----------------------------------------------------------------");
 
+
                 foreach (var solverStr in solversStr)
                 {
+                    //dominionstat dla parallel smo
+                    if (solverStr.Equals("ParallelSMO") && data.Item3 == 596)
+                        continue;
+
                     Trace.WriteLine(string.Format("Solver: {0}", solverStr));
                     Trace.WriteLine(string.Format("Results time[s]:{0,68} {1,9} {2,12} {3,9}", "it", "obj","nSV","acc" ));
                     foreach (var kernel in kernelsCollection)
@@ -497,8 +503,6 @@ namespace KMLibUsageApp
 
                         try
                         {
-
-
                             kernel.ProblemElements = train.Elements;
                             kernel.Y = train.Y;
                             kernel.Init();
@@ -738,12 +742,12 @@ namespace KMLibUsageApp
             #endregion
 
 
-            //trainningFile = dataFolder + "/a1a.train";
-            ////testFile = dataFolder + "/a1a.test";
-            //////testFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
+            trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////testFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.train";
+            //in a1a problem max index is 123
+            numberOfFeatures = 123;
 
 
             //trainningFile = dataFolder + "/a9a";
@@ -770,10 +774,10 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/news20.binary";
             //numberOfFeatures = 1335191;
 
-            //trainningFile = dataFolder + "/mnist.scale";
-            trainningFile = dataFolder + "/mnist.scale20k";
-            testFile = dataFolder + "/mnist.scale1k.t";
-            numberOfFeatures = 784;
+            ////trainningFile = dataFolder + "/mnist.scale";
+            //trainningFile = dataFolder + "/mnist.scale20k";
+            //testFile = dataFolder + "/mnist.scale1k.t";
+            //numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
@@ -859,22 +863,25 @@ namespace KMLibUsageApp
             Console.WriteLine("end read vectors");
 
             Model<SparseVec> model;
-            //EvaluatorBase<SparseVec> evaluator = new CudaLinearEvaluator();
-            //EvaluatorBase<SparseVec> evaluator = new CudaRBFEvaluator(gamma);
+            
             //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+            
+            //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+
+            Evaluator<SparseVec> evaluator = new CuRBFEllILPEvaluator(gamma);
+
 
             #region Cuda kernels
 
             //IKernel<SparseVec> kernel = new CuLinearKernel();
             //IKernel<SparseVec> kernel = new CuRBFCSRKernel(gamma );
             //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
-            //IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
+            IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFEllRTILPKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
 
-            IKernel<SparseVec> kernel = new CuRBFEllILPKernelCol2(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFEllILPKernelCol2(gamma);
 
             //IKernel<SparseVec> kernel = new CuChi2EllKernel();
             //IKernel<SparseVec> kernel = new CuNChi2EllKernel();
@@ -892,16 +899,16 @@ namespace KMLibUsageApp
 
             //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
             //this solver works a bit faster and use less memory
-            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
             //var Solver = new SmoFanSolver<SparseVec>(train, kernel, C);
             //var Solver = new SmoRandomSolver<SparseVec>(train, kernel, C);
+            
+            //var Solver = new SmoFirstOrderSolver<SparseVec>(train, kernel, C);
             //var Solver = new GPUSmoFanSolver(train, kernel, C);
 
-            var Solver = new SmoFirstOrderSolver<SparseVec>(train, kernel, C);
+            //var Solver = new SmoFirstOrderSolver2Cols<SparseVec>(train, kernel, C);
             //var Solver = new GPUSmoFOSolver(train, kernel, C);
             
-            
-
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 
             Stopwatch timer = Stopwatch.StartNew();

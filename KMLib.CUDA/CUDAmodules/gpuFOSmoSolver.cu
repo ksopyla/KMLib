@@ -127,8 +127,6 @@ extern "C" __global__ void FindMaxI_MinJ(const float* y,
 	while (i < N)
 	{   
 		yi=(int)y[i];
-		
-
 		alpha_i=alpha[i];
 		yib = y[i+blockDim.x];
 		alpha_ib=alpha[i+blockDim.x];
@@ -145,13 +143,13 @@ extern "C" __global__ void FindMaxI_MinJ(const float* y,
 		maxGi<temp1Max ? shIdxI[tid]=i : 0;
 		maxGi = fmaxf(maxGi, temp1Max );
 
-		maxGi<temp2Max ? shIdxI[tid]=i+blockDim.x : 0;
-		maxGi = fmaxf(maxGi, temp2Max );
-
-
 		maxGj<temp1Min ? shIdxJ[tid]=i : 0;
 		maxGj = fmaxf(maxGj, temp1Min );
 
+
+		maxGi<temp2Max ? shIdxI[tid]=i+blockDim.x : 0;
+		maxGi = fmaxf(maxGi, temp2Max );
+		
 		maxGj<temp2Min ? shIdxJ[tid]=i+blockDim.x : 0;
 		maxGj = fmaxf(maxGj,temp2Min);
 

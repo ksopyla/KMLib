@@ -161,6 +161,7 @@ namespace KMLib.GPU
                 cuda.SynchronizeStream(stream);
                 //copy asynchronously from buffer to devece
                 cuda.CopyHostToDeviceAsync(mainVecPtr, svVecIntPtrs[k % 2], memSvSize, stream);
+
                 //set the last parameter in kernel (column index)   
                 // colIndexParamOffset
                 cuda.SetParameter(cuFunc, lastParameterOffset, (uint)k);

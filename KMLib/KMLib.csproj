@@ -129,6 +129,7 @@
     <Compile Include="Helpers\ByValueComparer.cs" />
     <Compile Include="SVMSolvers\ConjugateLinSolver.cs" />
     <Compile Include="SVMSolvers\BBLinSolver.cs" />
+    <Compile Include="SVMSolvers\SmoFirstOrderSolver2Cols.cs" />
     <Compile Include="SVMSolvers\SmoFirstOrderSolver.cs" />
     <Compile Include="SVMSolvers\SmoRandomSolver.cs" />
     <Compile Include="SVMSolvers\LinearSolver.cs" />

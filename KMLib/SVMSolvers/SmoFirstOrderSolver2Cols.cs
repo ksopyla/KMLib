@@ -9,8 +9,7 @@ using System.Diagnostics;
 namespace KMLib.SVMSolvers
 {
     /// <summary>
-    ///  An SMO algorithm in Fan et al., JMLR 6(2005), p. 1889--1918, implementation based on 
-    /// SVM.net (http://matthewajohnson.org/software/svm.html) and original LibSVM (http://www.csie.ntu.edu.tw/~cjlin/libsvm/)
+    ///  An SMO algorithm in Kertihi with first order working set selection
     ///  Solves:
     /// Min 0.5(\alpha^T Q \alpha) + p^T \alpha
     /// y^T \alpha = \delta
@@ -20,7 +19,7 @@ namespace KMLib.SVMSolvers
     /// solution will be put in \alpha, objective value will be put in obj
     /// </summary>
     /// <typeparam name="TProblemElement">Problem elements</typeparam>
-    public class SmoFanSolver<TProblemElement> : Solver<TProblemElement>
+    public class SmoFirstOrderSolver2Cols<TProblemElement> : Solver<TProblemElement>
     {
 
         /// <summary>
@@ -71,9 +70,9 @@ namespace KMLib.SVMSolvers
         /// </summary>
         private CachedKernel<TProblemElement> Q;
         private int problemSize;
-        
 
-        public SmoFanSolver(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
+
+        public SmoFirstOrderSolver2Cols(Problem<TProblemElement> problem, IKernel<TProblemElement> kernel, float C)
             : base(problem, kernel, C)
         {
 
@@ -130,6 +129,9 @@ namespace KMLib.SVMSolvers
 
             model.ModelTime = timer.Elapsed;
             model.ModelTimeMs = timer.ElapsedMilliseconds;
+
+
+            model.CacheHit = Q.CacheHit;
 
             //------------------
             List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
@@ -222,6 +224,11 @@ namespace KMLib.SVMSolvers
             int counter = Math.Min(problemSize, 1000) + 1;
             int[] working_set = new int[2];
 
+            float[][] ker2Cols = new float[2][];
+            ker2Cols[0] =  new float[problem.ElementsCount];
+            ker2Cols[1] =  new float[problem.ElementsCount];
+
+
             while (true)
             {
                 // show progress and do shrinking
@@ -253,9 +260,14 @@ namespace KMLib.SVMSolvers
 
                 // update alpha[i] and alpha[j], handle bounds carefully
 
-                float[] Q_i = Q.GetQ(i, active_size);
-                float[] Q_j = Q.GetQ(j, active_size);
 
+                kernel.AllProducts(i, j, ker2Cols);
+                float[] Q_i = ker2Cols[0];
+                float[] Q_j = ker2Cols[1];
+
+                //float[] Q_i = Q.GetQ(i, active_size);
+                //float[] Q_j = Q.GetQ(j, active_size);
+                
                 float C_i = get_C(i);
                 float C_j = get_C(j);
 
@@ -372,7 +384,7 @@ namespace KMLib.SVMSolvers
                     int k;
                     if (ui != is_upper_bound(i))
                     {
-                        Q_i = Q.GetQ(i, problemSize);
+                        //Q_i = Q.GetQ(i, problemSize);
                         if (ui)
                             for (k = 0; k < problemSize; k++)
                                 G_bar[k] -= C_i * Q_i[k];
@@ -383,7 +395,7 @@ namespace KMLib.SVMSolvers
 
                     if (uj != is_upper_bound(j))
                     {
-                        Q_j = Q.GetQ(j, problemSize);
+                       // Q_j = Q.GetQ(j, problemSize);
                         if (uj)
                             for (k = 0; k < problemSize; k++)
                                 G_bar[k] -= C_j * Q_j[k];
@@ -523,82 +535,53 @@ namespace KMLib.SVMSolvers
             float obj_diff_Min = INF;
 
             for (int t = 0; t < active_size; t++)
+            {
                 if (y[t] == +1)
                 {
                     if (!is_upper_bound(t))
+                    {
                         if (-G[t] >= GMax)
                         {
                             GMax = -G[t];
                             GMax_idx = t;
                         }
+                    }
+
+                    if (!is_lower_bound(t))
+                    {
+                        if (G[t] >= GMax2)
+                        {
+                            GMax2 = G[t];
+                            GMin_idx = t;
+                        }
+                    }
+
                 }
                 else
                 {
                     if (!is_lower_bound(t))
+                    {
                         if (G[t] >= GMax)
                         {
                             GMax = G[t];
                             GMax_idx = t;
                         }
-                }
-
-            int i = GMax_idx;
-            float[] Q_i = null;
-            if (i != -1) // null Q_i not accessed: GMax=-INF if i=-1
-                Q_i = Q.GetQ(i, active_size);
-
-            for (int j = 0; j < active_size; j++)
-            {
-                if (y[j] == +1)
-                {
-                    if (!is_lower_bound(j))
-                    {
-                        float grad_diff = GMax + G[j];
-                        if (G[j] >= GMax2)
-                            GMax2 = G[j];
-                        if (grad_diff > 0)
-                        {
-                            float obj_diff;
-                            float quad_coef = (float)(Q_i[i] + QD[j] - 2.0 * y[i] * Q_i[j]);
-                            if (quad_coef > 0)
-                                obj_diff = -(grad_diff * grad_diff) / quad_coef;
-                            else
-                                obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
-
-                            if (obj_diff <= obj_diff_Min)
-                            {
-                                GMin_idx = j;
-                                obj_diff_Min = obj_diff;
-                            }
-                        }
                     }
-                }
-                else
-                {
-                    if (!is_upper_bound(j))
-                    {
-                        float grad_diff = GMax - G[j];
-                        if (-G[j] >= GMax2)
-                            GMax2 = -G[j];
-                        if (grad_diff > 0)
-                        {
-                            float obj_diff;
-                            float quad_coef = (float)(Q_i[i] + QD[j] + 2.0 * y[i] * Q_i[j]);
-                            if (quad_coef > 0)
-                                obj_diff = -(grad_diff * grad_diff) / quad_coef;
-                            else
-                                obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
 
-                            if (obj_diff <= obj_diff_Min)
-                            {
-                                GMin_idx = j;
-                                obj_diff_Min = obj_diff;
-                            }
+                    if (!is_upper_bound(t))
+                    {
+
+                        if (-G[t] >= GMax2)
+                        {
+                            GMax2 = -G[t];
+                            GMin_idx = t;
+
                         }
+
                     }
                 }
             }
-
+           
             if (GMax + GMax2 < EPS)
                 return 1;
 

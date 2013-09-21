@@ -15,6 +15,7 @@ texture<float,1,cudaReadModeElementType>  VecI_TexRef;
 texture<float,1,cudaReadModeElementType>  VecJ_TexRef;
 
 
+
 //cuda kernel funtion for computing SVM RBF kernel, uses 
 // Ellpack-R fromat for storing sparse matrix, labels are in texture cache,  uses ILP - prefetch vector elements in registers
 // arrays vals and colIdx should be aligned to PREFETCH_SIZE

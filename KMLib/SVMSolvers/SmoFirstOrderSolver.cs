@@ -261,12 +261,10 @@ namespace KMLib.SVMSolvers
                 // update alpha[i] and alpha[j], handle bounds carefully
 
 
-                kernel.AllProducts(i, j, ker2Cols);
-                float[] Q_i = ker2Cols[0];
-                float[] Q_j = ker2Cols[1];
+                
 
-                //float[] Q_i = Q.GetQ(i, active_size);
-                //float[] Q_j = Q.GetQ(j, active_size);
+                float[] Q_i = Q.GetQ(i, active_size);
+                float[] Q_j = Q.GetQ(j, active_size);
                 
                 float C_i = get_C(i);
                 float C_j = get_C(j);

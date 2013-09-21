@@ -8,15 +8,21 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 #ifndef KERNELS_CONFIG
 #define KERNELS_CONFIG
 
+#include <float.h>
 
 
 //texture fo labels assiociated with vectors
 texture<float,1,cudaReadModeElementType> labelsTexRef;
 
 texture<float,1,cudaReadModeElementType> mainVecTexRef;
-//texture<float,1,cudaReadModeElementType> mainVectorTexRef;
+//needed for prediction and acynchronous transfers
+texture<float,1,cudaReadModeElementType> mainVec2TexRef;
+
+
 
 #define BLOCK_SIZE 256
+
+#define BLOCK_SIZE_RED 128
 
 #define WARP_SIZE 32
 
@@ -58,6 +64,77 @@ extern "C" __global__ void setSignForPrediction(float * inputArray,const int siz
 	}
 }
 
+
+
+
+
+extern "C" __global__ void reduce(const float* input, float* output, const int N)
+{
+
+	__shared__ float shVals[BLOCK_SIZE_RED];     
+	
+	// perform first level of reduction,
+	// reading from global memory, writing to shared memory
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
+	unsigned int gridSize = blockDim.x*2*gridDim.x;
+	
+	shVals[tid]=-FLT_MAX;   
+	float sum=0;
+
+	while (i < N)
+	{   
+		sum+=input[i];
+		
+		// ensure we don't read out of bounds 
+		if (i + BLOCK_SIZE_RED < N) {
+			sum+=input[i+BLOCK_SIZE_RED];
+		}
+		i += gridSize;
+	} 
+
+	// each thread puts its local sum into shared memory 
+	shVals[tid] = sum;
+	__syncthreads();
+	
+	if (BLOCK_SIZE_RED >= 512) { 
+		if (tid < 256) { 
+			shVals[tid]=sum=sum+ shVals[tid+256]; 
+		} 
+		__syncthreads(); 
+	}
+	if (BLOCK_SIZE_RED >= 256) { 
+		if (tid < 128) { 
+			shVals[tid]=sum=sum+ shVals[tid+128]; 
+		} 
+		__syncthreads(); 
+	}
+	if (BLOCK_SIZE_RED >= 128) { 
+		if (tid < 64) { 
+			shVals[tid]=sum=sum+ shVals[tid+64]; 
+		} 
+		__syncthreads(); 
+	}
+	
+
+	if (tid < 32)
+	{
+		 volatile float *smem = shVals;
+
+		 smem[tid] = sum = sum + smem[tid + 32];
+		 smem[tid] = sum = sum + smem[tid + 16];
+		 smem[tid] = sum = sum + smem[tid +  8];
+		 smem[tid] = sum = sum + smem[tid +  4];
+		 smem[tid] = sum = sum + smem[tid +  2];
+		 smem[tid] = sum = sum + smem[tid +  1];
+	}
+	
+	// write result for this block to global mem 
+	if (tid == 0) {
+		output[blockIdx.x] = shVals[0];
+	}
+	
+}
 
 
 #endif /* KERNELS_CONFIG */

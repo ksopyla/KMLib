@@ -9,6 +9,15 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 
 #include <Config.h>
 
+
+template<int TexSel> __device__ float SpMV_Ellpack_ILP(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength,
+									   const int row,
+									   const int num_rows);
+
+
+
 //cuda kernel funtion for computing SVM RBF kernel, uses 
 // Ellpack-R fromat for storing sparse matrix, labels are in texture cache,  uses ILP - prefetch vector elements in registers
 // arrays vals and colIdx should be aligned to PREFETCH_SIZE
@@ -21,6 +30,11 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 //num_rows -number of vectors
 //mainVecIndex - main vector index, needed for retriving its label
 //gamma - gamma parameter for RBF 
+
+
+
+
+
 extern "C" __global__ void rbfEllpackFormatKernel_ILP(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength, 
@@ -43,6 +57,7 @@ extern "C" __global__ void rbfEllpackFormatKernel_ILP(const float * vals,
 	//	shDot[threadIdx.x*PREFETCH_SIZE+j]=0.0;
 	//}
 			
+	//myTex1Dfetch<1>(5);
 	
 	if(threadIdx.x==0)
 	{
@@ -108,6 +123,43 @@ extern "C" __global__ void rbfEllpackFormatKernel_ILP(const float * vals,
 
 }
 
+extern "C" __global__ void rbfEllpackFormatKernel_ILP_func(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength, 
+									   const float* selfDot,
+									   float * results,
+									   const int num_rows,
+									   const int mainVecIndex,
+									   const float gamma)
+{
+	
+
+	__shared__ float shGamma;
+	__shared__ int shMainVecIdx;
+	__shared__ float shMainSelfDot;
+	__shared__ float shLabel;
+	__shared__ int shRows;
+	
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIndex;
+		shGamma = gamma;
+		shMainSelfDot = selfDot[shMainVecIdx];
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+		shRows= num_rows;
+	}
+	__syncthreads();
+	
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+
+	if(row<shRows)
+	{
+		float dot = SpMV_Ellpack_ILP<1>(vals,colIdx,rowLength,row,num_rows);
+		results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*dot));
+		
+	}	
+
+}
 
 
 //cuda kernel funtion for computing SVM RBF kernel, uses 
@@ -1025,6 +1077,115 @@ extern "C" __global__ void chiSquaredEllpackKernel(const float * vals,
 	}	
 
 }
+
+/********************** Evaluators **********************************/
+
+
+extern "C" __global__ void rbfEllpackILPEvaluator(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength, 
+									   const float* svSelfDot,
+										const float* svAlpha,
+										const float* svY,
+									   float * results,
+									   const int num_rows,
+									   const float vecSelfDot,
+									   const float gamma,
+										const int texSel)
+{
+	
+	__shared__ float shGamma;
+	__shared__ float shVecSelfDot;
+	__shared__ int shRows;
+	
+	if(threadIdx.x==0)
+	{
+		shGamma = gamma;
+		shVecSelfDot = vecSelfDot,
+		shRows= num_rows;
+	}
+	__syncthreads();
+	
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in defferent streams
+		float dot = texSel==1 ? SpMV_Ellpack_ILP<1>(vals,colIdx,rowLength,row,num_rows): SpMV_Ellpack_ILP<2>(vals,colIdx,rowLength,row,num_rows) ;
+		results[row]=svY[row]*svAlpha[row]*expf(-shGamma*(svSelfDot[row]+shVecSelfDot-2*dot));
+	}	
+
+}
+
+
+
+
+
+/*********************** Sparse matrix dense vector multiplication helpers **********/
+
+
+
+template<int TexSel> __device__ float fetchTex(int idx);
+
+template<> __device__ float fetchTex<1>(int idx) { return tex1Dfetch(mainVecTexRef,idx); }
+template<> __device__ float fetchTex<2>(int idx) { return tex1Dfetch(mainVec2TexRef,idx); }
+
+//cuda kernel funtion for computing SpMV
+// Ellpack-R fromat for storing sparse matrix,  uses ILP - prefetch vector elements in registers
+// arrays vals and colIdx should be aligned to PREFETCH_SIZE
+//Params:
+//vals - array of vectors values
+//colIdx  - array of column indexes in ellpack-r fromat
+//rowLength -array, contains number of nonzero elements in each row
+//num_rows -number of vectors
+template<int TexSel> __device__ float SpMV_Ellpack_ILP(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength,
+									   const int row,
+									   const int num_rows)
+{
+		
+	__shared__ int shRows;
+	if(threadIdx.x==0)
+	{
+		shRows = num_rows;
+	}
+	__syncthreads();
+
+	float preVals[PREFETCH_SIZE];
+	int preColls[PREFETCH_SIZE];
+		
+	float dot[PREFETCH_SIZE]={0};
+
+	int maxEl = rowLength[row];
+	
+
+	for(int i=0; i<maxEl;i++)
+	{
+		#pragma unroll
+		for(int j=0; j<PREFETCH_SIZE;j++)			
+		{
+			preColls[j]=colIdx[ (i*PREFETCH_SIZE+j)*shRows+row];
+			preVals[j]=vals[ (i*PREFETCH_SIZE+j)*shRows+row];
+		}
+		
+		#pragma unroll
+		for(int j=0; j<PREFETCH_SIZE;j++){
+			//dot[j]+=preVals[j]*tex1Dfetch(mainVecTexRef,preColls[j]);
+			dot[j]+=preVals[j]* fetchTex<TexSel>(preColls[j]);
+		}
+		
+	}
+				
+	#pragma unroll
+	for(int j=1; j<PREFETCH_SIZE;j++){
+		dot[0]+=dot[j];
+	}
+		
+	return dot[0];		
+}
+
+
 
 
 

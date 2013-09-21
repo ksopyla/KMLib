@@ -264,7 +264,9 @@ namespace KMLib.GPU.GPUKernels.Col2
             //QjPtr = QiPtr + sizeof(float) * problemElements.Length;
             cuda.SetParameter(cuFunc, kernelResultParamOffset, QiPtr);
             cuda.Launch(cuFunc, blocksPerGrid, 1);
-            cuda.SynchronizeContext();
+            
+            
+            //cuda.SynchronizeContext();
 
             
             

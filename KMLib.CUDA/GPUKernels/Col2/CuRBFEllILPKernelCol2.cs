@@ -52,8 +52,8 @@ namespace KMLib.GPU.GPUKernels.Col2
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
-            //cudaProductKernelName = "rbfEllpackILPcol2";
-            cudaProductKernelName = "rbfEllpackILPcol2_Prefetch2";
+            cudaProductKernelName = "rbfEllpackILPcol2";
+            //cudaProductKernelName = "rbfEllpackILPcol2_Prefetch2";
 
             cudaModuleName = "KernelsEllpackCol2.cubin";
 

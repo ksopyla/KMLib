@@ -151,6 +151,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GPUEvaluators\CuEvaluator.cs" />
+    <Compile Include="GPUEvaluators\CuRBFEllILPEvaluator.cs" />
     <Compile Include="GPUKernels\Col2\CuRBFEllILPKernelCol2.cs" />
     <Compile Include="GPUKernels\Col2\CuVectorKernelCol2.cs" />
     <Compile Include="GPUKernels\CuRBFSERTILPKernel.cs" />
@@ -196,13 +198,11 @@
     <None Include="CUDAmodules\gpuFanSmoSolver.cu" />
     <None Include="CUDAmodules\KernelsCSR.cu" />
     <None Include="CUDAmodules\KernelsEllpackCol2.cu" />
-    <None Include="CUDAmodules\linKernels.cu" />
-    <None Include="CUDAmodules\linSVMSolver.cu" />
     <None Include="CUDAmodules\KernelsSlicedEllpack.cu" />
     <None Include="KMLib.CUDA.licenseheader" />
-    <None Include="CUDAmodules\linKernels.cu" />
     <None Include="KMLib.CUDA.licenseheader" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>del *.cubin, *.cu, *.ptx, *.h

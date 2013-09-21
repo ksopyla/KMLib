@@ -162,6 +162,7 @@ namespace KMLib.GPU.Solvers
         {
             Stopwatch timer = Stopwatch.StartNew();
 
+
             int problemSize = problem.ElementsCount;
             //float[] alphaResult = new float[problem.ElementsCount];
 
