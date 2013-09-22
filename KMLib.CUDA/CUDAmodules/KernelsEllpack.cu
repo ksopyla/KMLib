@@ -1113,6 +1113,7 @@ extern "C" __global__ void rbfEllpackILPEvaluator(const float * vals,
 		//hack for choosing different texture reference when launch in defferent streams
 		float dot = texSel==1 ? SpMV_Ellpack_ILP<1>(vals,colIdx,rowLength,row,num_rows): SpMV_Ellpack_ILP<2>(vals,colIdx,rowLength,row,num_rows) ;
 		results[row]=svY[row]*svAlpha[row]*expf(-shGamma*(svSelfDot[row]+shVecSelfDot-2*dot));
+		//results[row]=dot;
 	}	
 
 }

@@ -22,7 +22,7 @@ namespace KMLib.GPU
     /// <summary>
     /// base class for all cuda enabled evaluators
     /// </summary>
-    /// <remarks>It sores nesessary data for cuda initialization</remarks>
+    /// <remarks>It sores necessary data for cuda initialization</remarks>
     public abstract class CuEvaluator : Evaluator<SparseVec>
     {
 
@@ -63,43 +63,45 @@ namespace KMLib.GPU
         /// </summary>
         protected int reductionBlocks;
         /// <summary>
-        /// numer of theread used for reduction
+        /// number of threads used for reduction
         /// </summary>
         protected int reductionThreads;
 
         /// <summary>
         /// threads per block, def=128,
         /// </summary>
-        protected int maxReductionThreads = 256;
+        protected int maxReductionThreads = 128;
 
 
         /// <summary>
-        /// threads per blokc for eval function
+        /// threads per block for evaluation function
         /// </summary>
         protected int evalThreads = CUDAConfig.XBlockSize;
         /// <summary>
-        /// blocks per grid for eval function
+        /// blocks per grid for evaluation function
         /// </summary>
         protected int evalBlocks=-1;
 
 
         /// <summary>
-        /// array of 2 buffers for concurent data transfer
+        /// array of 2 buffers for concurrent data transfer
         /// </summary>
-        protected IntPtr[] vecIntPtrs = new IntPtr[NUM_STREAMS];
+        protected IntPtr[] mainVecIntPtrs = new IntPtr[NUM_STREAMS];
 
         /// <summary>
         /// dense support vector float buffer size
         /// </summary>
-        protected uint memSize=0;
+        protected uint vectorsDimMemSize=0;
 
-            
+        protected int vectorSelfDotParamOffset;
+        protected int texSelParamOffset;
+        protected int kernelResultParamOffset;  
         
 
         #region cuda types
 
         /// <summary>
-        /// Cuda .net class for cuda opeation
+        /// Cuda .net class for cuda operation
         /// </summary>
         protected CUDA cuda;
 
@@ -112,7 +114,7 @@ namespace KMLib.GPU
         /// <summary>
         /// cuda kernel function for computing evaluation values
         /// </summary>
-        protected CUfunction[] cuFuncEval= new CUfunction[NUM_STREAMS];
+        protected CUfunction cuFuncEval;
 
         /// <summary>
         /// cuda kernel function for computing evaluation values
@@ -130,19 +132,19 @@ namespace KMLib.GPU
         /// <summary>
         /// cuda mainVector pointer to device memory (it stores dense vector for prediction)
         /// </summary>
-        protected CUdeviceptr[] mainVecPtr= new CUdeviceptr[NUM_STREAMS];
+        protected CUdeviceptr[] mainVecCuPtr= new CUdeviceptr[NUM_STREAMS];
 
 
-        protected CUdeviceptr[] outputCuPtr = new CUdeviceptr[NUM_STREAMS];
+        protected CUdeviceptr[] evalOutputCuPtr = new CUdeviceptr[NUM_STREAMS];
         
 
         /// <summary>
-        /// cuda pointer to labels, neded for coping to texture
+        /// cuda pointer to labels, needed for coping to texture
         /// </summary>
         protected CUdeviceptr labelsPtr;
 
         /// <summary>
-        /// cuda pointer to support vector non zero alpha coeficients
+        /// cuda pointer to support vector non zero alpha coefficients
         /// </summary>
         protected CUdeviceptr alphasPtr;
 
@@ -151,14 +153,14 @@ namespace KMLib.GPU
         /// </summary>
         protected CUstream[] stream = new CUstream[NUM_STREAMS];
         
-        private CUdeviceptr[] cuReducePtr = new CUdeviceptr[NUM_STREAMS];
+        private CUdeviceptr[] reduceCuPtr = new CUdeviceptr[NUM_STREAMS];
         
         
-        private IntPtr[] redIntPtrs=new IntPtr[NUM_STREAMS];
+        private IntPtr[] reduceIntPtrs=new IntPtr[NUM_STREAMS];
         
         
         /// <summary>
-        /// Offset in cuda setparameter function for pointer to memory to reduce
+        /// Offset in cuda 'setparameter' function for pointer to memory to reduce
         /// </summary>
         private int offsetMemToReduce;
 
@@ -184,7 +186,7 @@ namespace KMLib.GPU
 
             uint reduceSize = (uint)reductionBlocks * sizeof(float);
 
-            int loop = (elements.Length +NUM_STREAMS)/ NUM_STREAMS;
+            int loop = (elements.Length +NUM_STREAMS-1)/ NUM_STREAMS;
             for (int i = 0; i < loop; i++)
             {
                 
@@ -195,22 +197,46 @@ namespace KMLib.GPU
                     {
                         var vec = elements[idx];
 
+                        //remove
+                        //float[] svDots = TrainedModel.SupportElements.Select(sv => sv.DotProduct(vec)).ToArray();
 
-                        //set nonzero values to dense vector accesible throught vecIntPtr
-                        CudaHelpers.InitBuffer(vec, vecIntPtrs[s]);
+                        //set nonzero values to dense vector accessible through vecIntPtr
+                        CudaHelpers.InitBuffer(vec, mainVecIntPtrs[s]);
 
 
-                        cuda.CopyHostToDeviceAsync(mainVecPtr[s], vecIntPtrs[s], memSize, stream[s]);
+                        //cuda.CopyHostToDeviceAsync(mainVecPtr[s], vecIntPtrs[s], memSize, stream[s]);
+                        cuda.CopyHostToDevice(mainVecCuPtr[s], mainVecIntPtrs[s], vectorsDimMemSize);
+
+                        //remove
+                        //float[] v = new float[vec.Dim + 1];
+                        //cuda.CopyDeviceToHost(mainVecCuPtr[s],v);
+
 
                         //cuFunc user different textures
-                        cuda.LaunchAsync(cuFuncEval[s], evalBlocks, 1, stream[s]);
+                        cuda.SetParameter(cuFuncEval, kernelResultParamOffset, evalOutputCuPtr[s]);
+                        cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
+                        cuda.SetParameter(cuFuncEval, texSelParamOffset, s+1);
 
+                        //cuda.LaunchAsync(cuFuncEval[s], evalBlocks, 1, stream[s]);
+                        cuda.Launch(cuFuncEval, evalBlocks, 1);
 
-                        cuda.SetParameter(cuFuncReduce, offsetMemToReduce, outputCuPtr[s]);
-                        cuda.LaunchAsync(cuFuncReduce, reductionBlocks, 1, stream[s]);
+                        //remove
+                        //float[] t = new float[sizeSV];
+                        //cuda.CopyDeviceToHost(evalOutputCuPtr[s], t);
+
                         
-                        cuda.CopyDeviceToHostAsync(cuReducePtr[s], redIntPtrs[s], reduceSize, stream[s]);
 
+                        cuda.SetParameter(cuFuncReduce, offsetMemToReduce, evalOutputCuPtr[s]);
+                        cuda.SetParameter(cuFuncReduce, offsetOutMemReduce, reduceCuPtr[s]);
+                        //cuda.LaunchAsync(cuFuncReduce, reductionBlocks, 1, stream[s]);
+                        cuda.Launch(cuFuncReduce, reductionBlocks, 1);
+                        
+                        //cuda.CopyDeviceToHostAsync(cuReducePtr[s], redIntPtrs[s], reduceSize, stream[s]);
+                        cuda.CopyDeviceToHost(reduceCuPtr[s], reduceIntPtrs[s], reduceSize);
+
+                        //remove
+                        //float[] r = new float[maxReductionBlocks];
+                        //cuda.CopyDeviceToHost(reduceCuPtr[s], r);
                         
                     }
                 }
@@ -225,11 +251,11 @@ namespace KMLib.GPU
                     {
                         var vec = elements[idx];
                         //clear the buffer
-                        //set nonzero values to dense vector accesible throught vecIntPtr
-                        CudaHelpers.SetBufferIdx(vec, vecIntPtrs[s], 0.0f);
-                        float evalValue = ReduceOnHost(redIntPtrs[s], reduceSize);
+                        //set nonzero values to dense vector accessible thought vecIntPtr
+                        CudaHelpers.SetBufferIdx(vec, mainVecIntPtrs[s], 0.0f);
+                        float evalValue = ReduceOnHost(reduceIntPtrs[s], reductionBlocks);
 
-                        prediction[i] = evalValue;
+                        prediction[idx] = evalValue;
                     }
                 }
 
@@ -244,7 +270,7 @@ namespace KMLib.GPU
 
       
 
-        private float ReduceOnHost(IntPtr reduceIntPtr, uint reduceSize)
+        private float ReduceOnHost(IntPtr reduceIntPtr, int reduceSize)
         {
 
             double sum = 0;
@@ -252,13 +278,18 @@ namespace KMLib.GPU
             {
 
                 float* vecPtr = (float*)reduceIntPtr.ToPointer();
-                for (uint j = 0; j < reduceSize; j++)
+                for (int j = 0; j < reduceSize; j++)
                 {
                     
                     sum+=vecPtr[j];
                 }
 
             }
+
+
+            //float[] t = new float[maxReductionBlocks];
+            //System.Runtime.InteropServices.Marshal.Copy(reduceIntPtr, t, 0, t.Length);
+            //float s = t.Sum();
 
             sum -= TrainedModel.Bias;
 
@@ -281,7 +312,7 @@ namespace KMLib.GPU
 
             SetCudaRedFunctionParams();
 
-            SetCudaEvalFunctionParams();
+            
 
             IsInitialized = true;
 
@@ -301,11 +332,11 @@ namespace KMLib.GPU
 
             int offset = 0;
             offsetMemToReduce = offset;
-            cuda.SetParameter(cuFuncReduce, offset, outputCuPtr[0].Pointer);
+            cuda.SetParameter(cuFuncReduce, offset, evalOutputCuPtr[0].Pointer);
             offset += IntPtr.Size;
 
             offsetOutMemReduce = offset;
-            cuda.SetParameter(cuFuncReduce, offset, cuReducePtr[0].Pointer);
+            cuda.SetParameter(cuFuncReduce, offset, reduceCuPtr[0].Pointer);
             offset += IntPtr.Size;
 
             cuda.SetParameter(cuFuncReduce, offset, (uint)sizeSV);
@@ -313,6 +344,7 @@ namespace KMLib.GPU
 
             cuda.SetParameterSize(cuFuncReduce, (uint)offset);
         }
+
 
         protected void SetCudaData()
         {
@@ -334,21 +366,27 @@ namespace KMLib.GPU
             alphasPtr = cuda.CopyHostToDevice(svAlphas);
 
 
-            memSize = (uint)(TrainedModel.SupportElements[0].Dim * sizeof(float));
+            vectorsDimMemSize = (uint)((TrainedModel.SupportElements[0].Dim+1) * sizeof(float));
             for (int i = 0; i < NUM_STREAMS; i++)
             {
                 stream[i] = cuda.CreateStream();
 
                 //allocates memory for one vector, size = vector dim
-                vecIntPtrs[i] = cuda.AllocateHost(memSize);
-                mainVecPtr[i] = cuda.Allocate(memSize);
+                mainVecIntPtrs[i] = cuda.AllocateHost(vectorsDimMemSize);
+                mainVecCuPtr[i] = cuda.CopyHostToDevice(mainVecIntPtrs[i], vectorsDimMemSize);
 
                 //allocate memory for output, size == #SV
-                outputCuPtr[i] = cuda.Allocate(svAlphas);
+                evalOutputCuPtr[i] = cuda.Allocate(svAlphas);
                
                 cuVecTexRef[i] = cuda.GetModuleTexture(cuModule, cudaVecTexRefName[i]);
                 //cuda.SetTextureFlags(cuVecTexRef[i], 0);
-                cuda.SetTextureAddress(cuVecTexRef[i], mainVecPtr[i], memSize);
+                cuda.SetTextureAddress(cuVecTexRef[i], mainVecCuPtr[i], vectorsDimMemSize);
+
+                uint reduceMemSize = (uint)maxReductionBlocks * sizeof(float);
+                reduceIntPtrs[i] = cuda.AllocateHost(reduceMemSize);
+                reduceCuPtr[i] = cuda.CopyHostToDevice(reduceIntPtrs[i], reduceMemSize);
+                //reduceCuPtr[i] = cuda.Allocate((uint)maxReductionBlocks * sizeof(float));
+
             }
             
             
@@ -366,8 +404,8 @@ namespace KMLib.GPU
 
             cuModule = cuda.LoadModule(Path.Combine(Environment.CurrentDirectory, cudaModuleName));
             
-            cuFuncEval[0] = cuda.GetModuleFunction(cudaEvaluatorKernelName );
-            cuFuncEval[1] = cuda.GetModuleFunction(cudaEvaluatorKernelName);
+            cuFuncEval = cuda.GetModuleFunction(cudaEvaluatorKernelName );
+            
 
             cuFuncReduce = cuda.GetModuleFunction(cudaReduceKernelName);
         }

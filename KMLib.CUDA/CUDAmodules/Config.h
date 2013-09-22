@@ -35,7 +35,7 @@ texture<float,1,cudaReadModeElementType> mainVec2TexRef;
 #define maxNNZ 100
 
 
-//rho for computing
+//rho for computingwse
 //__constant__ float RHO=-2;
 //sets -1 for negative values and 1 for gather or equal than 0
 //params:
@@ -79,7 +79,7 @@ extern "C" __global__ void reduce(const float* input, float* output, const int N
 	unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
 	unsigned int gridSize = blockDim.x*2*gridDim.x;
 	
-	shVals[tid]=-FLT_MAX;   
+	shVals[tid]=0;   
 	float sum=0;
 
 	while (i < N)

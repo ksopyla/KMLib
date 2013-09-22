@@ -48,19 +48,23 @@ namespace KMLib.GPU
                 throw new ApplicationException("Evaluator is not initialized. Call init method");
 
 
-            //tranfsorm elements to matrix in CSR format
+            //transform elements to matrix in CSR format
             // elements values
             float[] vecVals;
             //elements indexes
             int[] vecIdx;
-            //elements lenght
+            //elements length
             int[] vecLenght;
             CudaHelpers.TransformToCSRFormat(out vecVals, out vecIdx, out vecLenght, elements);
 
 
             float[] elSelfDot = new float[elements.Length];
 
+            
+
             Stopwatch t = Stopwatch.StartNew();
+
+            //elSelfDot = elements.Select(e => e.DotProduct()).ToArray();
             for (int j = 0; j < elements.Length; j++)
             {
                 float res = 0;
@@ -99,7 +103,7 @@ namespace KMLib.GPU
             outputIntPtr = cuda.HostAllocate(memElementsSize, CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
 
-            // Set the cuda kernel paramerters
+            // Set the cuda kernel parameters
             #region set cuda parameters
             uint Rows = (uint)elements.Length;
             uint Cols = (uint)TrainedModel.SupportElements.Length;
@@ -128,7 +132,7 @@ namespace KMLib.GPU
             offset += IntPtr.Size;
             cuda.SetParameter(cuFunc, offset, elSelf.Pointer);
             offset += IntPtr.Size;
-            //set output (reslut) param
+            //set output (result) param
             cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
             offset += IntPtr.Size;
             //set number of elements param
@@ -159,13 +163,13 @@ namespace KMLib.GPU
                 CudaHelpers.InitBuffer(TrainedModel.SupportElements[k], svVecIntPtrs[k % 2]);
 
                 cuda.SynchronizeStream(stream);
-                //copy asynchronously from buffer to devece
+                //copy asynchronously from buffer to device
                 cuda.CopyHostToDeviceAsync(mainVecPtr, svVecIntPtrs[k % 2], memSvSize, stream);
 
                 //set the last parameter in kernel (column index)   
                 // colIndexParamOffset
                 cuda.SetParameter(cuFunc, lastParameterOffset, (uint)k);
-                //launch kernl    
+                //launch kernel    
                 cuda.LaunchAsync(cuFunc, gridDimX, 1, stream);
 
                 if (k > 0)

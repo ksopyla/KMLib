@@ -865,9 +865,7 @@ namespace KMLibUsageApp
             Model<SparseVec> model;
             
             //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            
             //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
-
             Evaluator<SparseVec> evaluator = new CuRBFEllILPEvaluator(gamma);
 
 

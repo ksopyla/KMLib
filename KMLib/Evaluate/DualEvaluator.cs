@@ -83,16 +83,16 @@ namespace KMLib.Evaluate
 
             float[] predictions = new float[elements.Length];
 
-            Parallel.For(0, elements.Length, i =>
-            {
-
-                predictions[i] = Predict(elements[i]);
-            });
-
-            //for (int i = 0; i < elements.Length; i++)
+            //Parallel.For(0, elements.Length, i =>
             //{
+
             //    predictions[i] = Predict(elements[i]);
-            //}
+            //});
+
+            for (int i = 0; i < elements.Length; i++)
+            {
+                predictions[i] = Predict(elements[i]);
+            }
 
             return predictions;
         }
