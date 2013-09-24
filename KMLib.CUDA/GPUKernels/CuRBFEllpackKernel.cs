@@ -33,7 +33,7 @@ namespace KMLib.GPU
 
 
         /// <summary>
-        /// cuda device pointer for stroing self linear dot product
+        /// cuda device pointer for storing self linear dot product
         /// </summary>
         private CUdeviceptr selfLinDotPtr;
 
@@ -44,9 +44,6 @@ namespace KMLib.GPU
             linKernel = new LinearKernel();
             Gamma = gamma;
             cudaProductKernelName = "rbfEllpackFormatKernel";
-            //cudaProductKernelName = "rbfEllpackFormatKernel_shared";
-            //cudaProductKernelName = "rbfEllpackFormatKernel_ILP";
-            //cudaProductKernelName = "rbfEllpackFormatKernel_ILP_shared";
             cudaModuleName = "KernelsEllpack.cubin";
             MakeDenseVectorOnGPU = false;
             

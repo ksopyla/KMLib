@@ -156,7 +156,7 @@
     <Compile Include="GPUKernels\Col2\CuRBFEllILPKernelCol2.cs" />
     <Compile Include="GPUKernels\Col2\CuVectorKernelCol2.cs" />
     <Compile Include="GPUKernels\CuRBFSERTILPKernel.cs" />
-    <Compile Include="GPUKernels\CuRBFEllRTILPKernel.cs" />
+    <Compile Include="GPUKernels\CuRBFERTILPKernel.cs" />
     <Compile Include="GPUKernels\CuRBFEllILPKernel.cs" />
     <Compile Include="GPUKernels\CuExpChiSlEllKernel.cs" />
     <Compile Include="GPUKernels\CuNChi2SlEllKernel.cs" />
@@ -199,6 +199,7 @@
     <None Include="CUDAmodules\KernelsCSR.cu" />
     <None Include="CUDAmodules\KernelsEllpackCol2.cu" />
     <None Include="CUDAmodules\KernelsSlicedEllpack.cu" />
+    <None Include="CUDAmodules\OldKernels.cu" />
     <None Include="KMLib.CUDA.licenseheader" />
     <None Include="KMLib.CUDA.licenseheader" />
   </ItemGroup>
@@ -208,7 +209,7 @@
     <PostBuildEvent>del *.cubin, *.cu, *.ptx, *.h
 xcopy "$(ProjectDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
 xcopy "$(ProjectDir)CUDAmodules\*.h" "$(TargetDir)" /Y
-nvcc -g -G  -I./ KernelsEllpackCol2.cu KernelsCSR.cu KernelsEllpack.cu KernelsSlicedEllpack.cu gpuFanSmoSolver.cu gpuFOSmoSolver.cu -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12  -Xptxas="-v"
+nvcc   -I./ KernelsEllpackCol2.cu KernelsCSR.cu KernelsEllpack.cu KernelsSlicedEllpack.cu gpuFanSmoSolver.cu gpuFOSmoSolver.cu -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12  -Xptxas="-v"
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs\Cuda\" /Y
 xcopy "$(TargetDir)*.ptx" "$(SolutionDir)Libs\Cuda\" /Y
 xcopy "$(TargetDir)*.cu" "$(SolutionDir)Libs\Cuda\" /Y

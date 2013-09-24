@@ -575,7 +575,7 @@ namespace KMLibUsageApp
                 new CuRBFEllpackKernel(gamma),
                 new CuRBFSlEllKernel(gamma),
                 new CuRBFEllILPKernel(gamma),
-                new CuRBFEllRTILPKernel(gamma),
+                new CuRBFERTILPKernel(gamma),
                 new CuRBFSERTILPKernel(gamma)
             };
             return kernelsCollection;
@@ -742,12 +742,12 @@ namespace KMLibUsageApp
             #endregion
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a1a.train";
+            ////testFile = dataFolder + "/a1a.test";
+            //////testFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
 
 
             //trainningFile = dataFolder + "/a9a";
@@ -774,10 +774,10 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/news20.binary";
             //numberOfFeatures = 1335191;
 
-            ////trainningFile = dataFolder + "/mnist.scale";
+            trainningFile = dataFolder + "/mnist.scale";
             //trainningFile = dataFolder + "/mnist.scale20k";
-            //testFile = dataFolder + "/mnist.scale1k.t";
-            //numberOfFeatures = 784;
+            testFile = dataFolder + "/mnist.scale1k.t";
+            numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
@@ -864,9 +864,9 @@ namespace KMLibUsageApp
 
             Model<SparseVec> model;
             
-            //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
-            Evaluator<SparseVec> evaluator = new CuRBFEllILPEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new CuRBFEllILPEvaluator(gamma);
 
 
             #region Cuda kernels
@@ -874,8 +874,8 @@ namespace KMLibUsageApp
             //IKernel<SparseVec> kernel = new CuLinearKernel();
             //IKernel<SparseVec> kernel = new CuRBFCSRKernel(gamma );
             //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
-            IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
-            //IKernel<SparseVec> kernel = new CuRBFEllRTILPKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
+            IKernel<SparseVec> kernel = new CuRBFERTILPKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
 
@@ -914,8 +914,7 @@ namespace KMLibUsageApp
             Console.Write(model.ToString());
 
 
-
-            model.WriteToFile("modelFileCU.txt");
+            SaveModel(trainningFile, model, kernel, Solver);
 
             var disSolver = Solver as IDisposable;
             if (disSolver != null)
@@ -969,6 +968,17 @@ namespace KMLibUsageApp
             double accuracy = (float)correct / predictions.Length;
             Console.WriteLine("accuracy ={0}", accuracy);
 
+        }
+
+        private static void SaveModel(string trainningFile, Model<SparseVec> model, IKernel<SparseVec> kernel, ParallelSmoFanSolver2<SparseVec> Solver)
+        {
+            string dsName = Path.GetFileName(trainningFile);
+            string kernelName = kernel.ToString();
+            string solverName = Solver.ToString();
+            string modelFile = string.Format("{0}_{1}_{2}.model", dsName, kernelName, solverName);
+            model.C = C;
+            model.KernelParams = new float[]{gamma};
+            model.WriteToFile(modelFile);
         }
 
 

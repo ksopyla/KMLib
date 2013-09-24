@@ -50,7 +50,7 @@ namespace KMLib.GPU
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
-            //cudaProductKernelName = "rbfEllpackFormatKernel_ILP";
+            
             cudaProductKernelName = "rbfEllpackFormatKernel_ILP_func";
 
             cudaModuleName = "KernelsEllpack.cubin";

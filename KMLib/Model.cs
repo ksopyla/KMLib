@@ -48,6 +48,9 @@ namespace KMLib
         public TimeSpan ModelTime;
         public long ModelTimeMs;
         public int CacheHit;
+        public float C;
+        
+        public float[] KernelParams;
 
         public override string ToString()
         {
@@ -73,6 +76,9 @@ namespace KMLib
             {
                 string mStr = this.ToString();
                 file.Write(mStr);
+                file.WriteLine("C={0}", C);
+                file.WriteLine("Kernel Params={0}",string.Join(";",KernelParams) );
+                file.WriteLine("#");
 
                 string.Join(System.Environment.NewLine, Alpha);
 

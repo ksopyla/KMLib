@@ -28,7 +28,7 @@ namespace KMLib.GPU
     /// Values and columns are algined to T*PrefetchSize
     /// 
     /// </summary>
-    public class CuRBFEllRTILPKernel : CuVectorKernel, IDisposable
+    public class CuRBFERTILPKernel : CuVectorKernel, IDisposable
     {
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace KMLib.GPU
 
 
         /// <summary>
-        /// cuda device pointer for stroing self linear dot product
+        /// cuda device pointer for storing self linear dot product
         /// </summary>
         private CUdeviceptr selfLinDotPtr;
         private int ThreadsPerRow;
@@ -50,11 +50,12 @@ namespace KMLib.GPU
 
 
 
-        public CuRBFEllRTILPKernel(float gamma)
+        public CuRBFERTILPKernel(float gamma)
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
-            cudaProductKernelName = "rbfEllRTILP";
+            cudaProductKernelName = "rbfERTILP";
+            //cudaProductKernelName = "rbfEllRTILP_old";
 
             cudaModuleName = "KernelsEllpack.cubin";
 
