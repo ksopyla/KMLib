@@ -853,7 +853,42 @@ extern "C" __global__ void rbfEllpackILPEvaluator(const float * vals,
 
 }
 
+extern "C" __global__ void rbfEllpackEvaluator(const float * vals,
+									   const int * colIdx, 
+									   const int * rowLength, 
+									   const float* svSelfDot,
+										const float* svAlpha,
+										const float* svY,
+									   float * results,
+									   const int num_rows,
+									   const float vecSelfDot,
+									   const float gamma,
+										const int texSel)
+{
+	
+	__shared__ float shGamma;
+	__shared__ float shVecSelfDot;
+	__shared__ int shRows;
+	
+	if(threadIdx.x==0)
+	{
+		shGamma = gamma;
+		shVecSelfDot = vecSelfDot,
+		shRows= num_rows;
+	}
+	__syncthreads();
+	
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
 
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in defferent streams
+		float dot = texSel==1 ? SpMV_Ellpack<1>(vals,colIdx,rowLength,row,num_rows): SpMV_Ellpack<2>(vals,colIdx,rowLength,row,num_rows) ;
+		results[row]=svY[row]*svAlpha[row]*expf(-shGamma*(svSelfDot[row]+shVecSelfDot-2*dot));
+		//results[row]=dot;
+	}	
+
+}
 
 
 
