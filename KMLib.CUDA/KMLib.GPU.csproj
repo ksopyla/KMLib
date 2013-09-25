@@ -151,6 +151,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GPUEvaluators\CuRBFERTILPEvaluator.cs" />
+    <Compile Include="GPUEvaluators\CuRBFEllpackEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuRBFEllILPEvaluator.cs" />
     <Compile Include="GPUKernels\Col2\CuRBFEllILPKernelCol2.cs" />

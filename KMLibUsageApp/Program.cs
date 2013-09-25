@@ -703,7 +703,7 @@ namespace KMLibUsageApp
 
 
         /// <summary>
-        /// Continas hard coded paths to datasets
+        /// Containas hard coded paths to datasets
         /// </summary>
         /// <param name="dataFolder"></param>
         /// <param name="trainningFile"></param>
@@ -776,7 +776,8 @@ namespace KMLibUsageApp
 
             trainningFile = dataFolder + "/mnist.scale";
             //trainningFile = dataFolder + "/mnist.scale20k";
-            testFile = dataFolder + "/mnist.scale1k.t";
+            //testFile = dataFolder + "/mnist.scale1k.t";
+            testFile = dataFolder + "/mnist.scale.t";
             numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/real-sim_small_3K";
@@ -864,18 +865,19 @@ namespace KMLibUsageApp
 
             Model<SparseVec> model;
             
-            Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
             //Evaluator<SparseVec> evaluator = new CuRBFEllILPEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new CuRBFEllpackEvaluator(gamma);
 
 
             #region Cuda kernels
 
             //IKernel<SparseVec> kernel = new CuLinearKernel();
             //IKernel<SparseVec> kernel = new CuRBFCSRKernel(gamma );
-            //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
-            IKernel<SparseVec> kernel = new CuRBFERTILPKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFERTILPKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
 
@@ -897,12 +899,12 @@ namespace KMLibUsageApp
 
             //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
             //this solver works a bit faster and use less memory
-            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
             //var Solver = new SmoFanSolver<SparseVec>(train, kernel, C);
             //var Solver = new SmoRandomSolver<SparseVec>(train, kernel, C);
             
             //var Solver = new SmoFirstOrderSolver<SparseVec>(train, kernel, C);
-            //var Solver = new GPUSmoFanSolver(train, kernel, C);
+            var Solver = new GPUSmoFanSolver(train, kernel, C);
 
             //var Solver = new SmoFirstOrderSolver2Cols<SparseVec>(train, kernel, C);
             //var Solver = new GPUSmoFOSolver(train, kernel, C);
@@ -970,7 +972,7 @@ namespace KMLibUsageApp
 
         }
 
-        private static void SaveModel(string trainningFile, Model<SparseVec> model, IKernel<SparseVec> kernel, ParallelSmoFanSolver2<SparseVec> Solver)
+        private static void SaveModel(string trainningFile, Model<SparseVec> model, IKernel<SparseVec> kernel, Solver<SparseVec> Solver)
         {
             string dsName = Path.GetFileName(trainningFile);
             string kernelName = kernel.ToString();
