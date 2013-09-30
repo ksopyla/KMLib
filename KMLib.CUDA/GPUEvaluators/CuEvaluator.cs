@@ -204,33 +204,38 @@ namespace KMLib.GPU
                         CudaHelpers.InitBuffer(vec, mainVecIntPtrs[s]);
 
 #region sync version
-                        //cuda.CopyHostToDevice(mainVecCuPtr[s], mainVecIntPtrs[s], vectorsDimMemSize);
-                        //
-                        //cuda.SetParameter(cuFuncEval, kernelResultParamOffset, evalOutputCuPtr[s]);
-                        //cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
-                        //cuda.SetParameter(cuFuncEval, texSelParamOffset, s + 1);
-                        //cuda.Launch(cuFuncEval, evalBlocks, 1);
-                        //
-                        //cuda.SetParameter(cuFuncReduce, offsetMemToReduce, evalOutputCuPtr[s]);
-                        //cuda.SetParameter(cuFuncReduce, offsetOutMemReduce, reduceCuPtr[s]);
-                        //cuda.Launch(cuFuncReduce, reductionBlocks, 1);
-                        //
-                        //cuda.CopyDeviceToHost(reduceCuPtr[s], reduceIntPtrs[s], reduceSize);
-#endregion
+                        cuda.CopyHostToDevice(mainVecCuPtr[s], mainVecIntPtrs[s], vectorsDimMemSize);
 
-
-                        cuda.CopyHostToDeviceAsync(mainVecCuPtr[s], mainVecIntPtrs[s], vectorsDimMemSize, stream[s]);
-                        //cuFunc user different textures
                         cuda.SetParameter(cuFuncEval, kernelResultParamOffset, evalOutputCuPtr[s]);
                         cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
-                        cuda.SetParameter(cuFuncEval, texSelParamOffset, s+1);
-                        cuda.LaunchAsync(cuFuncEval, evalBlocks, 1, stream[s]);
+                        cuda.SetParameter(cuFuncEval, texSelParamOffset, s + 1);
+                        cuda.Launch(cuFuncEval, evalBlocks, 1);
+
+                        float[] t = new float[sizeSV];
+                        cuda.CopyDeviceToHost(evalOutputCuPtr[s], t);
 
                         cuda.SetParameter(cuFuncReduce, offsetMemToReduce, evalOutputCuPtr[s]);
                         cuda.SetParameter(cuFuncReduce, offsetOutMemReduce, reduceCuPtr[s]);
-                        cuda.LaunchAsync(cuFuncReduce, reductionBlocks, 1, stream[s]);
+                        cuda.Launch(cuFuncReduce, reductionBlocks, 1);
 
-                        cuda.CopyDeviceToHostAsync(reduceCuPtr[s], reduceIntPtrs[s], reduceSize, stream[s]);
+                        cuda.CopyDeviceToHost(reduceCuPtr[s], reduceIntPtrs[s], reduceSize);
+                        float[] r = new float[reductionBlocks];
+                        cuda.CopyDeviceToHost(reduceCuPtr[s], r);
+#endregion
+
+
+                        //cuda.CopyHostToDeviceAsync(mainVecCuPtr[s], mainVecIntPtrs[s], vectorsDimMemSize, stream[s]);
+                        ////cuFunc user different textures
+                        //cuda.SetParameter(cuFuncEval, kernelResultParamOffset, evalOutputCuPtr[s]);
+                        //cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
+                        //cuda.SetParameter(cuFuncEval, texSelParamOffset, s + 1);
+                        //cuda.LaunchAsync(cuFuncEval, evalBlocks, 1, stream[s]);
+
+                        //cuda.SetParameter(cuFuncReduce, offsetMemToReduce, evalOutputCuPtr[s]);
+                        //cuda.SetParameter(cuFuncReduce, offsetOutMemReduce, reduceCuPtr[s]);
+                        //cuda.LaunchAsync(cuFuncReduce, reductionBlocks, 1, stream[s]);
+
+                        //cuda.CopyDeviceToHostAsync(reduceCuPtr[s], reduceIntPtrs[s], reduceSize, stream[s]);
                         
                     }
                 }

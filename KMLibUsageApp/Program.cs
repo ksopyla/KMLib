@@ -703,7 +703,7 @@ namespace KMLibUsageApp
 
 
         /// <summary>
-        /// Containas hard coded paths to datasets
+        /// Contains hard coded paths to datasets
         /// </summary>
         /// <param name="dataFolder"></param>
         /// <param name="trainningFile"></param>
@@ -774,10 +774,10 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/news20.binary";
             //numberOfFeatures = 1335191;
 
-            trainningFile = dataFolder + "/mnist.scale";
-            //trainningFile = dataFolder + "/mnist.scale20k";
-            //testFile = dataFolder + "/mnist.scale1k.t";
-            testFile = dataFolder + "/mnist.scale.t";
+            //trainningFile = dataFolder + "/mnist.scale";
+            trainningFile = dataFolder + "/mnist.scale20k";
+            testFile = dataFolder + "/mnist.scale1k.t";
+            //testFile = dataFolder + "/mnist.scale.t";
             numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/real-sim_small_3K";
@@ -790,8 +790,8 @@ namespace KMLibUsageApp
             
             //dominostats #train	193657  #test	82996 dim	596
             //trainningFile = dataFolder + "/dominionstats.train"; //#2626 inst
-            //trainningFile = dataFolder + "/dominionstats.01scale_r2.test"; //#2626 inst
-            ////testgFile = dataFolder + "/dominionstats.01scale_r2.test"; //#2626 inst
+            //trainningFile = dataFolder + "/dominionstats.01scale_r2.train"; //#2626 inst
+            ////testFile = dataFolder + "/dominionstats.01scale_r2.test"; //#2626 inst
             //testFile = dataFolder + "/dominionstats.test"; //#1125
             //numberOfFeatures = 596;
             
@@ -865,20 +865,21 @@ namespace KMLibUsageApp
 
             Model<SparseVec> model;
             
-            //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
             //Evaluator<SparseVec> evaluator = new CuRBFEllILPEvaluator(gamma);
-            Evaluator<SparseVec> evaluator = new CuRBFEllpackEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new CuRBFEllpackEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new CuRBFERTILPEvaluator(gamma);
 
 
             #region Cuda kernels
 
             //IKernel<SparseVec> kernel = new CuLinearKernel();
             //IKernel<SparseVec> kernel = new CuRBFCSRKernel(gamma );
-            IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFERTILPKernel(gamma);
-            //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
+            IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
 
             //IKernel<SparseVec> kernel = new CuRBFEllILPKernelCol2(gamma);
@@ -899,12 +900,12 @@ namespace KMLibUsageApp
 
             //var Solver = new ParallelSmoFanSolver<SparseVec>(train, kernel, C);
             //this solver works a bit faster and use less memory
-            //var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
+            var Solver = new ParallelSmoFanSolver2<SparseVec>(train, kernel, C);
             //var Solver = new SmoFanSolver<SparseVec>(train, kernel, C);
             //var Solver = new SmoRandomSolver<SparseVec>(train, kernel, C);
             
             //var Solver = new SmoFirstOrderSolver<SparseVec>(train, kernel, C);
-            var Solver = new GPUSmoFanSolver(train, kernel, C);
+            //var Solver = new GPUSmoFanSolver(train, kernel, C);
 
             //var Solver = new SmoFirstOrderSolver2Cols<SparseVec>(train, kernel, C);
             //var Solver = new GPUSmoFOSolver(train, kernel, C);

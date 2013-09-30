@@ -40,7 +40,7 @@ namespace KMLib.GPU
 
 
         /// <summary>
-        /// cuda device pointer for stroing self linear dot product
+        /// cuda device pointer for storing self linear dot product
         /// </summary>
         private CUdeviceptr selfLinDotPtr;
         private int sliceSize;
@@ -59,11 +59,8 @@ namespace KMLib.GPU
         {
             linKernel = new LinearKernel();
             Gamma = gamma;
-
-            
             
             cudaProductKernelName = "rbfSlicedEllpackKernel";
-            //cudaProductKernelName = "rbfSlicedEllpackKernel_shared";
 
             cudaModuleName = "KernelsSlicedEllpack.cubin";
 

@@ -11,11 +11,11 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 #include <float.h>
 
 
-//texture fo labels assiociated with vectors
+//texture for labels associated with vectors
 texture<float,1,cudaReadModeElementType> labelsTexRef;
 
 texture<float,1,cudaReadModeElementType> mainVecTexRef;
-//needed for prediction and acynchronous transfers
+//needed for prediction and asynchronous transfers
 texture<float,1,cudaReadModeElementType> mainVec2TexRef;
 
 
@@ -35,8 +35,13 @@ texture<float,1,cudaReadModeElementType> mainVec2TexRef;
 #define maxNNZ 100
 
 
-//rho for computingwse
-//__constant__ float RHO=-2;
+
+template<int TexSel> __device__ float fetchTex(int idx);
+
+template<> __device__ float fetchTex<1>(int idx) { return tex1Dfetch(mainVecTexRef,idx); }
+template<> __device__ float fetchTex<2>(int idx) { return tex1Dfetch(mainVec2TexRef,idx); }
+
+
 //sets -1 for negative values and 1 for gather or equal than 0
 //params:
 // inputArray - array

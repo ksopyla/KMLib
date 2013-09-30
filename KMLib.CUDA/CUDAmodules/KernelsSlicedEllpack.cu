@@ -14,32 +14,78 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 #define LOG_THREADS 2 // LOG2(ThreadPerRow)
 #define SliceSize 64
 
-//__device__ const int ThreadPerRow=2;
-//define LOG_THREADS 1 // LOG2(ThreadPerRow)
 
+template<int TexSel> __device__ void SpMV_SliceEllpack(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const int align,
+	const int row,
+	const int nrRows,
+	volatile float* shDot);
 
-//__device__ const int PREFETCH=2;
-
-
-
-
-
-//gamma parameter in RBF
-//__constant__ float GammaDev=0.5;
-
-extern __shared__  float sh_data[];
+//extern __shared__  float sh_data[];
 
 //Use sliced Ellpack format for computing rbf kernel
 //vecVals - vectors values in Sliced Ellpack,
-//vecCols - array containning column indexes for non zero elements
+//vecCols - array containing column indexes for non zero elements
 //vecLengths  - number of non zero elements in row
 //sliceStart   - determine where particular slice starts and ends
 //selfDot    - precomputed self dot product
 //result  - for final result
 //mainVecIdx - index of main vector
 //nrows   - number of rows
-//ali	  - align
+//align	  - align
 extern "C" __global__ void rbfSlicedEllpackKernel(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* selfDot,
+	const float* vecLabels,
+	float *result,
+	const int mainVecIdx,
+	const int nrRows,
+	const float gamma, 
+	const int align){
+
+		//sh_data size = SliceSize*ThreadsPerRow*sizeof(float)
+		//float* sh_cache = (float*)sh_data;
+		__shared__  float shDot[ThreadPerRow*SliceSize];
+		shDot[threadIdx.x]=0.0;	
+
+		__shared__ int shMainVecIdx;
+		__shared__ float shMainSelfDot;
+		__shared__ float shLabel;
+		__shared__ float shGamma;
+
+		if(threadIdx.x==0)
+		{
+			shMainVecIdx=mainVecIdx;
+			shMainSelfDot = selfDot[shMainVecIdx];
+			shLabel = vecLabels[shMainVecIdx];
+			shGamma=gamma;
+		}
+		__syncthreads();
+		
+		int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
+		int txm = threadIdx.x %  ThreadPerRow;
+		//map group of thread to row, in this case 4 threads are mapped to one row
+		int row =  thIdx>> LOG_THREADS; // 
+
+		if (row < nrRows){
+			
+			SpMV_SliceEllpack<1>(vecVals,vecCols,vecLengths,sliceStart,align,row,nrRows,shDot);
+			if(txm == 0 ){
+					result[row]=vecLabels[row]*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*shDot[threadIdx.x]));
+				}
+
+		}//if row<nrRows 
+}//end func
+
+
+
+
+extern "C" __global__ void rbfSlicedEllpackKernel_old(const float *vecVals,
 	const int *vecCols,
 	const int *vecLengths, 
 	const int * sliceStart, 
@@ -93,7 +139,7 @@ extern "C" __global__ void rbfSlicedEllpackKernel(const float *vecVals,
 			__syncthreads();
 
 			volatile float *shMem = sh_cache;
-		
+
 
 			for(int s=ThreadPerRow/2; s>0; s>>=1) //s/=2
 			{
@@ -103,10 +149,10 @@ extern "C" __global__ void rbfSlicedEllpackKernel(const float *vecVals,
 			}
 
 			if(txm == 0 ){
-					result[row]=vecLabels[row]*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*sh_cache[tx]));
-				}
+				result[row]=vecLabels[row]*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*sh_cache[tx]));
+			}
 
-	
+
 			//for 4 thread per row
 			//if(txm < 2){
 			//	shMem[tx]+=shMem[tx+2];
@@ -122,102 +168,6 @@ extern "C" __global__ void rbfSlicedEllpackKernel(const float *vecVals,
 
 
 
-//Use sliced Ellpack format for computing rbf kernel
-//vecVals - vectors values in Sliced Ellpack,
-//vecCols - array containning column indexes for non zero elements
-//vecLengths  - number of non zero elements in row
-//sliceStart   - determine where particular slice starts and ends
-//selfDot    - precomputed self dot product
-//result  - for final result
-//mainVecIdx - index of main vector
-//nrows   - number of rows
-//ali	  - align
-extern "C" __global__ void rbfSlicedEllpackKernel_shared(const float *vecVals,
-	const int *vecCols,
-	const int *vecLengths, 
-	const int * sliceStart, 
-	const float* selfDot,
-	const float* vecLabels,
-	float *result,
-	const int mainVecIdx,
-	const int nrRows,
-	const float gamma, 
-	const int align){
-
-		//sh_data size = SliceSize*ThreadsPerRow*sizeof(float)
-		//float* sh_cache = (float*)sh_data;
-		__shared__  float sh_cache[ThreadPerRow*SliceSize];
-
-		__shared__ int shMainVecIdx;
-		__shared__ float shMainSelfDot;
-		__shared__ float shLabel;
-		__shared__ float shGamma;
-
-		if(threadIdx.x==0)
-		{
-			shMainVecIdx=mainVecIdx;
-			shMainSelfDot = selfDot[shMainVecIdx];
-			shLabel = vecLabels[shMainVecIdx];
-			shGamma=gamma;
-		}
-
-		__shared__ float shMainVecAR[VECDIM];
-		volatile float *shMainVec =shMainVecAR;
-
-		for(int k=threadIdx.x;k<VECDIM;k+=blockDim.x)
-			shMainVec[k]=tex1Dfetch(mainVecTexRef,k);
-
-		__syncthreads();
-
-		int tx = threadIdx.x;
-		int txm = tx % 4; //tx% ThreadPerRow
-		int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
-
-		//map group of thread to row, in this case 4 threads are mapped to one row
-		int row =  thIdx>> 2; // 
-
-		if (row < nrRows){
-			float sub = 0.0;
-			int maxRow = (int)ceil(vecLengths[row]/(float)ThreadPerRow);
-			int labelProd = vecLabels[row]*shLabel;
-			int ind = -1;
-			int col =-1;
-			float value=0;
-
-			for(int i=0; i < maxRow; i++){
-				ind = i*align+sliceStart[blockIdx.x]+tx;
-
-				col     = vecCols[ind];
-				value = vecVals[ind];
-
-				sub += value * shMainVec[col];
-			}
-
-			sh_cache[tx] = sub;
-			__syncthreads();
-
-			volatile float *shMem = sh_cache;
-			//for 4 thread per row
-
-			if(txm < 2){
-				shMem[tx]+=shMem[tx+2];
-				shMem[tx] += shMem[tx+1];
-
-				if(txm == 0 ){
-					//result[row]=vecLabels[row]*shLabel*expf(-0.5*(selfDot[row]+shMainSelfDot-2*sh_cache[tx]));
-					value = labelProd*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*sh_cache[tx]));
-					//value = floorf(value*1000+0.5)/1000;
-					result[row]=value;
-					//result[row]=vecLabels[row]*shLabel*expf(-GammaDev*(selfDot[row]+shMainSelfDot-2*sh_cache[tx]));
-				}
-			}
-
-
-		}//if row<nrRows 
-
-
-
-}//end func
 
 
 //TODO: impelmentacja rbfSlEll_ILP
@@ -517,6 +467,108 @@ extern "C" __global__ void expChi2SlEllKernel(const float *vecVals,
 
 }//end func
 
+
+/************************************************************************/
+/* 
+	Evaluators
+*/
+/************************************************************************/
+
+extern "C" __global__ void rbfSliceEllpackEvaluator(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* svSelfDot,
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int nrRows,
+	const int align,
+	const float vecSelfDot,
+	const float gamma,
+	const int texSel)
+{
+
+	__shared__ float shGamma;
+	__shared__ float shVecSelfDot;
+	__shared__ int shRows;
+	__shared__  float shDot[ThreadPerRow*SliceSize];
+	shDot[threadIdx.x]=0.0;	
+
+	if(threadIdx.x==0)
+	{
+		shGamma = gamma;
+		shVecSelfDot = vecSelfDot,
+		shRows= nrRows;
+	}
+	__syncthreads();
+
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+	int txm = threadIdx.x %  ThreadPerRow;
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+		
+		if (texSel==1)
+		{
+			SpMV_SliceEllpack<1>(vecVals,vecCols,vecLengths,sliceStart,align,row,nrRows,shDot);
+		}else{
+			SpMV_SliceEllpack<2>(vecVals,vecCols,vecLengths,sliceStart,align,row,nrRows,shDot);
+		}
+
+		if(txm == 0 ){
+			results[row]=svY[row]*svAlpha[row]*expf(-shGamma*(svSelfDot[row]+shVecSelfDot-2*shDot[threadIdx.x]));
+		}
+
+	}	
+
+}
+
+
+
+/************************************************************************/
+/* 
+	Sliced ellpack 
+*/
+/************************************************************************/
+
+template<int TexSel> __device__ void SpMV_SliceEllpack(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const int align,
+	const int row,
+	const int nrRows,
+	volatile float* shDot)
+{
+	
+	int txm = threadIdx.x %  ThreadPerRow;
+
+	float sub = 0.0;
+	int maxRow = (int)ceil(vecLengths[row]/(float)ThreadPerRow);
+	int col=-1;
+	float value =0;
+	int ind=0;
+
+	for(int i=0; i < maxRow; i++){
+		ind = i*align+sliceStart[blockIdx.x]+threadIdx.x;
+		col     = vecCols[ind];
+		value = vecVals[ind];
+		sub += value * fetchTex<TexSel>(col);// tex1Dfetch(mainVecTexRef, col);
+	}
+
+	shDot[threadIdx.x] = sub;
+	__syncthreads();
+
+
+	for(int s=ThreadPerRow/2; s>0; s>>=1) //s/=2
+	{
+		if(txm < s){
+			shDot[threadIdx.x] += shDot[threadIdx.x+s];
+		}
+	}
+
+}
 
 
 /************************* HELPER FUNCTIONS ****************************/

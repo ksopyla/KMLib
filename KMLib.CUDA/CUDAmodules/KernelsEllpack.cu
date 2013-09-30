@@ -25,8 +25,9 @@ template<int TexSel> __device__ float SpMV_Ellpack(const float * vals,
 template<int TexSel> __device__ void SpMV_ERTILP(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength,
-									   const int row,
-									   const int num_rows,
+									   const int row, 
+									   const int rowsB, 
+									   const int num_rows, 
 									   volatile float* shResults);
 
 
@@ -131,21 +132,21 @@ extern "C" __global__ void rbfERTILP(const float * vals,
 	//const int idx  = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
 	int row  = (blockDim.x * blockIdx.x + threadIdx.x)/THREADS_ROW;
 
-	//const int rowsB= blockDim.x/THREADS_ROW ;//BLOCK_SIZE/THREADS_ROW;  //rows in block
-	#define rowsB BLOCK_SIZE/THREADS_ROW
+	const int rowsB= blockDim.x/THREADS_ROW ;//BLOCK_SIZE/THREADS_ROW;  //rows in block
+	//#define rowsB BLOCK_SIZE/THREADS_ROW
 
 	
 
 	if(row<shRows)
 	{
 					
-		SpMV_ERTILP<1>(vals,colIdx,rowLength,row,shRows,shDot);
+		SpMV_ERTILP<1>(vals,colIdx,rowLength,row,rowsB,shRows,shDot);
 		//if(row2<shRows){
 		if(threadIdx.x<rowsB){
 			//results[row2]=row2;			
 			unsigned int row2=blockIdx.x* rowsB+threadIdx.x;
-			//results[row2]=shDot[tid];
-		    results[row2]=tex1Dfetch(labelsTexRef,row2)*shLabel*expf(-shGamma*(selfDot[row2]+shMainSelfDot-2*shDot[threadIdx.x]));
+ 			if(row2<shRows)
+				results[row2]=tex1Dfetch(labelsTexRef,row2)*shLabel*expf(-shGamma*(selfDot[row2]+shMainSelfDot-2*shDot[threadIdx.x]));
 		}
 	}//if row<nrRows	
 
@@ -269,8 +270,8 @@ extern "C" __global__ void nChi2EllRTILP(const float * vals,
 	//const int idx  = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
 	int row  = (blockDim.x * blockIdx.x + threadIdx.x)/THREADS_ROW;
 
-	//const int rowsB= blockDim.x/THREADS_ROW ;//BLOCK_SIZE/THREADS_ROW;  //rows in block
-	#define rowsB BLOCK_SIZE/THREADS_ROW
+	const int rowsB= blockDim.x/THREADS_ROW ;//BLOCK_SIZE/THREADS_ROW;  //rows in block
+	//#define rowsB (BLOCK_SIZE/THREADS_ROW)
 
 	const int tid = threadIdx.x; // index in block
 	const int idxR = tid/THREADS_ROW; //row index mapped into block region
@@ -776,10 +777,9 @@ extern "C" __global__ void rbfEllpackEvaluator(const float * vals,
 
 	if(row<shRows)
 	{
-		//hack for choosing different texture reference when launch in defferent streams
+		//hack for choosing different texture reference when launch in different streams
 		float dot = texSel==1 ? SpMV_Ellpack<1>(vals,colIdx,rowLength,row,num_rows): SpMV_Ellpack<2>(vals,colIdx,rowLength,row,num_rows) ;
 		results[row]=svY[row]*svAlpha[row]*expf(-shGamma*(svSelfDot[row]+shVecSelfDot-2*dot));
-		//results[row]=dot;
 	}	
 
 }
@@ -814,17 +814,26 @@ extern "C" __global__ void rbfERTILPEvaluator(const float * vals,
 	}
 	__syncthreads();
 	
-	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
-
+	int row  = (blockDim.x * blockIdx.x + threadIdx.x)/THREADS_ROW;  // global thread index
+	const int rowsB = blockDim.x/THREADS_ROW;
+	
 	if(row<shRows)
 	{
-		//hack for choosing different texture reference when launch in defferent streams
-		texSel==1 ? SpMV_ERTILP<1>(vals,colIdx,rowLength,row,shRows,shDot): SpMV_ERTILP<2>(vals,colIdx,rowLength,row,shRows,shDot) ;
+		//hack for choosing different texture reference when launch in different streams
+		if(texSel==1){
+			SpMV_ERTILP<1>(vals,colIdx,rowLength,row,rowsB,shRows,shDot);
+		}
+		else{
+			SpMV_ERTILP<2>(vals,colIdx,rowLength,row,rowsB,shRows,shDot);
+		}
+
+		//texSel==1 ? SpMV_ERTILP<1>(vals,colIdx,rowLength,row,rowsB,shRows,shDot) : SpMV_ERTILP<2>(vals,colIdx,rowLength,row,rowsB,shRows,shDot); 
 		if(threadIdx.x<rowsB){
-			//results[row2]=row2;			
 			unsigned int row2=blockIdx.x* rowsB+threadIdx.x;
-			//results[row2]=shDot[tid];
-		    results[row2]=svY[row2]*svAlpha[row2]*expf(-shGamma*(svSelfDot[row2]+shVecSelfDot-2*shDot[threadIdx.x]));
+			if(row2<shRows){
+				//results[row2]=shDot[threadIdx.x];
+				results[row2]=svY[row2]*svAlpha[row2]*expf(-shGamma*(svSelfDot[row2]+shVecSelfDot-2*shDot[threadIdx.x]));
+			} 
 		}
 	}	
 
@@ -836,10 +845,7 @@ extern "C" __global__ void rbfERTILPEvaluator(const float * vals,
 
 
 
-template<int TexSel> __device__ float fetchTex(int idx);
 
-template<> __device__ float fetchTex<1>(int idx) { return tex1Dfetch(mainVecTexRef,idx); }
-template<> __device__ float fetchTex<2>(int idx) { return tex1Dfetch(mainVec2TexRef,idx); }
 
 //cuda kernel funtion for computing SpMV
 // Ellpack-R fromat for storing sparse matrix,  uses ILP - prefetch vector elements in registers
@@ -927,6 +933,7 @@ template<int TexSel> __device__ void SpMV_ERTILP(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength,
 									   const int row,
+									   const int rowsB,
 									   const int shRows,
 									   volatile float* shDot)
 {
