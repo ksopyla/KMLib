@@ -18,7 +18,7 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 //num_rows -number of vectors
 //mainVecIndex - main vector index, needed for retriving its label
 //gamma - gamma parameter for RBF 
-extern "C" __global__ void rbfEllpackFormatKernel_ILP(const float * vals,
+extern "C" __global__ void rbfEllpackFormatKernel_ILP_old(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength, 
 									   const float* selfDot,
@@ -431,6 +431,89 @@ extern "C" __global__ void rbfEllpackFormatKernel_old(const float * vals,
 //mainVecIdx - index of main vector
 //nrows   - number of rows
 //ali	  - align
+extern "C" __global__ void rbfSlicedEllpackKernel_old(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* selfDot,
+	const float* vecLabels,
+	float *result,
+	const int mainVecIdx,
+	const int nrRows,
+	const float gamma, 
+	const int align){
+
+		//sh_data size = SliceSize*ThreadsPerRow*sizeof(float)
+		//float* sh_cache = (float*)sh_data;
+		__shared__  float sh_cache[ThreadPerRow*SliceSize];
+
+		__shared__ int shMainVecIdx;
+		__shared__ float shMainSelfDot;
+		__shared__ float shLabel;
+		__shared__ float shGamma;
+
+		if(threadIdx.x==0)
+		{
+			shMainVecIdx=mainVecIdx;
+			shMainSelfDot = selfDot[shMainVecIdx];
+			shLabel = vecLabels[shMainVecIdx];
+			shGamma=gamma;
+		}
+
+		int tx = threadIdx.x;
+		int txm = tx %  ThreadPerRow;
+		int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
+
+		//map group of thread to row, in this case 4 threads are mapped to one row
+		int row =  thIdx>> LOG_THREADS; // 
+
+		if (row < nrRows){
+			float sub = 0.0;
+			int maxRow = (int)ceil(vecLengths[row]/(float)ThreadPerRow);
+			int col=-1;
+			float value =0;
+			int ind=0;
+
+			for(int i=0; i < maxRow; i++){
+				ind = i*align+sliceStart[blockIdx.x]+tx;
+				col     = vecCols[ind];
+				value = vecVals[ind];
+				sub += value * tex1Dfetch(mainVecTexRef, col);
+			}
+
+			sh_cache[tx] = sub;
+			__syncthreads();
+
+			volatile float *shMem = sh_cache;
+
+
+			for(int s=ThreadPerRow/2; s>0; s>>=1) //s/=2
+			{
+				if(txm < s){
+					shMem[tx] += shMem[tx+s];
+				}
+			}
+
+			if(txm == 0 ){
+				result[row]=vecLabels[row]*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*sh_cache[tx]));
+			}
+
+
+			//for 4 thread per row
+			//if(txm < 2){
+			//	shMem[tx]+=shMem[tx+2];
+			//	shMem[tx] += shMem[tx+1];
+			//if(txm < 1){
+			//	shMem[tx] += shMem[tx+1];
+			//	if(txm == 0 ){
+			//		result[row]=vecLabels[row]*shLabel*expf(-shGamma*(selfDot[row]+shMainSelfDot-2*sh_cache[tx]));
+			//	}
+			//}
+		}//if row<nrRows 
+}//end func
+
+
+
 extern "C" __global__ void rbfSlicedEllpackKernel_shared(const float *vecVals,
 	const int *vecCols,
 	const int *vecLengths, 
