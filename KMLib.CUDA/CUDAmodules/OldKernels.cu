@@ -600,3 +600,155 @@ extern "C" __global__ void rbfSlicedEllpackKernel_shared(const float *vecVals,
 
 
 }//end func
+
+
+extern "C" __global__ void nChi2EllpackKernel(const float * vals,
+	const int * colIdx, 
+	const int * rowLength, 
+	float * results,
+	const int numRows,
+	const int mainVecIndex)
+{
+
+	__shared__ float shLabel;
+	__shared__ int shRows;
+
+	if(threadIdx.x==0)
+	{
+		shLabel = tex1Dfetch(labelsTexRef,mainVecIndex);	
+		shRows=numRows;
+	}
+
+	__syncthreads();
+
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+	const int num_rows =numRows;
+	if(row<shRows)
+	{
+		int maxEl = rowLength[row];
+		float labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
+		float chi=0;
+
+		int col1=-1;
+		float val1=0;
+		float val2=0;
+		int i=0;
+
+		for(i=0; i<maxEl;i++)
+		{
+			col1=colIdx[num_rows*i+row];
+			val1= vals[num_rows*i+row];
+			val2 = tex1Dfetch(mainVecTexRef,col1);
+
+			chi+= (val1*val2)/(val1+val2+FLT_MIN);
+
+		}
+		results[row]=labelProd*chi;
+	}	
+
+}
+
+extern "C" __global__ void nChi2EllRTILP(const float * vals,
+	const int * colIdx, 
+	const int * rowLength, 
+	float * results,
+	const int num_rows,
+	const int mainVecIndex)
+{
+
+
+
+	__shared__ int shMainVecIdx;
+	__shared__ float shLabel;
+	__shared__ int shRows;
+
+	__shared__ float shChi2[BLOCK_SIZE];
+	shChi2[threadIdx.x]=0.0;	
+
+	if(threadIdx.x==0)
+	{
+		shRows = num_rows;
+		shMainVecIdx=mainVecIndex;
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+	}
+	__syncthreads();
+
+
+	//const int idx  = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+	int row  = (blockDim.x * blockIdx.x + threadIdx.x)/THREADS_ROW;
+
+	const int rowsB= blockDim.x/THREADS_ROW ;//BLOCK_SIZE/THREADS_ROW;  //rows in block
+	//#define rowsB (BLOCK_SIZE/THREADS_ROW)
+
+	const int tid = threadIdx.x; // index in block
+	const int idxR = tid/THREADS_ROW; //row index mapped into block region
+	const int idxT = tid%THREADS_ROW; // thread number in Thread Group
+
+	if(row<shRows)
+	{
+		float vals[PREFETCH_SIZE];
+		float val2=0;
+		int cols[PREFETCH_SIZE];
+
+		float dot[PREFETCH_SIZE]={0};
+
+		int maxEl = rowLength[row]; //original row length divided by T*PREFETCH
+
+		unsigned int j=0;
+		unsigned int arIdx=0;
+
+		for(int i=0; i<maxEl;i++)
+		{
+
+#pragma unroll
+			for( j=0; j<PREFETCH_SIZE;j++)			
+			{
+				arIdx = (i*PREFETCH_SIZE+j)*shRows*THREADS_ROW+row*THREADS_ROW+idxT;
+				cols[j]=colIdx[arIdx];
+				vals[j]=vals[arIdx];
+			}
+
+#pragma unroll
+			for( j=0; j<PREFETCH_SIZE;j++){
+				val2=tex1Dfetch(mainVecTexRef,cols[j]);
+				dot[j]+=(vals[j]*val2)/(vals[j]+val2+FLT_MIN);
+			}
+
+		}
+
+
+#pragma unroll
+		for( j=1; j<PREFETCH_SIZE;j++){
+			dot[0]+=dot[j];
+
+		}
+
+		//__syncthreads();	
+
+		// special indexing, values for example for T=4 BlockSize=256
+		//for row=0 values are stored on position 0,64,128,192 
+		//for row=1 values are stored on position 1,65,129,193 ...
+		shChi2[idxT*rowsB+idxR]=dot[0];
+
+		__syncthreads();		
+
+
+		//reduction to some level
+		for( j=blockDim.x/2; j>=rowsB; j>>=1) //s/=2
+		{
+			if(tid<j){
+				shChi2[tid]+=shChi2[tid+j];
+			}
+			__syncthreads();
+		}			
+
+		//if(row2<shRows){
+		if(tid<rowsB){
+			//results[row2]=row2;			
+			unsigned int row2=blockIdx.x* rowsB+tid;
+			//results[row2]=shDot[tid];
+			results[row2]=shChi2[tid];
+		}
+	}	
+
+}

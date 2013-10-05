@@ -14,9 +14,9 @@ namespace KMLib.GPU.GPUEvaluators
 
 
     /// <summary>
-    /// Class for prediction with Sliced-Ellpack format 
+    /// Class for prediction with SERTILP format 
     /// </summary>
-    public class CuRBFSlEllEvaluator : CuEvaluator
+    public class CuRBFSERTILPEvaluator : CuEvaluator
     {
         private GASS.CUDA.Types.CUdeviceptr valsPtr;
         private GASS.CUDA.Types.CUdeviceptr idxPtr;
@@ -37,18 +37,20 @@ namespace KMLib.GPU.GPUEvaluators
         /// </summary>
         private int sliceSize;
         private int align;
-       
+        private int preFechSize;
 
 
 
-        public CuRBFSlEllEvaluator(float gamma)
+
+        public CuRBFSERTILPEvaluator(float gamma)
         {
             this.gamma = gamma;
-            cudaEvaluatorKernelName = "rbfSliceEllpackEvaluator";
+            cudaEvaluatorKernelName = "rbfSERTILPEvaluator";
             cudaModuleName = "KernelsSlicedEllpack.cubin";
 
             threadsPerRow = 4;
             sliceSize = 64;
+            preFechSize = 2;
 
         }
 
@@ -133,9 +135,9 @@ namespace KMLib.GPU.GPUEvaluators
             int[] vecColIdx;
             int[] vecLenght;
             int[] sliceStart;
-
-            CudaHelpers.TransformToSlicedEllpack(out vecVals, out vecColIdx, out sliceStart, out vecLenght, TrainedModel.SupportElements, threadsPerRow, sliceSize);
-
+            
+            CudaHelpers.TransformToSERTILP(out vecVals, out vecColIdx, out sliceStart, out vecLenght, TrainedModel.SupportElements, threadsPerRow, sliceSize, preFechSize);
+            
             float[] selfLinDot = TrainedModel.SupportElements.Select(c => c.DotProduct()).ToArray();
 
  

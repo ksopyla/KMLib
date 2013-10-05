@@ -742,12 +742,12 @@ namespace KMLibUsageApp
             #endregion
 
 
-            //trainningFile = dataFolder + "/a1a.train";
-            ////testFile = dataFolder + "/a1a.test";
-            //////testFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
+            trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////testFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.train";
+            //in a1a problem max index is 123
+            numberOfFeatures = 123;
 
 
             //trainningFile = dataFolder + "/a9a";
@@ -774,11 +774,11 @@ namespace KMLibUsageApp
             //testFile = dataFolder + "/news20.binary";
             //numberOfFeatures = 1335191;
 
-            //trainningFile = dataFolder + "/mnist.scale";
-            trainningFile = dataFolder + "/mnist.scale20k";
-            testFile = dataFolder + "/mnist.scale1k.t";
-            //testFile = dataFolder + "/mnist.scale.t";
-            numberOfFeatures = 784;
+            ////trainningFile = dataFolder + "/mnist.scale";
+            //trainningFile = dataFolder + "/mnist.scale20k";
+            //testFile = dataFolder + "/mnist.scale1k.t";
+            //////testFile = dataFolder + "/mnist.scale.t";
+            //numberOfFeatures = 784;
 
             //trainningFile = dataFolder + "/real-sim_small_3K";
             //string trainningFile = dataFolder + "/real-sim_med_6K";
@@ -870,6 +870,8 @@ namespace KMLibUsageApp
             //Evaluator<SparseVec> evaluator = new CuRBFEllILPEvaluator(gamma);
             //Evaluator<SparseVec> evaluator = new CuRBFEllpackEvaluator(gamma);
             //Evaluator<SparseVec> evaluator = new CuRBFERTILPEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new CuRBFSlEllEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new CuRBFSERTILPEvaluator(gamma);
 
 
             #region Cuda kernels
@@ -879,8 +881,8 @@ namespace KMLibUsageApp
             //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFERTILPKernel(gamma);
-            IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
-            //IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
+            IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
 
             //IKernel<SparseVec> kernel = new CuRBFEllILPKernelCol2(gamma);
 
@@ -948,7 +950,7 @@ namespace KMLibUsageApp
             float[] predictions = evaluator.Predict(test.Elements); //new float[1]; //
 
             t.Stop();
-            //toremove: only for tests
+           
             Console.WriteLine("prediction takes {0}  ms={1}", t.Elapsed, t.ElapsedMilliseconds);
 
 

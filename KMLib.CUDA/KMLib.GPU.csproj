@@ -151,6 +151,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GPUEvaluators\CuRBFSERTILPEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuRBFSlEllEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuRBFERTILPEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuRBFEllpackEvaluator.cs" />
@@ -212,7 +213,7 @@
     <PostBuildEvent>del *.cubin, *.cu, *.ptx, *.h
 xcopy "$(ProjectDir)CUDAmodules\*.cu" "$(TargetDir)" /Y
 xcopy "$(ProjectDir)CUDAmodules\*.h" "$(TargetDir)" /Y
-nvcc  -I./ KernelsEllpackCol2.cu KernelsCSR.cu KernelsEllpack.cu KernelsSlicedEllpack.cu gpuFanSmoSolver.cu gpuFOSmoSolver.cu -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12  -Xptxas="-v"
+nvcc -I./ KernelsEllpackCol2.cu KernelsCSR.cu KernelsEllpack.cu KernelsSlicedEllpack.cu gpuFanSmoSolver.cu gpuFOSmoSolver.cu -ccbin "%25VS100COMNTOOLS%25../../VC/bin" -m64  -cubin -gencode=arch=compute_12,code=sm_12  -Xptxas="-v"
 xcopy "$(TargetDir)*.cubin" "$(SolutionDir)Libs\Cuda\" /Y
 xcopy "$(TargetDir)*.ptx" "$(SolutionDir)Libs\Cuda\" /Y
 xcopy "$(TargetDir)*.cu" "$(SolutionDir)Libs\Cuda\" /Y

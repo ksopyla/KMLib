@@ -508,6 +508,66 @@ extern "C" __global__ void rbfSliceEllpackEvaluator(const float *vecVals,
 }
 
 
+extern "C" __global__ void rbfSERTILPEvaluator(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* svSelfDot,
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int nrRows,
+	const int align,
+	const float vecSelfDot,
+	const float gamma,
+	const int texSel)
+{
+	__shared__ float shGamma;
+	__shared__ float shVecSelfDot;
+	__shared__ int shRows;
+	__shared__ int shSliceStart;
+	__shared__  float shDot[ThreadPerRow*SliceSize];
+	shDot[threadIdx.x]=0.0;	
+
+	if(threadIdx.x==0)
+	{
+		shGamma = gamma;
+		shVecSelfDot = vecSelfDot,
+		shRows= nrRows;
+		shSliceStart=sliceStart[blockIdx.x];
+	}
+	__syncthreads();
+
+
+	#define ROWS_B SliceSize
+	int txm = threadIdx.x %  ThreadPerRow;
+	const int row   = (blockIdx.x*blockDim.x+threadIdx.x)>>LOG_THREADS;  // global thread index
+
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+
+		if (texSel==1)
+		{
+			SpMV_SERTILP<1>(vecVals,vecCols,vecLengths,shSliceStart,align,row,nrRows,shDot);
+		}else{
+			SpMV_SERTILP<2>(vecVals,vecCols,vecLengths,shSliceStart,align,row,nrRows,shDot);
+		}
+		
+		if(threadIdx.x<ROWS_B){
+			//results[row2]=row2;			
+			unsigned int row2=blockIdx.x* ROWS_B+threadIdx.x;
+			if(row2<nrRows){
+				results[row2]=svY[row2]*svAlpha[row2]*expf(-shGamma*(svSelfDot[row2]+shVecSelfDot-2*shDot[threadIdx.x]));
+			}
+		}
+
+
+
+	}	
+
+
+}
 
 /************************************************************************/
 /* 
