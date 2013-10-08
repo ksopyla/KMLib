@@ -38,7 +38,7 @@ namespace KMLib.Kernels
         /// <summary>
         /// 
         /// </summary>
-        private float CacheSize = 140; //in MB
+        private float CacheSize = 140; //140in MB
 
 
         private Problem<TProblemElement> problem;

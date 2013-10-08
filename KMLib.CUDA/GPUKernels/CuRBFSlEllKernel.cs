@@ -285,7 +285,7 @@ namespace KMLib.GPU
 
         public override string ToString()
         {
-            return "CuRBFSliceEllR-T";
+            return "Cu RBF SliceEllR-T";
         }
     }
 }

@@ -332,7 +332,6 @@ extern "C" __global__ void nChi2EllpackKernel(const float * vals,
 }
 
 
-
 //cuda kernel function for computing SVM Chi-Square kernel in its normalized version,
 // K(x,y)= Sum( (xi*yi)/(xi+yi))
 // this kernel is good for histogram type vectors, so each xi should be xi>=0, and whole vector should be l1 normalized

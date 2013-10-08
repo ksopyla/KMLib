@@ -161,7 +161,7 @@ namespace KMLib.GPU
 
         #endregion
 
-        protected bool MakeDenseVectorOnGPU = false;
+        protected bool  MakeDenseVectorOnGPU = false;
 
         protected EllpackDenseVectorBuilder vecBuilder;
 

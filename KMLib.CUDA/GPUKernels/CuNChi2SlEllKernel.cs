@@ -44,7 +44,7 @@ namespace KMLib.GPU
 
 
 
-        public CuNChi2SlEllKernel(float gamma)
+        public CuNChi2SlEllKernel()
         {
             cudaProductKernelName = "nChi2SlEllKernel";
             //cudaProductKernelName = "rbfSlicedEllpackKernel_shared";
@@ -203,33 +203,23 @@ namespace KMLib.GPU
         {
             if (cuda != null)
             {
-                //free all resources
-                cuda.Free(valsPtr);
-                valsPtr.Pointer = IntPtr.Zero;
-                cuda.Free(idxPtr);
-                idxPtr.Pointer = IntPtr.Zero;
-                cuda.Free(vecLengthPtr);
-                vecLengthPtr.Pointer = IntPtr.Zero;
+                cuda.Free(sliceStartPtr);
 
-              
-                cuda.FreeHost(outputIntPtr);
-                //cuda.Free(outputPtr);
-                outputPtr.Pointer = IntPtr.Zero;
-                cuda.Free(labelsPtr);
-                labelsPtr.Pointer = IntPtr.Zero;
-                //cuda.DestroyTexture(cuLabelsTexRef);
-
-                cuda.Free(mainVecPtr);
-                mainVecPtr.Pointer = IntPtr.Zero;
-
-                cuda.DestroyTexture(cuMainVecTexRef);
+                DisposeResourses();
 
                 cuda.UnloadModule(cuModule);
+
+                base.Dispose();
                 cuda.Dispose();
                 cuda = null;
             }
         }
 
         #endregion
+
+        public override string ToString()
+        {
+            return "Cu nChi2 SliecedEll";
+        }
     }
 }

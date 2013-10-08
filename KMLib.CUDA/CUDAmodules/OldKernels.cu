@@ -752,3 +752,51 @@ extern "C" __global__ void nChi2EllRTILP(const float * vals,
 	}	
 
 }
+
+
+	extern "C" __global__ void nChi2EllpackKernel_old(const float * vals,
+		const int * colIdx, 
+		const int * rowLength, 
+		float * results,
+		const int numRows,
+		const int mainVecIndex)
+	{
+
+		__shared__ float shLabel;
+		__shared__ int shRows;
+
+		if(threadIdx.x==0)
+		{
+			shLabel = tex1Dfetch(labelsTexRef,mainVecIndex);	
+			shRows=numRows;
+		}
+
+		__syncthreads();
+
+		const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+		const int num_rows =numRows;
+		if(row<shRows)
+		{
+			int maxEl = rowLength[row];
+			float labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
+			float chi=0;
+
+			int col1=-1;
+			float val1=0;
+			float val2=0;
+			int i=0;
+
+			for(i=0; i<maxEl;i++)
+			{
+				col1=colIdx[num_rows*i+row];
+				val1= vals[num_rows*i+row];
+				val2 = tex1Dfetch(mainVecTexRef,col1);
+
+				chi+= (val1*val2)/(val1+val2+FLT_MIN);
+
+			}
+			results[row]=labelProd*chi;
+		}	
+
+	}
+

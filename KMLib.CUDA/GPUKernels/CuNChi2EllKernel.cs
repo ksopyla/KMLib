@@ -42,7 +42,8 @@ namespace KMLib.GPU
             //linKernel = new LinearKernel();
             //chiSquared = new ChiSquaredNormKernel();
 
-            cudaProductKernelName = "nChi2EllpackKernel";
+            //cudaProductKernelName = "nChi2EllpackKernel";
+            cudaProductKernelName = "nChi2EllpackKernel_old";
             
             cudaModuleName = "KernelsEllpack.cubin";
         }
@@ -177,25 +178,8 @@ namespace KMLib.GPU
         {
             if (cuda != null)
             {
-                //free all resources
-                cuda.Free(valsPtr);
-                valsPtr.Pointer = IntPtr.Zero;
-                cuda.Free(idxPtr);
-                idxPtr.Pointer = IntPtr.Zero;
-                cuda.Free(vecLengthPtr);
-                vecLengthPtr.Pointer = IntPtr.Zero;
 
-                cuda.FreeHost(outputIntPtr);
-                //cuda.Free(outputPtr);
-                outputPtr.Pointer = IntPtr.Zero;
-                cuda.Free(labelsPtr);
-                labelsPtr.Pointer = IntPtr.Zero;
-                cuda.DestroyTexture(cuLabelsTexRef);
-
-                cuda.Free(mainVecPtr);
-                mainVecPtr.Pointer = IntPtr.Zero;
-
-                cuda.DestroyTexture(cuMainVecTexRef);
+                DisposeResourses();
 
                 cuda.UnloadModule(cuModule);
 
@@ -209,7 +193,7 @@ namespace KMLib.GPU
 
         public override string ToString()
         {
-            return "Cuda Chi-Squared Norm Kernel";
+            return "Cuda nChi^2 Ellpack";
         }
     }
 

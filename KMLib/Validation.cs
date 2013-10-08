@@ -381,7 +381,7 @@ namespace KMLib
             svm.Train();
             
             Console.WriteLine("Svm train takes {0}", svm.model.ModelTimeMs);
-            svm.model.WriteToFile("modelFile.txt");
+            //svm.model.WriteToFile("modelFile.txt");
             int correct = 0;
             
             Debug.WriteLine("Start Predict");

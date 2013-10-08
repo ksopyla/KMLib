@@ -126,10 +126,6 @@ namespace KMLib.GPU
 
         public override void Init()
         {
-            linKernel.ProblemElements = problemElements;
-            linKernel.Y = Y;
-            linKernel.Init();
-
             base.Init();
 
             blockSize = threadsPerRow * sliceSize;
@@ -175,7 +171,7 @@ namespace KMLib.GPU
 
             SetCudaFunctionParameters();
 
-            //allocate memory for main vector, size of this vector is the same as dimenson, so many 
+            //allocate memory for main vector, size of this vector is the same as dimension, so many 
             //indexes will be zero, but cuda computation is faster
             mainVector = new float[problemElements[0].Dim + 1];
             CudaHelpers.FillDenseVector(problemElements[0], mainVector);
@@ -244,36 +240,27 @@ namespace KMLib.GPU
         {
             if (cuda != null)
             {
-                //free all resources
-                cuda.Free(valsPtr);
-                valsPtr.Pointer = IntPtr.Zero;
-                cuda.Free(idxPtr);
-                idxPtr.Pointer = IntPtr.Zero;
-                cuda.Free(vecLengthPtr);
-                vecLengthPtr.Pointer = IntPtr.Zero;
+
+                cuda.Free(sliceStartPtr);
 
                 cuda.Free(selfSumPtr);
                 selfSumPtr.Pointer = IntPtr.Zero;
 
 
-                cuda.FreeHost(outputIntPtr);
-                //cuda.Free(outputPtr);
-                outputPtr.Pointer = IntPtr.Zero;
-                cuda.Free(labelsPtr);
-                labelsPtr.Pointer = IntPtr.Zero;
-                //cuda.DestroyTexture(cuLabelsTexRef);
 
-                cuda.Free(mainVecPtr);
-                mainVecPtr.Pointer = IntPtr.Zero;
-
-                cuda.DestroyTexture(cuMainVecTexRef);
+                DisposeResourses();
 
                 cuda.UnloadModule(cuModule);
+                base.Dispose();
                 cuda.Dispose();
                 cuda = null;
             }
         }
 
         #endregion
+        public override string ToString()
+        {
+            return "Cu ExpChi2 Sll-Ell";
+        }
     }
 }

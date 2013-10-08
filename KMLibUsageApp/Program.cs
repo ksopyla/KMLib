@@ -464,7 +464,7 @@ namespace KMLibUsageApp
 
             IList<string> solversStr = new List<string> { "ParallelSMO","GpuFanSolver" };// "ParallelSMO", 
 
-            int numTests = 3;
+            int numTests = 1;
 
             foreach (var data in dataSetsToTest)
             {
@@ -488,9 +488,6 @@ namespace KMLibUsageApp
 
                 foreach (var solverStr in solversStr)
                 {
-                    //dominionstat dla parallel smo
-                    if (solverStr.Equals("ParallelSMO") && data.Item3 == 596)
-                        continue;
 
                     Trace.WriteLine(string.Format("Solver: {0}", solverStr));
                     Trace.WriteLine(string.Format("Results time[s]:{0,68} {1,9} {2,12} {3,9}", "it", "obj","nSV","acc" ));
@@ -570,14 +567,25 @@ namespace KMLibUsageApp
 
         private static IList<IKernel<SparseVec>> CreateKernels()
         {
+            //IList<IKernel<SparseVec>> kernelsCollection = new List<IKernel<SparseVec>> { 
+            //    new CuRBFCSRKernel(gamma), 
+            //    new CuRBFEllpackKernel(gamma),
+            //    new CuRBFSlEllKernel(gamma),
+            //    new CuRBFEllILPKernel(gamma),
+            //    new CuRBFERTILPKernel(gamma),
+            //    new CuRBFSERTILPKernel(gamma)
+            //};
+
+            
+
             IList<IKernel<SparseVec>> kernelsCollection = new List<IKernel<SparseVec>> { 
-                new CuRBFCSRKernel(gamma), 
-                new CuRBFEllpackKernel(gamma),
-                new CuRBFSlEllKernel(gamma),
-                new CuRBFEllILPKernel(gamma),
-                new CuRBFERTILPKernel(gamma),
-                new CuRBFSERTILPKernel(gamma)
+                new CuNChi2EllKernel(),
+                new CuNChi2SlEllKernel(),
+               new CuExpChiEllKernel(gamma),
+               new CuExpChiSlEllKernel(gamma)
+
             };
+
             return kernelsCollection;
         }
 
@@ -627,36 +635,36 @@ namespace KMLibUsageApp
 
 
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/w8a",
-            //    dataFolder + "/w8a.t",
-            //    300));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/w8a",
+                dataFolder + "/w8a.t",
+                300));
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/a9a",
-            //    dataFolder + "/a9a.t",
-            //    123));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/a9a",
+                dataFolder + "/a9a.t",
+                123));
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/news20.binary",
-            //    dataFolder + "/news20.binary",
-            //    1335191));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/news20.binary",
+                dataFolder + "/news20.binary",
+                1335191));
 
-           
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/real-sim",
-            //    dataFolder + "/real-sim",
-            //    20958));
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/rcv1_test.binary",
-            //    dataFolder + "/rcv1_train.binary",
-            //    47236));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/real-sim",
+                dataFolder + "/real-sim",
+                20958));
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/mnist.scale",
-            //    dataFolder + "/mnist.scale.t",
-            //    784));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/rcv1_test.binary",
+                dataFolder + "/rcv1_train.binary",
+                47236));
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/mnist.scale",
+                dataFolder + "/mnist.scale.t",
+                784));
 
 
 
@@ -676,10 +684,10 @@ namespace KMLibUsageApp
                dataFolder + "/webspam_wc_normalized_unigram.svm",
                254));
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/kytea-msr_first_1M.train",
-                dataFolder + "/kytea-msr.test",
-                8683737));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/kytea-msr_first_1M.train",
+            //    dataFolder + "/kytea-msr.test",
+            //    8683737));
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/kytea-msr_first_500k.train",
@@ -688,15 +696,15 @@ namespace KMLibUsageApp
 
             
 
-            dataSets.Add(new Tuple<string, string, int>(
-               dataFolder + "/url_combined_1.5M.train",
-               dataFolder + "/url_combined_800k.test",
-               3231961));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //   dataFolder + "/url_combined_1.5M.train",
+            //   dataFolder + "/url_combined_800k.test",
+            //   3231961));
 
-            dataSets.Add(new Tuple<string, string, int>(
-               dataFolder + "/kdda_2M",
-               dataFolder + "/kdda.t",
-               20216830));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //   dataFolder + "/kdda_2M",
+            //   dataFolder + "/kdda.t",
+            //   20216830));
 
             return dataSets;
         }
@@ -742,12 +750,12 @@ namespace KMLibUsageApp
             #endregion
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a1a.train";
+            ////testFile = dataFolder + "/a1a.test";
+            //////testFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
 
 
             //trainningFile = dataFolder + "/a9a";
@@ -760,9 +768,9 @@ namespace KMLibUsageApp
             ////testFile = dataFolder + "/a9a";
             //numberOfFeatures = 123;
 
-            //trainningFile = dataFolder + "/w8a";
-            //testFile = dataFolder + "/w8a.t";
-            //numberOfFeatures = 300;
+            trainningFile = dataFolder + "/w8a";
+            testFile = dataFolder + "/w8a.t";
+            numberOfFeatures = 300;
 
             ////trainningFile = dataFolder + "/rcv1_train.binary";
             ////testFile = dataFolder + "/rcv1_test.binary";
@@ -865,8 +873,8 @@ namespace KMLibUsageApp
 
             Model<SparseVec> model;
             
-            Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
-            //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+            //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
+            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
             //Evaluator<SparseVec> evaluator = new CuRBFEllILPEvaluator(gamma);
             //Evaluator<SparseVec> evaluator = new CuRBFEllpackEvaluator(gamma);
             //Evaluator<SparseVec> evaluator = new CuRBFERTILPEvaluator(gamma);
@@ -877,18 +885,25 @@ namespace KMLibUsageApp
             #region Cuda kernels
 
             //IKernel<SparseVec> kernel = new CuLinearKernel();
+            
+            //********** RBF kernels **************//
             //IKernel<SparseVec> kernel = new CuRBFCSRKernel(gamma );
             //IKernel<SparseVec> kernel = new CuRBFEllpackKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFEllILPKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFERTILPKernel(gamma);
             //IKernel<SparseVec> kernel = new CuRBFSlEllKernel(gamma);
-            IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuRBFSERTILPKernel(gamma);
 
             //IKernel<SparseVec> kernel = new CuRBFEllILPKernelCol2(gamma);
 
+            //********* nChi2 Kernels *******************//
             //IKernel<SparseVec> kernel = new CuChi2EllKernel();
             //IKernel<SparseVec> kernel = new CuNChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuNChi2SlEllKernel();
+
+            //********** ExpChi2 Kernels ********************//
             //IKernel<SparseVec> kernel = new CuExpChiEllKernel(gamma);
+            IKernel<SparseVec> kernel = new CuExpChiSlEllKernel(gamma);
 
 
             #endregion
@@ -914,7 +929,7 @@ namespace KMLibUsageApp
             
             Console.WriteLine("User solver {0} and kernel {1}", Solver.ToString(), kernel.ToString());
 
-            Stopwatch timer = Stopwatch.StartNew();
+            Stopwatch timer = Stopwatch.StartNew();//
             model = Solver.ComputeModel();
             Console.Write(model.ToString());
 
