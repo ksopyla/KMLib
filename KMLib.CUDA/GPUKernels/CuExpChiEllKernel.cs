@@ -40,7 +40,7 @@ namespace KMLib.GPU
 
 
         /// <summary>
-        /// cuda device pointer for stroing self sum of each vector
+        /// cuda device pointer for storing self sum of each vector
         /// </summary>
         private CUdeviceptr selfSumPtr;
 

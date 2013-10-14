@@ -42,8 +42,8 @@ namespace KMLib.GPU
             //linKernel = new LinearKernel();
             //chiSquared = new ChiSquaredNormKernel();
 
-            //cudaProductKernelName = "nChi2EllpackKernel";
-            cudaProductKernelName = "nChi2EllpackKernel_old";
+            cudaProductKernelName = "nChi2EllpackKernel";
+            //cudaProductKernelName = "nChi2EllpackKernel_old";
             
             cudaModuleName = "KernelsEllpack.cubin";
         }

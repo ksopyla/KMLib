@@ -340,8 +340,12 @@ namespace KMLib.GPU
             //    outputPtr.Pointer = IntPtr.Zero;
             //}
 
-            cuda.Free(labelsPtr);
-            labelsPtr.Pointer = IntPtr.Zero;
+            if (labelsPtr.Pointer != IntPtr.Zero)
+            {
+                cuda.Free(labelsPtr);
+                labelsPtr.Pointer = IntPtr.Zero;
+            }
+
             if (cuLabelsTexRef.Pointer != IntPtr.Zero)
                 cuda.DestroyTexture(cuLabelsTexRef);
 

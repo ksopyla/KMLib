@@ -47,7 +47,7 @@ namespace KMLibUsageApp
             
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
             
-            //TestOneDataSet(dataFolder);
+            TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -130,11 +130,11 @@ namespace KMLibUsageApp
 
             // evaluator.Init();
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
-            IKernel<SparseVec> kernel = new RbfKernel(gamma);
+            //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
            // IKernel<SparseVec> kernel = new ChiSquaredKernel();
-            //IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
-            //IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
+           // IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
+            IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
             
             SVMClassify(train, test, kernel, evaluator, C);
 
@@ -635,15 +635,15 @@ namespace KMLibUsageApp
 
 
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/w8a",
-                dataFolder + "/w8a.t",
-                300));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/w8a",
+            //    dataFolder + "/w8a.t",
+            //    300));
 
-            dataSets.Add(new Tuple<string, string, int>(
-                dataFolder + "/a9a",
-                dataFolder + "/a9a.t",
-                123));
+            //dataSets.Add(new Tuple<string, string, int>(
+            //    dataFolder + "/a9a",
+            //    dataFolder + "/a9a.t",
+            //    123));
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/news20.binary",
@@ -750,12 +750,12 @@ namespace KMLibUsageApp
             #endregion
 
 
-            //trainningFile = dataFolder + "/a1a.train";
-            ////testFile = dataFolder + "/a1a.test";
-            //////testFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.train";
-            ////in a1a problem max index is 123
-            //numberOfFeatures = 123;
+            trainningFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.test";
+            ////testFile = dataFolder + "/a1a.train";
+            testFile = dataFolder + "/a1a.train";
+            //in a1a problem max index is 123
+            numberOfFeatures = 123;
 
 
             //trainningFile = dataFolder + "/a9a";
@@ -768,9 +768,9 @@ namespace KMLibUsageApp
             ////testFile = dataFolder + "/a9a";
             //numberOfFeatures = 123;
 
-            trainningFile = dataFolder + "/w8a";
-            testFile = dataFolder + "/w8a.t";
-            numberOfFeatures = 300;
+            //trainningFile = dataFolder + "/w8a";
+            //testFile = dataFolder + "/w8a.t";
+            //numberOfFeatures = 300;
 
             ////trainningFile = dataFolder + "/rcv1_train.binary";
             ////testFile = dataFolder + "/rcv1_test.binary";
@@ -897,13 +897,18 @@ namespace KMLibUsageApp
             //IKernel<SparseVec> kernel = new CuRBFEllILPKernelCol2(gamma);
 
             //********* nChi2 Kernels *******************//
-            //IKernel<SparseVec> kernel = new CuChi2EllKernel();
+            //IKernel<SparseVec> kernel = new CuNChi2CSRKernel();
             //IKernel<SparseVec> kernel = new CuNChi2EllKernel();
             //IKernel<SparseVec> kernel = new CuNChi2SlEllKernel();
 
+            /************ chi kernels ***********/
+            //IKernel<SparseVec> kernel = new CuChi2EllKernel();
+
+
             //********** ExpChi2 Kernels ********************//
+            IKernel<SparseVec> kernel = new CuExpChiCSRKernel(gamma);
             //IKernel<SparseVec> kernel = new CuExpChiEllKernel(gamma);
-            IKernel<SparseVec> kernel = new CuExpChiSlEllKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuExpChiSlEllKernel(gamma);
 
 
             #endregion

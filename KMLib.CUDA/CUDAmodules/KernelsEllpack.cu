@@ -6,7 +6,6 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 */
 
 #include <float.h>
-
 #include <Config.h>
 
 
@@ -56,12 +55,12 @@ template<int TexSel> __device__ void SpMV_ERTILP_nChi2(const float * vals,
 // arrays vals and colIdx should be aligned to PREFETCH_SIZE
 //Params:
 //vals - array of vectors values
-//colIdx  - array of column indexes in ellpack-r fromat
+//colIdx  - array of column indexes in ellpack-r format
 //rowLength -array, contains number of nonzero elements in each row
 //selfDot - array of precomputed self linear product 
 //results - array of results Linear Kernel
 //num_rows -number of vectors
-//mainVecIndex - main vector index, needed for retriving its label
+//mainVecIndex - main vector index, needed for retrieving its label
 //gamma - gamma parameter for RBF 
 extern "C" __global__ void rbfEllpackFormatKernel_ILP_func(const float * vals,
 									   const int * colIdx, 
@@ -102,13 +101,13 @@ extern "C" __global__ void rbfEllpackFormatKernel_ILP_func(const float * vals,
 }
 
 
-//cuda kernel funtion for computing SVM RBF kernel, uses 
-// Ellpack-R fromat for storing sparse matrix, labels are in texture cache,  uses ILP - prefetch vector elements in registers
+//cuda kernel function for computing SVM RBF kernel, uses 
+// Ellpack-R format for storing sparse matrix, labels are in texture cache,  uses ILP - prefetch vector elements in registers
 // and uses T - threads to process one row
 // arrays vals and colIdx should be aligned to PREFETCH_SIZE
 //Params:
 //vals - array of vectors values
-//colIdx  - array of column indexes in ellpack-r fromat
+//colIdx  - array of column indexes in ellpack-r format
 //rowLength -array, contains number of nonzero elements in each row
 //selfDot - array of precomputed self linear product 
 //results - array of results Linear Kernel
@@ -453,12 +452,12 @@ extern "C" __global__ void expChi2EllpackKernel(const float * vals,
 // uses Ellpack-R fromat for storing sparse matrix, labels are in texture cache
 //Params:
 //vals - array of vectors values
-//colIdx  - array of column indexes in ellpack-r fromat
+//colIdx  - array of column indexes in ellpack-r format
 //rowLength -array, contains number of nonzero elements in each row
 //rowSum - array of precomputed row sums
 //results - array of results Linear Kernel
 //num_rows -number of vectors
-//mainVecIndex - main vector index, needed for retriving its label
+//mainVecIndex - main vector index, needed for retrieving its label
 extern "C" __global__ void expChi2EllpackKernel_ILP(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength, 
@@ -513,6 +512,60 @@ extern "C" __global__ void expChi2EllpackKernel_ILP(const float * vals,
 	}	
 
 }
+
+
+
+
+
+extern "C" __global__ void expChi2EllRTILP(const float * vals,
+	const int * colIdx, 
+	const int * rowLength, 
+	const float* rowSum,
+	float * results,
+	const int numRows,
+	const int mainVecIndex,
+	const float gamma)
+{
+
+	__shared__ float shGamma;
+	__shared__ int shMainVecIdx;
+	__shared__ float shMainSelfSum;
+	__shared__ float shLabel;
+	__shared__ int shRows;
+	__shared__ float shChi2[BLOCK_SIZE];
+	shChi2[threadIdx.x]=0.0;	
+
+
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIndex;
+		shGamma = gamma;
+		shMainSelfSum = rowSum[shMainVecIdx];
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+		shRows = numRows;
+	}	
+	__syncthreads();
+
+	//const int idx  = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+	int row  = (blockDim.x * blockIdx.x + threadIdx.x)/THREADS_ROW;
+	const int rowsB= blockDim.x/THREADS_ROW ;//BLOCK_SIZE/THREADS_ROW;  //rows in block
+	//#define rowsB (BLOCK_SIZE/THREADS_ROW)
+	if(row<shRows)
+	{
+		SpMV_ERTILP_nChi2<1>(vals,colIdx,rowLength,row,rowsB,shRows,shChi2);
+		if(threadIdx.x<rowsB){
+			//results[row2]=row2;			
+			unsigned int row2=blockIdx.x* rowsB+threadIdx.x;
+			if(row2<shRows){
+				float chi=rowSum[row2]+shMainSelfSum-4*shChi2[threadIdx.x];
+				results[row2]= tex1Dfetch(labelsTexRef,row2)*shLabel*expf(-shGamma*chi);
+
+			}
+		}
+	}	
+
+}
+
 
 
 /******************* chi^2 kernels ********************/
