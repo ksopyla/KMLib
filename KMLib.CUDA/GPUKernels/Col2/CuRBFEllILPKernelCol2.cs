@@ -150,9 +150,7 @@ namespace KMLib.GPU.GPUKernels.Col2
             #region cuda initialization
 
             InitCudaModule();
-            int szi = sizeof(int);
-            int szf = sizeof(float);
-            int szui = sizeof(uint);
+           
             
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);

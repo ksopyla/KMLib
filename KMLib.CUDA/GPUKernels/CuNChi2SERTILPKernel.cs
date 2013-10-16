@@ -9,13 +9,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+//using dnAnalytics.LinearAlgebra;
 using GASS.CUDA;
 using GASS.CUDA.Types;
 using System.IO;
 using System.Runtime.InteropServices;
 using KMLib.Kernels;
 using KMLib.Helpers;
-using KMLib.GPU.GPUKernels;
 
 namespace KMLib.GPU
 {
@@ -27,24 +27,175 @@ namespace KMLib.GPU
     /// 
     /// vectors should contains positive numbers(like histograms does) and should be normalized
     /// sum(xi)=1
-    /// Data are stored in Ellpack-R format.
+    /// Data are stored in SERTILP format 
     /// 
     /// </summary>
-    public class CuNChi2EllKernel : CuVectorKernel, IDisposable
+    public class CuNChi2SERTILPKernel : CuVectorKernel, IDisposable
     {
 
+        
+        private int sliceSize;
+        private int threadsPerRow;
+        
+        //private int blockSize;
+        
+        private int align;
+        private CUdeviceptr sliceStartPtr;
+        private int blockSize;
+        
+        
+        /// <summary>
+        /// How many nonzero are prefech by each thread
+        /// </summary>
+        private int preFechSize;
 
-        public CuNChi2EllKernel()
+
+
+
+        public CuNChi2SERTILPKernel()
         {
-            //linKernel = new LinearKernel();
-            //chiSquared = new ChiSquaredNormKernel();
 
-            cudaProductKernelName = "nChi2EllpackKernel";
-            //cudaProductKernelName = "nChi2EllpackKernel_old";
-            
-            cudaModuleName = "KernelsEllpack.cubin";
+            cudaProductKernelName = "nChi2SERTILP";
+            //cudaProductKernelName = "rbfSlicedEllpackKernel_shared";
+
+            cudaModuleName = "KernelsSlicedEllpack.cubin";
+
+            threadsPerRow =  4;
+            sliceSize =  64;
+            preFechSize = 2;
+
+            //threadsPerRow = 2;
+            //sliceSize = 4;
         }
 
+
+        public override void SetMemoryForDenseVector(int mainIndex)
+        {
+            base.SetMemoryForDenseVector(mainIndex);
+        }
+
+        public override void Init()
+        {
+            base.Init();
+
+            blockSize = threadsPerRow * sliceSize;
+            int N = problemElements.Length;
+            blocksPerGrid = (int)Math.Ceiling(1.0 * N * threadsPerRow / blockSize);
+
+            align = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
+            
+
+            float[] vecVals;
+            int[] vecColIdx;
+            int[] vecLenght;
+            int[] sliceStart;
+
+            CudaHelpers.TransformToSERTILP(out vecVals, out vecColIdx, out sliceStart, out vecLenght, problemElements, threadsPerRow, sliceSize,preFechSize);
+
+
+            #region cuda initialization
+
+            InitCudaModule();
+
+            //copy data to device, set cuda function parameters
+            valsPtr = cuda.CopyHostToDevice(vecVals);
+            idxPtr = cuda.CopyHostToDevice(vecColIdx);
+            vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
+            sliceStartPtr = cuda.CopyHostToDevice(sliceStart);
+            
+            labelsPtr = cuda.CopyHostToDevice(Y);
+            
+            uint memSize = (uint)(problemElements.Length * sizeof(float));
+            
+            outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
+            outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
+
+            //normal memory allocation
+            //outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
+
+
+            #endregion
+
+            SetCudaFunctionParameters();
+
+            //allocate memory for main vector, size of this vector is the same as dimension, so many 
+            //indexes will be zero, but cuda computation is faster
+            mainVector = new float[problemElements[0].Dim + 1];
+            CudaHelpers.FillDenseVector(problemElements[0], mainVector);
+
+            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
+
+           // CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
+
+
+        }
+
+
+
+        protected override void SetCudaFunctionParameters()
+        {
+
+            #region cuda set function parameters
+            cuda.SetFunctionBlockShape(cuFunc,blockSize, 1, 1);
+
+            int offset = 0;
+            cuda.SetParameter(cuFunc, offset, valsPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFunc, offset, idxPtr.Pointer);
+            offset += IntPtr.Size;
+
+            cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
+            offset += IntPtr.Size;
+            cuda.SetParameter(cuFunc, offset, sliceStartPtr.Pointer);
+            offset += IntPtr.Size;
+
+            cuda.SetParameter(cuFunc, offset, labelsPtr.Pointer);
+            offset += IntPtr.Size;
+            kernelResultParamOffset = offset;
+            cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
+            offset += IntPtr.Size;
+
+            mainVecIdxParamOffset = offset;
+            cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
+            offset += sizeof(int);
+
+            cuda.SetParameter(cuFunc, offset, (uint)problemElements.Length);
+            offset += sizeof(int);
+
+            cuda.SetParameter(cuFunc, offset, align);
+            offset += sizeof(int);
+
+
+            cuda.SetParameterSize(cuFunc, (uint)offset);
+
+
+            #endregion
+        }
+
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+            if (cuda != null)
+            {
+               
+                cuda.Free(sliceStartPtr);
+                
+                DisposeResourses();
+                
+                cuda.UnloadModule(cuModule);
+
+                base.Dispose();
+                cuda.Dispose();
+                cuda = null;
+            }
+        }
+
+        #endregion
+        public override string ToString()
+        {
+            return "Cu nChi2_SERTILP";
+        }
 
         public override float Product(SparseVec element1, SparseVec element2)
         {
@@ -67,131 +218,5 @@ namespace KMLib.GPU
         {
             throw new NotImplementedException();
         }
-
-
-        public override void Init()
-        {
-            
-            //chiSquared.ProblemElements = problemElements;
-            //chiSquared.Y = Y;
-            //chiSquared.Init();
-
-            base.Init();
-
-            float[] vecVals;
-            int[] vecColIdx;
-            int[] vecLenght;
-
-            CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
-
-            #region cuda initialization
-
-            InitCudaModule();
-
-            //copy data to device, set cuda function parameters
-            valsPtr = cuda.CopyHostToDevice(vecVals);
-            idxPtr = cuda.CopyHostToDevice(vecColIdx);
-            vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
-
-            uint memSize = (uint)(problemElements.Length * sizeof(float));
-            //allocate mapped memory for our results
-            outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
-            outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
-
-            //normal memory allocation
-            //outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
-
-
-            #endregion
-
-            SetCudaFunctionParameters();
-
-            //allocate memory for main vector, size of this vector is the same as dimension, so many 
-            //indexes will be zero, but cuda computation is faster
-            mainVector = new float[problemElements[0].Dim + 1];
-            CudaHelpers.FillDenseVector(problemElements[0], mainVector);
-
-            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuMainVecTexRef, cudaMainVecTexRefName, mainVector, ref mainVecPtr);
-
-            CudaHelpers.SetTextureMemory(cuda,cuModule,ref cuLabelsTexRef, cudaLabelsTexRefName, Y, ref labelsPtr);
-
-            if (MakeDenseVectorOnGPU)
-            {
-                vecBuilder = new EllpackDenseVectorBuilder(cuda, mainVecPtr, valsPtr, idxPtr, vecLengthPtr, problemElements.Length, problemElements[0].Dim);
-                vecBuilder.Init();
-            }
-
-        }
-
-
-        public override void SetMemoryForDenseVector(int mainIndex)
-        {
-            if (MakeDenseVectorOnGPU)
-            {
-                vecBuilder.BuildDenseVector(mainIndex);
-            }
-            else
-                base.SetMemoryForDenseVector(mainIndex);
-        }
-
-
-        protected override void SetCudaFunctionParameters()
-        {
-
-            #region cuda set function parameters
-            cuda.SetFunctionBlockShape(cuFunc, threadsPerBlock, 1, 1);
-
-            int offset = 0;
-            cuda.SetParameter(cuFunc, offset, valsPtr.Pointer);
-            offset += IntPtr.Size;
-            cuda.SetParameter(cuFunc, offset, idxPtr.Pointer);
-            offset += IntPtr.Size;
-
-            cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
-            offset += IntPtr.Size;
-            
-            kernelResultParamOffset = offset;
-            cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
-            offset += IntPtr.Size;
-
-            cuda.SetParameter(cuFunc, offset, (uint)problemElements.Length);
-            offset += sizeof(int);
-
-            mainVecIdxParamOffset = offset;
-            cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
-            offset += sizeof(int);
-
-            cuda.SetParameterSize(cuFunc, (uint)offset);
-
-
-            #endregion
-        }
-
-
-
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-            if (cuda != null)
-            {
-
-                DisposeResourses();
-
-                cuda.UnloadModule(cuModule);
-
-                base.Dispose();
-                cuda.Dispose();
-                cuda = null;
-            }
-        }
-
-        #endregion
-
-        public override string ToString()
-        {
-            return "Cuda nChi^2 Ellpack";
-        }
     }
-
 }

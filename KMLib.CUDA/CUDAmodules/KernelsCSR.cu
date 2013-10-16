@@ -29,7 +29,7 @@ texture<float,1,cudaReadModeElementType> svTexRef;
  *			Cuda Kernels for SVM kernels
  */
 
-template<int TexSel> __device__ float SpMV_CSR(const float * vals,
+template<int TexSel> __device__ void SpMV_CSR(const float * vals,
 	const int * colIdx, 
 	const int * vecPointers,
 	const int row_start,
@@ -38,7 +38,7 @@ template<int TexSel> __device__ float SpMV_CSR(const float * vals,
 	const int num_rows,
 	volatile float* shDot);
 
-template<int TexSel> __device__ float SpMV_CSR_nChi2(const float * vals,
+template<int TexSel> __device__ void SpMV_CSR_nChi2(const float * vals,
 	const int * colIdx, 
 	const int * vecPointers,
 	const int row_start,
@@ -129,14 +129,17 @@ extern "C" __global__ void nChi2_CSR(const float * vals,
 	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
 	
 	__shared__ int shMainVecIdx;
-	__shared__ float shMainSelfDot;
 	__shared__ float shLabel;
+
+	shDot[threadIdx.x]=0.0;
 
 	if(threadIdx.x==0)
 	{
 		shMainVecIdx=mainVecIndex;
 		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
 	}	
+
+
 	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
 	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
 	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
@@ -151,12 +154,12 @@ extern "C" __global__ void nChi2_CSR(const float * vals,
 			ptrs[warp_lane][thread_lane] = vecPointers[row + thread_lane];
 		const int row_start = ptrs[warp_lane][0];            //same as: row_start = vecPointers[row];
 		const int row_end   = ptrs[warp_lane][1];            //same as: row_end   = vecPointers[row+1];
-		float labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
-
+		
 		SpMV_CSR_nChi2<1>(vals,colIdx,vecPointers,row_start,row_end,row,num_rows,shDot);
 		// first thread writes warp result
 		if (thread_lane == 0){
-			results[row]=labelProd*shDot[threadIdx.x];
+			//results[row]= shDot[threadIdx.x];
+			results[row]=tex1Dfetch(labelsTexRef,row)*shLabel*shDot[threadIdx.x];
 		}
 	}
 }
@@ -230,7 +233,7 @@ Computes dot product
 
 
 */
-template<int TexSel> __device__ float SpMV_CSR(const float * vals,
+template<int TexSel> __device__ void SpMV_CSR(const float * vals,
 	const int * colIdx, 
 	const int * vecPointers,
 	const int row_start,
@@ -260,7 +263,7 @@ template<int TexSel> __device__ float SpMV_CSR(const float * vals,
 }
 
 
-template<int TexSel> __device__ float SpMV_CSR_nChi2(const float * vals,
+template<int TexSel> __device__ void SpMV_CSR_nChi2(const float * vals,
 	const int * colIdx, 
 	const int * vecPointers,
 	const int row_start,
@@ -274,23 +277,27 @@ template<int TexSel> __device__ float SpMV_CSR_nChi2(const float * vals,
 	// compute local sum
 	float chi = 0;
 	float val1=0, val2=0;
+	int col = -1;
 	for(int jj = row_start + thread_lane; jj < row_end; jj += WARP_SIZE)
 	{
-		val1=fetchTex<TexSel>(colIdx[jj]);
+		col = colIdx[jj];
 		val2 = vals[jj];
+		val1=fetchTex<TexSel>(col);
 		chi+=(val1*val2)/(val1+val2+FLT_MIN);
 		
 	}
-	shChi[threadIdx.x] = chi; 
+
+	shChi[threadIdx.x] =chi; 
 	__syncthreads(); 
 
 	// reduce local sums to row sum (warpsize 32)
-	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x + 16];  
-	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x +  8]; 
-	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x +  4]; 
-	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x +  2]; 
-	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x +  1]; 
+	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x + 16];   
+	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x +  8];  
+	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x +  4];  
+	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x +  2];  
+	shChi[threadIdx.x] = chi = chi + shChi[threadIdx.x +  1];  
 
+	__syncthreads(); 
 }
 
 

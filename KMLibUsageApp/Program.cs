@@ -47,7 +47,7 @@ namespace KMLibUsageApp
             
             //GroupedTestingLowLevelDataSets(dataSetsToTest);
             
-            TestOneDataSet(dataFolder);
+            //TestOneDataSet(dataFolder);
 
             //TestOneDataSetWithCuda(dataFolder);
 
@@ -132,8 +132,8 @@ namespace KMLibUsageApp
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
             //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
-           // IKernel<SparseVec> kernel = new ChiSquaredKernel();
-           // IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
+            // IKernel<SparseVec> kernel = new ChiSquaredKernel();
+            //IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
             IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
             
             SVMClassify(train, test, kernel, evaluator, C);
@@ -898,6 +898,9 @@ namespace KMLibUsageApp
 
             //********* nChi2 Kernels *******************//
             //IKernel<SparseVec> kernel = new CuNChi2CSRKernel();
+            //IKernel<SparseVec> kernel = new CuNChi2ERTILPKernel();
+            //IKernel<SparseVec> kernel = new CuNChi2SERTILPKernel();
+
             //IKernel<SparseVec> kernel = new CuNChi2EllKernel();
             //IKernel<SparseVec> kernel = new CuNChi2SlEllKernel();
 
@@ -906,7 +909,11 @@ namespace KMLibUsageApp
 
 
             //********** ExpChi2 Kernels ********************//
-            IKernel<SparseVec> kernel = new CuExpChiCSRKernel(gamma);
+            
+            //IKernel<SparseVec> kernel = new CuExpChiCSRKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuExpChiERTILPKernel(gamma);
+            IKernel<SparseVec> kernel = new CuExpChiSERTILPKernel(gamma);
+
             //IKernel<SparseVec> kernel = new CuExpChiEllKernel(gamma);
             //IKernel<SparseVec> kernel = new CuExpChiSlEllKernel(gamma);
 

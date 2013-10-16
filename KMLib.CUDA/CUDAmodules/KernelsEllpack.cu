@@ -591,7 +591,6 @@ extern "C" __global__ void chi2EllpackKernel(const float * vals,
 									   const int mainVecIndex)
 {
 
-	__shared__ float shGamma;
 	__shared__ int shMainVecIdx;
 	__shared__ float shMainSelfSum;
 	__shared__ float shLabel;

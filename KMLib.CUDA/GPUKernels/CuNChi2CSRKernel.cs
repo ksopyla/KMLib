@@ -85,9 +85,6 @@ namespace KMLib.GPU
 
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
-
-           
-
             idxPtr = cuda.CopyHostToDevice(vecIdx);
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 

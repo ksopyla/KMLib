@@ -265,7 +265,7 @@ namespace KMLib.GPU
 
         #region IDisposable Members
 
-        public void Dispose()
+        public new void Dispose()
         {
             if (cuda != null)
             {

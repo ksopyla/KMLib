@@ -14,6 +14,7 @@ web page: http://wmii.uwm.edu.pl/~ksopyla/projects/svm-net-with-cuda-kmlib/
 #define LOG_THREADS 2 // LOG2(ThreadPerRow)
 #define SliceSize 64
 
+__device__ const int ROWS_B= SliceSize;
 
 template<int TexSel> __device__ void SpMV_SliceEllpack(const float *vecVals,
 	const int *vecCols,
@@ -33,6 +34,25 @@ template<int TexSel> __device__ void SpMV_SERTILP(const float *vecVals,
 	const int row,
 	const int nrRows,
 	volatile float* shDot);
+
+
+template<int TexSel> __device__ void SpMV_SliceEllpack_nChi2(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const int align,
+	const int row,
+	const int nrRows,
+	volatile float* shChi);
+
+template<int TexSel> __device__ void SpMV_SERTILP_nChi2(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int shSliceStart, 
+	const int align,
+	const int row,
+	const int nrRows,
+	volatile float* shChi);
 
 //extern __shared__  float sh_data[];
 
@@ -121,10 +141,6 @@ extern "C" __global__ void rbfSERTILP(const float *vecVals,
 		//float* sh_cache = (float*)sh_data;
 		__shared__  float shDot[ThreadPerRow*SliceSize];
 
-		//define ROWS_B BLOCK_SIZE/THREADS_ROW
-		#define ROWS_B SliceSize
-		//__shared__ int shMaxRows[ROWS_B];
-
 		__shared__ int shMainVecIdx;
 		__shared__ int shSliceStart;
 		__shared__ float shMainSelfDot;
@@ -162,121 +178,6 @@ extern "C" __global__ void rbfSERTILP(const float *vecVals,
 
 
 
-extern "C" __global__ void rbfSERTILP_old(const float *vecVals,
-	const int *vecCols,
-	const int *vecLengths, 
-	const int * sliceStart, 
-	const float* selfDot,
-	const float* vecLabels,
-	float *result,
-	const int mainVecIdx,
-	const int nrRows,
-	const float gamma, 
-	const int align){
-
-		//sh_data size = SliceSize*ThreadsPerRow*sizeof(float)
-		//float* sh_cache = (float*)sh_data;
-		__shared__  float shDot[ThreadPerRow*SliceSize];
-
-		//define ROWS_B BLOCK_SIZE/THREADS_ROW
-		#define ROWS_B SliceSize
-		//__shared__ int shMaxRows[ROWS_B];
-
-		__shared__ int shMainVecIdx;
-		__shared__ int shSliceStart;
-		__shared__ float shMainSelfDot;
-		__shared__ float shLabel;
-		__shared__ float shGamma;
-
-		if(threadIdx.x==0)
-		{
-			shMainVecIdx=mainVecIdx;
-			shMainSelfDot = selfDot[shMainVecIdx];
-			shLabel = vecLabels[shMainVecIdx];
-			shGamma=gamma;
-			shSliceStart=sliceStart[blockIdx.x];
-		}
-		__syncthreads();
-
-		//int tid = threadIdx.x;
-
-		int idxT = threadIdx.x % ThreadPerRow; //thread number in Thread group
-		int idxR = threadIdx.x/ThreadPerRow; //row index mapped into block region
-
-		//int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
-		//map group of thread to row, in this case 4 threads are mapped to one row
-		int row =  (blockIdx.x*blockDim.x+threadIdx.x)>> LOG_THREADS; 
-
-		if (row < nrRows){
-
-
-			//if(threadIdx.x < ROWS_B){
-			//	unsigned int row2=blockIdx.x* ROWS_B+threadIdx.x;
-			//	if(row2<nrRows){
-			//		shMaxRows[threadIdx.x] = vecLengths[row2];
-			//	}
-			//}
-			//__syncthreads();			
-			//int maxRow = shMaxRows[idxR];
-
-			int maxRow = vecLengths[row];
-			//int maxRow = (int)ceil(vecLengths[row]/(float)(ThreadPerRow*PREFETCH_SIZE) );
-
-			float val[PREFETCH_SIZE];
-			int col[PREFETCH_SIZE];
-			float dot[PREFETCH_SIZE]={0};
-
-			unsigned int j=0;
-			unsigned int arIdx=0;
-			for(int i=0; i < maxRow; i++){
-
-#pragma unroll
-				for( j=0; j<PREFETCH_SIZE;j++)	{
-					//arIdx = (i*PREFETCH_SIZE+j )*align+sliceStart[blockIdx.x]+threadIdx.x;
-					arIdx = (i*PREFETCH_SIZE+j )*align+shSliceStart+threadIdx.x;
-					col[j] = vecCols[arIdx];
-					val[j] = vecVals[arIdx];
-				}
-
-#pragma unroll
-				for( j=0; j<PREFETCH_SIZE;j++){
-					dot[j] +=val[j]*tex1Dfetch(mainVecTexRef,col[j]); 
-				}
-			}
-
-#pragma unroll
-			for( j=1; j<PREFETCH_SIZE;j++){
-				dot[0]+=dot[j];	
-			}
-
-
-
-			shDot[idxT*ROWS_B+idxR]=dot[0];
-			__syncthreads();		
-
-			volatile float *shDotv = shDot;
-			//reduction to some level
-			for( j=blockDim.x/2; j>=ROWS_B; j>>=1) //s/=2
-			{
-				if(threadIdx.x<j){
-					shDotv[threadIdx.x]+=shDotv[threadIdx.x+j];
-				}
-				__syncthreads();
-			}
-
-			if(threadIdx.x<ROWS_B){
-				//results[row2]=row2;			
-				unsigned int row2=blockIdx.x* ROWS_B+threadIdx.x;
-				if(row2<nrRows){
-					//result[row2]= shDotv[threadIdx.x];
-					result[row2]=vecLabels[row2]*shLabel*expf(-shGamma*(selfDot[row2]+shMainSelfDot-2*shDot[threadIdx.x]));
-				}
-			}
-
-		}//if row<nrRows 
-}//end func
-
-
 
 
 
@@ -287,7 +188,7 @@ extern "C" __global__ void rbfSERTILP_old(const float *vecVals,
 // K(x,y)= Sum( (xi*yi)/(xi+yi))
 //
 //vecVals - vectors values in Sliced Ellpack,
-//vecCols - array containning column indexes for non zero elements
+//vecCols - array containing column indexes for non zero elements
 //vecLengths  - number of non zero elements in row
 //sliceStart   - determine where particular slice starts and ends
 //result  - for final result
@@ -306,55 +207,85 @@ extern "C" __global__ void nChi2SlEllKernel(const float *vecVals,
 
 		//sh_data size = SliceSize*ThreadsPerRow*sizeof(float)
 		//float* sh_cache = (float*)sh_data;
-		__shared__  float sh_cache[ThreadPerRow*SliceSize];
+		__shared__  float shChi[ThreadPerRow*SliceSize];
 
 		__shared__ int shMainVecIdx;
 		__shared__ float shLabel;
+
+
+		shChi[threadIdx.x]=0.0;
 
 		if(threadIdx.x==0)
 		{
 			shMainVecIdx=mainVecIdx;
 			shLabel = vecLabels[shMainVecIdx];
 		}
+		__syncthreads();
 
-		int tx = threadIdx.x;
-		int txm = tx % 4; //tx% ThreadPerRow
 		int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
-
+		int txm = threadIdx.x %  ThreadPerRow;
 		//map group of thread to row, in this case 4 threads are mapped to one row
-		int row =  thIdx>> 2; // 
+		int row =  thIdx>> LOG_THREADS; // 
 
 		if (row < nrRows){
-			float sub = 0.0;
-			int maxRow = (int)ceil(vecLengths[row]/(float)ThreadPerRow);
-			int col=-1;
-			float val1 =0;
-			float val2 =0;
-			int ind=0;
-
-			for(int i=0; i < maxRow; i++){
-				ind = i*align+sliceStart[blockIdx.x]+tx;
-
-				col     = vecCols[ind];
-				val1 = vecVals[ind];
-				val2 = tex1Dfetch(mainVecTexRef, col);
-				sub += (val1*val2)/(val1+val2+FLT_MIN);
-			}
-
-			sh_cache[tx] = sub;
-			__syncthreads();
-
-			volatile float *shMem = sh_cache;
-			//for 4 thread per row
-
-			if(txm < 2){
-				shMem[tx]+=shMem[tx+2];
-				shMem[tx] += shMem[tx+1];
+			
+			SpMV_SliceEllpack_nChi2<1>(vecVals,vecCols,vecLengths,sliceStart,align,row,nrRows,shChi);
 
 				if(txm == 0 ){
-					result[row]=vecLabels[row]*shLabel*sh_cache[tx];
+					result[row]=vecLabels[row]*shLabel*shChi[threadIdx.x];
+				}
+			
+		}//if row<nrRows  
+}//end func
+
+
+
+extern "C" __global__ void nChi2SERTILP(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* vecLabels,
+	float *result,
+	const int mainVecIdx,
+	const int nrRows,
+	const int align){
+
+		//sh_data size = SliceSize*ThreadsPerRow*sizeof(float)
+		//float* sh_cache = (float*)sh_data;
+		__shared__  float shChi[ThreadPerRow*SliceSize];
+
+		
+		__shared__ int shMainVecIdx;
+		__shared__ float shLabel;
+		__shared__ int shSliceStart;
+
+		shChi[threadIdx.x]=0.0;
+
+		if(threadIdx.x==0)
+		{
+			shMainVecIdx=mainVecIdx;
+			shLabel = vecLabels[shMainVecIdx];
+			shSliceStart=sliceStart[blockIdx.x];
+		}
+
+		__syncthreads();
+
+		//int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
+		//map group of thread to row, in this case 4 threads are mapped to one row
+		int row =  (blockIdx.x*blockDim.x+threadIdx.x)>> LOG_THREADS; // 
+
+		if (row < nrRows){
+
+			SpMV_SERTILP_nChi2<1>(vecVals,vecCols,vecLengths,shSliceStart,align,row,nrRows,shChi);
+
+			if(threadIdx.x<ROWS_B){
+				//results[row2]=row2;			
+				unsigned int row2=blockIdx.x* ROWS_B+threadIdx.x;
+				if(row2<nrRows){
+					result[row2]=vecLabels[row2]*shLabel*shChi[threadIdx.x];
 				}
 			}
+
 		}//if row<nrRows  
 }//end func
 
@@ -362,10 +293,10 @@ extern "C" __global__ void nChi2SlEllKernel(const float *vecVals,
 
 /************* ExpChi2 kernels *******************/
 
-//Use sliced Ellpack format for computing ExpChi2 kernel matrix kolumn
+//Use sliced Ellpack format for computing ExpChi2 kernel matrix column
 // K(x,y)=exp( -gamma* Sum( (xi-yi)^2/(xi+yi)) =exp(-gamma (sum xi +sum yi -4*sum( (xi*yi)/(xi+yi)) ) )
 //vecVals - vectors values in Sliced Ellpack,
-//vecCols - array containning column indexes for non zero elements
+//vecCols - array containing column indexes for non zero elements
 //vecLengths  - number of non zero elements in row
 //sliceStart   - determine where particular slice starts and ends
 //selfSum    - precomputed sum of each row
@@ -385,7 +316,7 @@ extern "C" __global__ void expChi2SlEllKernel(const float *vecVals,
 	const float gamma, 
 	const int align){
 
-		__shared__  float sh_cache[ThreadPerRow*SliceSize];
+		__shared__  float shChi[ThreadPerRow*SliceSize];
 
 		__shared__ int shMainVecIdx;
 		__shared__ float shMainSelfSum;
@@ -400,51 +331,79 @@ extern "C" __global__ void expChi2SlEllKernel(const float *vecVals,
 			shGamma=gamma;
 		}
 
-		int tx = threadIdx.x;
-		int txm = tx % 4; //tx% ThreadPerRow
 		int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
-
+		int txm = threadIdx.x %  ThreadPerRow;
 		//map group of thread to row, in this case 4 threads are mapped to one row
-		int row =  thIdx>> 2; // 
+		int row =  thIdx>> LOG_THREADS; // 
 
 		if (row < nrRows){
-			float sub = 0.0;
-			int maxRow = (int)ceil(vecLengths[row]/(float)ThreadPerRow);
-			int col=-1;
-			float val1 =0;
-			float val2 =0;
-			int ind=0;
+			
+			SpMV_SliceEllpack_nChi2<1>(vecVals,vecCols,vecLengths,sliceStart,align,row,nrRows,shChi);
 
-			for(int i=0; i < maxRow; i++){
-				ind = i*align+sliceStart[blockIdx.x]+tx;
-
-				col     = vecCols[ind];
-				val1 = vecVals[ind];
-				val2 = tex1Dfetch(mainVecTexRef, col);
-				sub += (val1*val2)/(val1+val2+FLT_MIN);
+			if(txm == 0 ){
+				float chi = selfSum[row]+shMainSelfSum-4*shChi[threadIdx.x];
+				result[row]=vecLabels[row]*shLabel*expf(-shGamma*chi);
 			}
+		}//if row<nrRows 
+}//end func
 
-			sh_cache[tx] = sub;
-			__syncthreads();
 
-			volatile float *shMem = sh_cache;
-			//for 4 thread per row
+extern "C" __global__ void expChi2SERTILP(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* selfSum,
+	const float* vecLabels,
+	float *result,
+	const int mainVecIdx,
+	const int nrRows,
+	const float gamma, 
+	const int align){
 
-			if(txm < 2){
-				shMem[tx]+=shMem[tx+2];
-				shMem[tx] += shMem[tx+1];
+		//sh_data size = SliceSize*ThreadsPerRow*sizeof(float)
+		//float* sh_cache = (float*)sh_data;
+		__shared__  float shChi[ThreadPerRow*SliceSize];
 
-				if(txm == 0 ){
-					result[row]=vecLabels[row]*shLabel*expf(-shGamma*(selfSum[row]+shMainSelfSum-4*sh_cache[tx]));
+		__shared__ int shMainVecIdx;
+		__shared__ float shMainSelfSum;
+		__shared__ float shLabel;
+		__shared__ float shGamma;
+		__shared__ int shSliceStart;
+
+		shChi[threadIdx.x]=0.0;
+
+		if(threadIdx.x==0)
+		{
+			shMainVecIdx=mainVecIdx;
+			shMainSelfSum = selfSum[shMainVecIdx];
+			shLabel = vecLabels[shMainVecIdx];
+			shGamma=gamma;
+			shSliceStart=sliceStart[blockIdx.x];
+		}
+
+		
+
+		__syncthreads();
+
+		int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
+		//map group of thread to row, in this case 4 threads are mapped to one row
+		int row =  thIdx>> LOG_THREADS; // 
+
+		if (row < nrRows){
+
+			SpMV_SERTILP_nChi2<1>(vecVals,vecCols,vecLengths,shSliceStart,align,row,nrRows,shChi);
+
+			if(threadIdx.x<ROWS_B){
+				//results[row2]=row2;			
+				unsigned int row2=blockIdx.x* ROWS_B+threadIdx.x;
+				if(row2<nrRows){
+					float chi = selfSum[row2]+shMainSelfSum-4*shChi[threadIdx.x];
+					result[row2]=vecLabels[row2]*shLabel*expf(-shGamma*chi);
 				}
 			}
 
-
-		}//if row<nrRows 
-
-
+		}//if row<nrRows  
 }//end func
-
 
 /************************************************************************/
 /* 
@@ -539,8 +498,7 @@ extern "C" __global__ void rbfSERTILPEvaluator(const float *vecVals,
 	__syncthreads();
 
 
-	#define ROWS_B SliceSize
-	int txm = threadIdx.x %  ThreadPerRow;
+	
 	const int row   = (blockIdx.x*blockDim.x+threadIdx.x)>>LOG_THREADS;  // global thread index
 
 	if(row<shRows)
@@ -622,6 +580,48 @@ template<int TexSel> __device__ void SpMV_SliceEllpack(const float *vecVals,
 
 }
 
+
+template<int TexSel> __device__ void SpMV_SliceEllpack_nChi2(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const int align,
+	const int row,
+	const int nrRows,
+	volatile float* shChi){
+
+		int txm = threadIdx.x %  ThreadPerRow;
+
+		float chi = 0.0;
+		int maxRow = (int)ceil(vecLengths[row]/(float)ThreadPerRow);
+		int col=-1;
+		float val1 =0;
+		float val2 =0;
+		int ind=0;
+
+		for(int i=0; i < maxRow; i++){
+			ind = i*align+sliceStart[blockIdx.x]+threadIdx.x;
+			col     = vecCols[ind];
+			val1 = vecVals[ind];
+			val2 = fetchTex<TexSel>(col);
+
+			chi+=(val1*val2)/(val1+val2+FLT_MIN);
+		}
+
+		shChi[threadIdx.x] = chi;
+		__syncthreads();
+
+
+		for(int s=ThreadPerRow/2; s>0; s>>=1) //s/=2
+		{
+			if(txm < s){
+				shChi[threadIdx.x] += shChi[threadIdx.x+s];
+			}
+		}
+
+}
+
+
 /*
 Computes sparse matrix dense vector multiplication, matrix in SERTILP format, vector in texture reference
 Template parameter 'TexSel' indicates the texture we use in particular CUDA kernel call
@@ -640,7 +640,7 @@ template<int TexSel> __device__ void SpMV_SERTILP(const float *vecVals,
 	volatile float* shDot)
 {
 	
-	#define ROWS_B SliceSize
+	/*define ROWS_B SliceSize*/
 	int idxT = threadIdx.x % ThreadPerRow; //thread number in Thread group
 	int idxR = threadIdx.x/ThreadPerRow; //row index mapped into block region
 
@@ -686,6 +686,67 @@ template<int TexSel> __device__ void SpMV_SERTILP(const float *vecVals,
 	}
 }
 
+
+template<int TexSel> __device__ void SpMV_SERTILP_nChi2(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int shSliceStart, 
+	const int align,
+	const int row,
+	const int nrRows,
+	volatile float* shChi)
+{
+
+	/*define ROWS_B SliceSize*/
+	int idxT = threadIdx.x % ThreadPerRow; //thread number in Thread group
+	int idxR = threadIdx.x/ThreadPerRow; //row index mapped into block region
+
+	int maxRow = vecLengths[row];
+	
+	float val1[PREFETCH_SIZE];
+	float val2=0;
+
+	int col[PREFETCH_SIZE];
+	float chi2[PREFETCH_SIZE]={0};
+
+	unsigned int j=0;
+	unsigned int arIdx=0;
+	for(int i=0; i < maxRow; i++){
+
+		#pragma unroll
+		for( j=0; j<PREFETCH_SIZE;j++)	{
+			//arIdx = (i*PREFETCH_SIZE+j )*align+sliceStart[blockIdx.x]+threadIdx.x;
+			arIdx = (i*PREFETCH_SIZE+j )*align+shSliceStart+threadIdx.x;
+			col[j] = vecCols[arIdx];
+			val1[j] = vecVals[arIdx];
+		}
+
+		#pragma unroll
+		for( j=0; j<PREFETCH_SIZE;j++){
+			val2=fetchTex<TexSel>(col[j]);
+			chi2[j]+=(val1[j]*val2)/(val1[j]+val2+FLT_MIN);
+		}
+	}
+
+	#pragma unroll
+	for( j=1; j<PREFETCH_SIZE;j++){
+		chi2[0]+=chi2[j];	
+	}
+
+
+	shChi[idxT*ROWS_B+idxR]=chi2[0];
+	__syncthreads();		
+
+	//reduction to some level
+	for( j=blockDim.x/2; j>=ROWS_B; j>>=1) //s/=2
+	{
+		if(threadIdx.x<j){
+			shChi[threadIdx.x]+=shChi[threadIdx.x+j];
+		}
+		__syncthreads();
+	}
+
+}
 
 
 /************************* HELPER FUNCTIONS ****************************/

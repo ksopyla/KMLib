@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+//using dnAnalytics.LinearAlgebra;
 using GASS.CUDA;
 using GASS.CUDA.Types;
 using System.IO;
@@ -27,63 +28,58 @@ namespace KMLib.GPU
     /// 
     /// vectors should contains positive numbers(like histograms does) and should be normalized
     /// sum(xi)=1
-    /// Data are stored in Ellpack-R format.
-    /// 
+    /// Data are stored in ERTILP format.
     /// </summary>
-    public class CuNChi2EllKernel : CuVectorKernel, IDisposable
+    public class CuNChi2ERTILPKernel : CuVectorKernel, IDisposable
     {
 
+        
+        private int ThreadsPerRow;
+        private int Prefetch;
 
-        public CuNChi2EllKernel()
+
+        public CuNChi2ERTILPKernel()
         {
-            //linKernel = new LinearKernel();
-            //chiSquared = new ChiSquaredNormKernel();
-
-            cudaProductKernelName = "nChi2EllpackKernel";
-            //cudaProductKernelName = "nChi2EllpackKernel_old";
-            
+            cudaProductKernelName = "nChi2EllRTILP";
             cudaModuleName = "KernelsEllpack.cubin";
+            MakeDenseVectorOnGPU = false;
+
+            ThreadsPerRow = 4;
+            Prefetch =2;
+            
         }
 
 
-        public override float Product(SparseVec element1, SparseVec element2)
+       
+
+        public override void SetMemoryForDenseVector(int mainIndex)
         {
-            //return chiSquared.Product(element1, element2);
-            return ChiSquaredNormKernel.ChiSquareNormDist(element1, element2);
-        }
-
-        public override float Product(int element1, int element2)
-        {
-            if (element1 >= problemElements.Length)
-                throw new IndexOutOfRangeException("element1 out of range");
-
-            if (element2 >= problemElements.Length)
-                throw new IndexOutOfRangeException("element2 out of range");
-
-            return ChiSquaredNormKernel.ChiSquareNormDist(problemElements[element1], problemElements[element2]);
-        }
-
-        public override ParameterSelection<SparseVec> CreateParameterSelection()
-        {
-            throw new NotImplementedException();
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder.BuildDenseVector(mainIndex);
+            }else
+                base.SetMemoryForDenseVector(mainIndex);
         }
 
 
         public override void Init()
         {
-            
-            //chiSquared.ProblemElements = problemElements;
-            //chiSquared.Y = Y;
-            //chiSquared.Init();
-
+           
             base.Init();
 
             float[] vecVals;
             int[] vecColIdx;
             int[] vecLenght;
 
-            CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
+            
+            //change the blocksPerGrid, because we launch many threads per row
+            blocksPerGrid =(int) Math.Ceiling((ThreadsPerRow * problemElements.Length+0.0) / threadsPerBlock);
 
+
+             int align = ThreadsPerRow*Prefetch;
+            CudaHelpers.TransformToERTILPFormat(out vecVals, out vecColIdx, out vecLenght, problemElements,align,ThreadsPerRow);
+           
+           
             #region cuda initialization
 
             InitCudaModule();
@@ -94,7 +90,7 @@ namespace KMLib.GPU
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 
             uint memSize = (uint)(problemElements.Length * sizeof(float));
-            //allocate mapped memory for our results
+           
             outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
 
@@ -124,16 +120,6 @@ namespace KMLib.GPU
         }
 
 
-        public override void SetMemoryForDenseVector(int mainIndex)
-        {
-            if (MakeDenseVectorOnGPU)
-            {
-                vecBuilder.BuildDenseVector(mainIndex);
-            }
-            else
-                base.SetMemoryForDenseVector(mainIndex);
-        }
-
 
         protected override void SetCudaFunctionParameters()
         {
@@ -149,7 +135,8 @@ namespace KMLib.GPU
 
             cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
-            
+
+
             kernelResultParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
             offset += IntPtr.Size;
@@ -160,6 +147,7 @@ namespace KMLib.GPU
             mainVecIdxParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
             offset += sizeof(int);
+
 
             cuda.SetParameterSize(cuFunc, (uint)offset);
 
@@ -175,10 +163,12 @@ namespace KMLib.GPU
         {
             if (cuda != null)
             {
+               
 
                 DisposeResourses();
 
                 cuda.UnloadModule(cuModule);
+
 
                 base.Dispose();
                 cuda.Dispose();
@@ -190,8 +180,30 @@ namespace KMLib.GPU
 
         public override string ToString()
         {
-            return "Cuda nChi^2 Ellpack";
+            return "Cu_nChi2_ERTILP";
+        }
+
+        public override float Product(SparseVec element1, SparseVec element2)
+        {
+            //return chiSquared.Product(element1, element2);
+            return ChiSquaredNormKernel.ChiSquareNormDist(element1, element2);
+        }
+
+        public override float Product(int element1, int element2)
+        {
+            if (element1 >= problemElements.Length)
+                throw new IndexOutOfRangeException("element1 out of range");
+
+            if (element2 >= problemElements.Length)
+                throw new IndexOutOfRangeException("element2 out of range");
+
+            return ChiSquaredNormKernel.ChiSquareNormDist(problemElements[element1], problemElements[element2]);
+        }
+
+        public override ParameterSelection<SparseVec> CreateParameterSelection()
+        {
+            throw new NotImplementedException();
+            //return new RbfParameterSelection();
         }
     }
-
 }

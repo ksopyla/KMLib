@@ -114,6 +114,7 @@ namespace KMLib.GPU.Solvers
         private GASS.CUDA.Types.CUdeviceptr valRedPtr;
         private GASS.CUDA.Types.CUdeviceptr idxRedPtr;
         private CUdeviceptr constCPtr;
+       
         private CUcontext cuCtx;
 
         #region cuda function param offsets

@@ -159,6 +159,10 @@
     <Compile Include="GPUEvaluators\CuRBFEllILPEvaluator.cs" />
     <Compile Include="GPUKernels\Col2\CuRBFEllILPKernelCol2.cs" />
     <Compile Include="GPUKernels\Col2\CuVectorKernelCol2.cs" />
+    <Compile Include="GPUKernels\CuExpChiSERTILPKernel.cs" />
+    <Compile Include="GPUKernels\CuNChi2SERTILPKernel.cs" />
+    <Compile Include="GPUKernels\CuExpChiERTILPKernel.cs" />
+    <Compile Include="GPUKernels\CuNChi2ERTILPKernel.cs" />
     <Compile Include="GPUKernels\CuExpChiCSRKernel.cs" />
     <Compile Include="GPUKernels\CuNChi2CSRKernel.cs" />
     <Compile Include="GPUKernels\CuRBFSERTILPKernel.cs" />

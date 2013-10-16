@@ -189,7 +189,7 @@ namespace KMLib.Kernels
         public virtual void AllProducts(int i, int j, float[][] results)
         {
             AllProducts(i, results[0]);
-            AllProducts(j, results[j]);
+            AllProducts(j, results[1]);
         }
     }
 }

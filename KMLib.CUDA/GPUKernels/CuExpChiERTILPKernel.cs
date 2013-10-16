@@ -20,69 +20,81 @@ using KMLib.GPU.GPUKernels;
 namespace KMLib.GPU
 {
 
-    /// <summary>
-    /// Represents Chi^2 Kernel for computing product between two histograms
-    /// 
-    /// K(x,y)= Sum( (xi*yi)/(xi+yi))
-    /// 
-    /// vectors should contains positive numbers(like histograms does) and should be normalized
-    /// sum(xi)=1
-    /// Data are stored in Ellpack-R format.
+      /// <summary>
+    /// Class for computing Exp(-gamma*chi2(x,y)) kernel using cuda.
+    /// Data are stored in ERTILP format with utilization of ILP technique.
+    /// T threads are operate on single row and prefetch PrefetchSize values
+    /// Values and columns are algined to T*PrefetchSize
     /// 
     /// </summary>
-    public class CuNChi2EllKernel : CuVectorKernel, IDisposable
+    public class CuExpChiERTILPKernel : CuVectorKernel, IDisposable
     {
 
+        /// <summary>
+        /// Array for self dot product 
+        /// </summary>
+        float[] selfSum;
+ 
 
-        public CuNChi2EllKernel()
+        private float Gamma;
+
+
+
+        /// <summary>
+        /// cuda device pointer for storing self sum of each vector
+        /// </summary>
+        private CUdeviceptr selfSumPtr;
+        private int ThreadsPerRow;
+        private int Prefetch;
+
+
+
+        public CuExpChiERTILPKernel(float gamma)
         {
-            //linKernel = new LinearKernel();
-            //chiSquared = new ChiSquaredNormKernel();
-
-            cudaProductKernelName = "nChi2EllpackKernel";
-            //cudaProductKernelName = "nChi2EllpackKernel_old";
-            
+           
+            Gamma = gamma;
+            cudaProductKernelName = "expChi2EllRTILP";
             cudaModuleName = "KernelsEllpack.cubin";
+            MakeDenseVectorOnGPU = false;
+
+            ThreadsPerRow = 4;
+            Prefetch =2;
+            
         }
 
 
-        public override float Product(SparseVec element1, SparseVec element2)
+
+
+        public override void SetMemoryForDenseVector(int mainIndex)
         {
-            //return chiSquared.Product(element1, element2);
-            return ChiSquaredNormKernel.ChiSquareNormDist(element1, element2);
-        }
-
-        public override float Product(int element1, int element2)
-        {
-            if (element1 >= problemElements.Length)
-                throw new IndexOutOfRangeException("element1 out of range");
-
-            if (element2 >= problemElements.Length)
-                throw new IndexOutOfRangeException("element2 out of range");
-
-            return ChiSquaredNormKernel.ChiSquareNormDist(problemElements[element1], problemElements[element2]);
-        }
-
-        public override ParameterSelection<SparseVec> CreateParameterSelection()
-        {
-            throw new NotImplementedException();
+            if (MakeDenseVectorOnGPU)
+            {
+                vecBuilder.BuildDenseVector(mainIndex);
+            }else
+                base.SetMemoryForDenseVector(mainIndex);
         }
 
 
         public override void Init()
         {
-            
-            //chiSquared.ProblemElements = problemElements;
-            //chiSquared.Y = Y;
-            //chiSquared.Init();
-
+           
             base.Init();
 
             float[] vecVals;
             int[] vecColIdx;
             int[] vecLenght;
 
-            CudaHelpers.TransformToEllpackRFormat(out vecVals, out vecColIdx, out vecLenght, problemElements);
+            
+            //change the blocksPerGrid, because we launch many threads per row
+            blocksPerGrid =(int) Math.Ceiling((ThreadsPerRow * problemElements.Length+0.0) / threadsPerBlock);
+
+
+             int align = ThreadsPerRow*Prefetch;
+            CudaHelpers.TransformToERTILPFormat(out vecVals, out vecColIdx, out vecLenght, problemElements,align,ThreadsPerRow);
+
+
+            selfSum = problemElements.AsParallel().Select(x => x.Values.Sum()).ToArray();
+
 
             #region cuda initialization
 
@@ -93,11 +105,13 @@ namespace KMLib.GPU
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 
+
+            selfSumPtr = cuda.CopyHostToDevice(selfSum);
+
             uint memSize = (uint)(problemElements.Length * sizeof(float));
-            //allocate mapped memory for our results
+            
             outputIntPtr = cuda.HostAllocate(memSize,CUDADriver.CU_MEMHOSTALLOC_DEVICEMAP);
             outputPtr = cuda.GetHostDevicePointer(outputIntPtr, 0);
-
             //normal memory allocation
             //outputPtr = cuda.Allocate((uint)(sizeof(float) * problemElements.Length));
 
@@ -124,16 +138,6 @@ namespace KMLib.GPU
         }
 
 
-        public override void SetMemoryForDenseVector(int mainIndex)
-        {
-            if (MakeDenseVectorOnGPU)
-            {
-                vecBuilder.BuildDenseVector(mainIndex);
-            }
-            else
-                base.SetMemoryForDenseVector(mainIndex);
-        }
-
 
         protected override void SetCudaFunctionParameters()
         {
@@ -149,7 +153,10 @@ namespace KMLib.GPU
 
             cuda.SetParameter(cuFunc, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
-            
+
+            cuda.SetParameter(cuFunc, offset, selfSumPtr.Pointer);
+            offset += IntPtr.Size;
+
             kernelResultParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, outputPtr.Pointer);
             offset += IntPtr.Size;
@@ -160,6 +167,9 @@ namespace KMLib.GPU
             mainVecIdxParamOffset = offset;
             cuda.SetParameter(cuFunc, offset, (uint)mainVectorIdx);
             offset += sizeof(int);
+
+            cuda.SetParameter(cuFunc, offset, Gamma);
+            offset += sizeof(float);
 
             cuda.SetParameterSize(cuFunc, (uint)offset);
 
@@ -175,10 +185,13 @@ namespace KMLib.GPU
         {
             if (cuda != null)
             {
+                cuda.Free(selfSumPtr);
+                selfSumPtr.Pointer = IntPtr.Zero;
 
                 DisposeResourses();
 
                 cuda.UnloadModule(cuModule);
+
 
                 base.Dispose();
                 cuda.Dispose();
@@ -190,8 +203,51 @@ namespace KMLib.GPU
 
         public override string ToString()
         {
-            return "Cuda nChi^2 Ellpack";
+            return "Cu ExpChi2 ERTILP";
+        }
+
+
+
+        public override float Product(SparseVec element1, SparseVec element2)
+        {
+
+            float chi = ChiSquaredKernel.ChiSquareDist(element1, element2);
+
+            return (float)Math.Exp(-Gamma * chi);
+
+        }
+
+        public override float Product(int element1, int element2)
+        {
+            if (element1 >= problemElements.Length)
+                throw new IndexOutOfRangeException("element1 out of range");
+
+            if (element2 >= problemElements.Length)
+                throw new IndexOutOfRangeException("element2 out of range");
+
+
+            float prod = 0f;
+
+            if (element1 == element2)
+            {
+                //all parts are the same
+                //so we can prod set to 1 beceause exp(0)==1
+                prod = 1f;
+
+            }
+            else
+            {
+                //when element1 and element2 are different we have to compute all parts
+                float chi = ChiSquaredKernel.ChiSquareDist(problemElements[element1], problemElements[element2]);
+                prod = (float)Math.Exp(-Gamma * chi);
+            }
+            return prod;
+        }
+
+        public override ParameterSelection<SparseVec> CreateParameterSelection()
+        {
+            throw new NotImplementedException();
+            //return new RbfParameterSelection();
         }
     }
-
 }
