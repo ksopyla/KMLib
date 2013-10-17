@@ -1211,3 +1211,58 @@ extern "C" __global__ void expChi2SlEllKernel(const float *vecVals,
 
 
 }//end func
+
+
+extern "C" __global__ void expChi2EllpackKernel(const float * vals,
+	const int * colIdx, 
+	const int * rowLength, 
+	const float* rowSum,
+	float * results,
+	const int numRows,
+	const int mainVecIndex,
+	const float gamma)
+{
+
+	__shared__ float shGamma;
+	__shared__ int shMainVecIdx;
+	__shared__ float shMainSelfSum;
+	__shared__ float shLabel;
+	__shared__ int shRows;
+
+	if(threadIdx.x==0)
+	{
+		shMainVecIdx=mainVecIndex;
+		shGamma = gamma;
+		shMainSelfSum = rowSum[shMainVecIdx];
+		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+		shRows=numRows;
+	}	
+	__syncthreads();
+
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+	const int num_rows =numRows;
+	if(row<shRows)
+	{
+		int maxEl = rowLength[row];
+		float labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
+		float chi=0;
+
+		int col1=-1;
+		float val1=0;
+		float val2=0;
+		int i=0;
+
+		for(i=0; i<maxEl;i++)
+		{
+			col1=colIdx[num_rows*i+row];
+			val1= vals[num_rows*i+row];
+			val2 = tex1Dfetch(mainVecTexRef,col1);
+
+			chi+= (val1*val2)/(val1+val2+FLT_MIN);
+
+		}
+		chi=rowSum[row]+shMainSelfSum-4*chi;
+		results[row]=labelProd*expf(-shGamma*chi);
+	}	
+
+}

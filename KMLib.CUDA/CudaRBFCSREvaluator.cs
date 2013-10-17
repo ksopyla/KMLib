@@ -33,7 +33,7 @@ namespace KMLib.GPU
         public CudaRBFCSREvaluator(float gamma)
         {
             this.gamma = gamma;
-            cudaEvaluatorKernelName = "rbfCSREvaluatorDenseVector";
+            cudaEvaluatorKernelName = "rbfCSREvaluator_WholeDataSet";
         }
 
         /// <summary>

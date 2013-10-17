@@ -11,32 +11,27 @@ using System.Text;
 
 namespace KMLib.GPU.GPUEvaluators
 {
-    public class CuRBFERTILPEvaluator : CuEvaluator
+
+    /// <summary>
+    /// Prediction with RBF kernel in CSR format
+    /// Prediction is done one by one, with use of Cuda streams and asynchronous computation of two prediction vectors
+    /// </summary>
+    public class CuRBFCSREvaluator: CuEvaluator
     {
         private GASS.CUDA.Types.CUdeviceptr valsPtr;
         private GASS.CUDA.Types.CUdeviceptr idxPtr;
-        private GASS.CUDA.Types.CUdeviceptr vecLengthPtr;
+        private GASS.CUDA.Types.CUdeviceptr vecPointerPtr;
         private GASS.CUDA.Types.CUdeviceptr selfDotPtr;
 
         
         private float gamma;
 
-        /// <summary>
-        /// how many threads are assigned for row
-        /// </summary>
-        private int ThreadsPerRow=4;
-
-        /// <summary>
-        /// how many non zero elements are loaded in cuda kernel
-        /// </summary>
-        private int Prefetch=2;
 
 
-
-        public CuRBFERTILPEvaluator(float gamma)
+        public CuRBFCSREvaluator(float gamma)
         {
             this.gamma = gamma;
-            cudaEvaluatorKernelName = "rbfERTILPEvaluator";
+            cudaEvaluatorKernelName = "rbfCsrEvaluator";
             cudaModuleName = "KernelsEllpack.cubin";
 
         }
@@ -53,12 +48,11 @@ namespace KMLib.GPU.GPUEvaluators
             cuda.SetParameter(cuFuncEval, offset, idxPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFuncEval, offset, vecLengthPtr.Pointer);
+            cuda.SetParameter(cuFuncEval, offset, vecPointerPtr.Pointer);
             offset += IntPtr.Size;
 
             cuda.SetParameter(cuFuncEval, offset, selfDotPtr.Pointer);
             offset += IntPtr.Size;
-
 
             cuda.SetParameter(cuFuncEval, offset, alphasPtr.Pointer);
             offset += IntPtr.Size;
@@ -94,53 +88,32 @@ namespace KMLib.GPU.GPUEvaluators
         {
             base.Init();
 
-             SetCudaDataForERTILP();
+             SetCudaDataForEllpack();
 
              SetCudaEvalFunctionParams();
         }
 
-        private void SetCudaDataForERTILP()
+        private void SetCudaDataForEllpack()
         {
 
             float[] vecVals;
-            int[] vecColIdx;
+            int[] vecIdx;
             int[] vecLenght;
 
+            CudaHelpers.TransformToCSRFormat(out vecVals, out vecIdx, out vecLenght, TrainedModel.SupportElements);
+
             
 
-            evalBlocks = (int)Math.Ceiling((ThreadsPerRow * sizeSV + 0.0) / evalThreads);
-            int align = ThreadsPerRow * Prefetch;
-            CudaHelpers.TransformToERTILPFormat(out vecVals, out vecColIdx, out vecLenght, TrainedModel.SupportElements, align, ThreadsPerRow);
-           
             float[] selfLinDot = TrainedModel.SupportElements.Select(c => c.DotProduct()).ToArray();
 
- 
+            evalBlocks = (sizeSV+evalThreads-1) / evalThreads;
+            
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
-            idxPtr = cuda.CopyHostToDevice(vecColIdx);
-            vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
-            
+            idxPtr = cuda.CopyHostToDevice(vecIdx);
+            vecPointerPtr = cuda.CopyHostToDevice(vecLenght);
             selfDotPtr = cuda.CopyHostToDevice(selfLinDot);
 
-            
-
-        }
-
-        public void Dispose()
-        {
-            if (cuda != null)
-            {
-
-                cuda.Free(selfDotPtr);
-                selfDotPtr.Pointer = IntPtr.Zero;
-
-                DisposeResourses();
-
-                cuda.UnloadModule(cuModule);
-                base.Dispose();
-                cuda.Dispose();
-                cuda = null;
-            }
         }
 
     }

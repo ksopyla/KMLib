@@ -138,6 +138,7 @@ extern "C" __global__ void nChi2_CSR(const float * vals,
 		shMainVecIdx=mainVecIndex;
 		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
 	}	
+	__syncthreads();
 
 
 	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
@@ -310,6 +311,58 @@ template<int TexSel> __device__ void SpMV_CSR_nChi2(const float * vals,
  *
  */
 
+extern "C" __global__ void rbfCsrEvaluator(const float * vals,
+	const int * colIdx, 
+	const int * vecPointers, 
+	const float* svSelfDot,
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int num_rows,
+	const float vecSelfDot,
+	const float gamma,
+	const int texSel)
+{
+	__shared__ float shDot[BLOCK_SIZE + 16];                    // padded to avoid reduction ifs
+	__shared__ int ptrs[BLOCK_SIZE/WARP_SIZE][2];
+	__shared__ float shGamma;
+	__shared__ float shVecSelfDot;
+
+	if(threadIdx.x==0)
+	{
+		shGamma = gamma;
+		shVecSelfDot = vecSelfDot;
+	}	
+
+	const int thread_id   = BLOCK_SIZE * blockIdx.x + threadIdx.x;  // global thread index
+	const int thread_lane = threadIdx.x & (WARP_SIZE-1);            // thread index within the warp
+	const int warp_id     = thread_id   / WARP_SIZE;                // global warp index
+	const int warp_lane   = threadIdx.x / WARP_SIZE;                // warp index within the CTA
+	const int num_warps   = (BLOCK_SIZE / WARP_SIZE) * gridDim.x;   // total number of active warps
+
+	for(int row = warp_id; row < num_rows; row += num_warps){
+
+		// use two threads to fetch vecPointers[row] and vecPointers[row+1]
+		// this is considerably faster than the straightforward version
+		if(thread_lane < 2)
+			ptrs[warp_lane][thread_lane] = vecPointers[row + thread_lane];
+		const int row_start = ptrs[warp_lane][0];            //same as: row_start = vecPointers[row];
+		const int row_end   = ptrs[warp_lane][1];            //same as: row_end   = vecPointers[row+1];
+
+		if(texSel==1){
+			SpMV_CSR<1>(vals,colIdx,vecPointers,row_start,row_end,row,num_rows,shDot);
+		}
+		else{
+			SpMV_CSR<2>(vals,colIdx,vecPointers,row_start,row_end,row,num_rows,shDot);
+		}
+		
+		// first thread writes warp result
+		if (thread_lane == 0){
+			results[row]=svY[row]*svAlpha[row]*expf(-shGamma*(svSelfDot[row]+shVecSelfDot-2*shDot[threadIdx.x]));
+
+		}
+	}
+}
 
 
 
@@ -332,7 +385,7 @@ template<int TexSel> __device__ void SpMV_CSR_nChi2(const float * vals,
 //BCols - number of cols in second matrix
 //ColumnIndex - index of support vector in B matrix
 //gamma - gamma prameter in RBF
-extern "C" __global__ void rbfCSREvaluatorDenseVector(const float * AVals,
+extern "C" __global__ void rbfCSREvaluator_WholeDataSet(const float * AVals,
 													  const int * AIdx, 
 													  const int * APtrs, 
 													  const float * svLabels,

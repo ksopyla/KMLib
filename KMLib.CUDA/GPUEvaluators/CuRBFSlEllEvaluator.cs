@@ -152,5 +152,22 @@ namespace KMLib.GPU.GPUEvaluators
 
         }
 
+        public void Dispose()
+        {
+            if (cuda != null)
+            {
+
+                cuda.Free(selfDotPtr);
+                selfDotPtr.Pointer = IntPtr.Zero;
+
+                DisposeResourses();
+
+                cuda.UnloadModule(cuModule);
+                base.Dispose();
+                cuda.Dispose();
+                cuda = null;
+            }
+        }
+
     }
 }

@@ -467,6 +467,110 @@ extern "C" __global__ void rbfSliceEllpackEvaluator(const float *vecVals,
 }
 
 
+extern "C" __global__ void expChi2SliceEllpackEvaluator(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* svSelfSum,
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int nrRows,
+	const int align,
+	const float vecSelfSum,
+	const float gamma,
+	const int texSel)
+{
+
+	__shared__ float shGamma;
+	__shared__ float shVecSelfSum;
+	__shared__ int shRows;
+	__shared__  float shChi[ThreadPerRow*SliceSize];
+	shChi[threadIdx.x]=0.0;	
+
+	if(threadIdx.x==0)
+	{
+		shGamma = gamma;
+		shVecSelfSum = vecSelfSum,
+		shRows= nrRows;
+	}
+	__syncthreads();
+
+
+
+	int txm = threadIdx.x %  ThreadPerRow;
+	int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
+	const int row   = thIdx>>LOG_THREADS;  // global thread index
+
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+
+		if (texSel==1)
+		{
+			SpMV_SliceEllpack_nChi2<1>(vecVals,vecCols,vecLengths,sliceStart,align,row,shRows,shChi);
+		}else{
+			SpMV_SliceEllpack_nChi2<2>(vecVals,vecCols,vecLengths,sliceStart,align,row,shRows,shChi);
+		}
+
+		if(txm == 0 ){
+			float chi = svSelfSum[row]+shVecSelfSum-4*shChi[threadIdx.x];
+			results[row]=svY[row]*svAlpha[row]*expf(-shGamma*chi);
+		}
+	}	
+
+}
+
+
+extern "C" __global__ void nChi2SliceEllpackEvaluator(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int nrRows,
+	const int align,
+	const int texSel)
+{
+
+	__shared__ float shGamma;
+	__shared__ float shVecSelfSum;
+	__shared__ int shRows;
+	__shared__  float shChi[ThreadPerRow*SliceSize];
+	shChi[threadIdx.x]=0.0;	
+
+	if(threadIdx.x==0)
+	{
+		shRows= nrRows;
+	}
+	__syncthreads();
+
+
+
+	int txm = threadIdx.x %  ThreadPerRow;
+	int thIdx = (blockIdx.x*blockDim.x+threadIdx.x);
+	const int row   = thIdx>>LOG_THREADS;  // global thread index
+
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+
+		if (texSel==1)
+		{
+			SpMV_SliceEllpack_nChi2<1>(vecVals,vecCols,vecLengths,sliceStart,align,row,shRows,shChi);
+		}else{
+			SpMV_SliceEllpack_nChi2<2>(vecVals,vecCols,vecLengths,sliceStart,align,row,shRows,shChi);
+		}
+
+		if(txm == 0 ){
+			results[row]=svY[row]*svAlpha[row]*shChi[threadIdx.x];
+		}
+	}	
+
+}
+
+
 extern "C" __global__ void rbfSERTILPEvaluator(const float *vecVals,
 	const int *vecCols,
 	const int *vecLengths, 
@@ -525,6 +629,103 @@ extern "C" __global__ void rbfSERTILPEvaluator(const float *vecVals,
 	}	
 
 
+}
+
+extern "C" __global__ void expChi2SERTILPEvaluator(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* svSelfSum,
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int nrRows,
+	const int align,
+	const float vecSelfSum,
+	const float gamma,
+	const int texSel)
+{
+	__shared__ float shGamma;
+	__shared__ float shVecSelfSum;
+	__shared__ int shRows;
+	__shared__ int shSliceStart;
+	__shared__  float shChi[ThreadPerRow*SliceSize];
+	shChi[threadIdx.x]=0.0;	
+
+	if(threadIdx.x==0)
+	{
+		shGamma = gamma;
+		shVecSelfSum = vecSelfSum,
+		shRows= nrRows;
+		shSliceStart=sliceStart[blockIdx.x];
+	}
+	__syncthreads();
+
+	const int row   = (blockIdx.x*blockDim.x+threadIdx.x)>>LOG_THREADS;  // global thread index
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+
+		if (texSel==1)
+		{
+			SpMV_SERTILP<1>(vecVals,vecCols,vecLengths,shSliceStart,align,row,shRows,shChi);
+		}else{
+			SpMV_SERTILP<2>(vecVals,vecCols,vecLengths,shSliceStart,align,row,shRows,shChi);
+		}
+
+		if(threadIdx.x<ROWS_B){
+			unsigned int row2=blockIdx.x* ROWS_B+threadIdx.x;
+			if(row2<nrRows){
+				float chi = svSelfSum[row2]+shVecSelfSum-4*shChi[threadIdx.x];
+				results[row2]=svY[row2]*svAlpha[row2]*expf(-shGamma*chi);
+			}
+		}
+	}	
+}
+
+
+extern "C" __global__ void nChi2SERTILPEvaluator(const float *vecVals,
+	const int *vecCols,
+	const int *vecLengths, 
+	const int * sliceStart, 
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int nrRows,
+	const int align,
+	const int texSel)
+{
+	__shared__ int shRows;
+	__shared__ int shSliceStart;
+	__shared__  float shChi[ThreadPerRow*SliceSize];
+	shChi[threadIdx.x]=0.0;	
+
+	if(threadIdx.x==0)
+	{
+		shRows= nrRows;
+		shSliceStart=sliceStart[blockIdx.x];
+	}
+	__syncthreads();
+
+	const int row   = (blockIdx.x*blockDim.x+threadIdx.x)>>LOG_THREADS;  // global thread index
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+
+		if (texSel==1)
+		{
+			SpMV_SERTILP<1>(vecVals,vecCols,vecLengths,shSliceStart,align,row,shRows,shChi);
+		}else{
+			SpMV_SERTILP<2>(vecVals,vecCols,vecLengths,shSliceStart,align,row,shRows,shChi);
+		}
+
+		if(threadIdx.x<ROWS_B){
+			unsigned int row2=blockIdx.x* ROWS_B+threadIdx.x;
+			if(row2<nrRows){
+				results[row2]=svY[row2]*svAlpha[row2]*shChi[threadIdx.x];
+			}
+		}
+	}	
 }
 
 /************************************************************************/

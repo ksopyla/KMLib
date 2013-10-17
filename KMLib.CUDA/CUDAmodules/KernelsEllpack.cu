@@ -184,7 +184,7 @@ extern "C" __global__ void rbfERTILP(const float * vals,
 //selfDot - array of precomputed self linear product 
 //results - array of results Linear Kernel
 //num_rows -number of vectors
-//mainVecIndex - main vector index, needed for retriving its label
+//mainVecIndex - main vector index, needed for retrieving its label
 //gamma - gamma parameter for RBF 
 extern "C" __global__ void rbfEllpackFormatKernel(const float * vals,
 									   const int * colIdx, 
@@ -380,18 +380,18 @@ extern "C" __global__ void nChi2Ellpack_ILP(const float * vals,
 
 /* EXP CHI2 kernel */
 
-//cuda kernel funtion for computing SVM exp Chi-Square kernel,
+//cuda kernel function for computing SVM exp Chi-Square kernel,
 // K(x,y)=exp( -gamma* Sum( (xi-yi)^2/(xi+yi)) =exp(-gamma (sum xi +sum yi -4*sum( (xi*yi)/(xi+yi)) ) )
 // 
-// uses Ellpack-R fromat for storing sparse matrix, labels are in texture cache
+// uses Ellpack-R format for storing sparse matrix, labels are in texture cache
 //Params:
 //vals - array of vectors values
-//colIdx  - array of column indexes in ellpack-r fromat
+//colIdx  - array of column indexes in ellpack-r format
 //rowLength -array, contains number of nonzero elements in each row
 //rowSum - array of precomputed row sums
 //results - array of results Linear Kernel
 //num_rows -number of vectors
-//mainVecIndex - main vector index, needed for retriving its label
+//mainVecIndex - main vector index, needed for retrieving its label
 extern "C" __global__ void expChi2EllpackKernel(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength, 
@@ -406,6 +406,7 @@ extern "C" __global__ void expChi2EllpackKernel(const float * vals,
 	__shared__ int shMainVecIdx;
 	__shared__ float shMainSelfSum;
 	__shared__ float shLabel;
+	__shared__ int shRows;
 	
 	if(threadIdx.x==0)
 	{
@@ -413,31 +414,18 @@ extern "C" __global__ void expChi2EllpackKernel(const float * vals,
 		shGamma = gamma;
 		shMainSelfSum = rowSum[shMainVecIdx];
 		shLabel = tex1Dfetch(labelsTexRef,shMainVecIdx);
+		shRows=numRows;
 	}	
 	__syncthreads();
 	
 	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
 	const int num_rows =numRows;
-	if(row<num_rows)
+	if(row<shRows)
 	{
-		int maxEl = rowLength[row];
 		float labelProd = tex1Dfetch(labelsTexRef,row)*shLabel;
-		float chi=0;
 		
-		int col1=-1;
-		float val1=0;
-		float val2=0;
-		int i=0;
-
-		for(i=0; i<maxEl;i++)
-		{
-			col1=colIdx[num_rows*i+row];
-			val1= vals[num_rows*i+row];
-			val2 = tex1Dfetch(mainVecTexRef,col1);
-			
-			chi+= (val1*val2)/(val1+val2+FLT_MIN);
-			
-		}
+		float chi= SpMV_Ellpack_nChi2<1>(vals,colIdx,rowLength,row,shRows);
+		
 		chi=rowSum[row]+shMainSelfSum-4*chi;
 		results[row]=labelProd*expf(-shGamma*chi);
 	}	
@@ -517,7 +505,7 @@ extern "C" __global__ void expChi2EllpackKernel_ILP(const float * vals,
 
 
 
-extern "C" __global__ void expChi2EllRTILP(const float * vals,
+extern "C" __global__ void expChi2ERTILP(const float * vals,
 	const int * colIdx, 
 	const int * rowLength, 
 	const float* rowSum,
@@ -633,18 +621,18 @@ extern "C" __global__ void chi2EllpackKernel(const float * vals,
 
 
 //!!! not optimal GPU utilization, only for testing
-//cuda kernel funtion for computing SVM Chi-Square kernel, 
+//cuda kernel function for computing SVM Chi-Square kernel, 
 // K(x,y)= 1 -0.5* Sum( (xi-yi)^2/(xi+yi))
 //
 //uses Ellpack-R fromat for storing sparse matrix, labels are in texture cache
 //
 //Params:
 //vals - array of vectors values
-//colIdx  - array of column indexes in ellpack-r fromat
+//colIdx  - array of column indexes in ellpack-r format
 //rowLength -array, contains number of nonzero elements in each row
 //results - array of results Linear Kernel
 //num_rows -number of vectors
-//mainVecIndex - main vector index, needed for retriving its label
+//mainVecIndex - main vector index, needed for retrieving its label
 extern "C" __global__ void chiSquaredEllpackKernel(const float * vals,
 									   const int * colIdx, 
 									   const int * rowLength, 
@@ -863,6 +851,213 @@ extern "C" __global__ void rbfERTILPEvaluator(const float * vals,
 
 }
 
+
+/****
+vals	  - support vector non zero values (Ellpack format)
+colIdx    - support vector non zero columns indexes (Ellpack format)
+rowLength -support vector row length, number of non zeros (Ellpack format)
+svAlpha   - alpha values
+svY       - support vector labels
+results   - output array, stores kernel computation between all sv and main vector
+num_rows  - number of rows
+vecSelfDot - main vector self dot
+textSel   - texture selection parameter, from which texture we read the mainVector (1 - mainVecTexRef, 2 - mainVecTechRef2)
+*/
+extern "C" __global__ void nChi2EllpackEvaluator(const float * vals,
+	const int * colIdx, 
+	const int * rowLength, 
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int num_rows,
+	const int texSel)
+{
+	__shared__ int shRows;
+
+	if(threadIdx.x==0)
+	{
+		shRows= num_rows;
+	}
+	__syncthreads();
+
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+		float chi = texSel==1 ?SpMV_Ellpack_nChi2<1>(vals,colIdx,rowLength,row,shRows): SpMV_Ellpack_nChi2<2>(vals,colIdx,rowLength,row,shRows) ;
+		results[row]=svY[row]*svAlpha[row]*chi;
+	}	
+
+}
+
+
+/****
+vals	  - support vector non zero values (Ellpack format)
+colIdx    - support vector non zero columns indexes (Ellpack format)
+rowLength -support vector row length, number of non zeros (Ellpack format)
+svAlpha   - alpha values
+svY       - support vector labels
+results   - output array, stores kernel computation between all sv and main vector
+num_rows  - number of rows
+vecSelfSum - main vector self dot
+textSel   - texture selection parameter, from which texture we read the mainVector (1 - mainVecTexRef, 2 - mainVecTechRef2)
+*/
+extern "C" __global__ void expChi2EllpackEvaluator(const float * vals,
+	const int * colIdx, 
+	const int * rowLength, 
+	const float* svSelfSum,
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int num_rows,
+	const float vecSelfSum,
+	const float gamma,
+	const int texSel)
+{
+	__shared__ int shRows;
+	__shared__ float shGamma;
+	__shared__ float shMainSelfSum;
+
+	if(threadIdx.x==0)
+	{
+		shGamma = gamma;
+		shMainSelfSum = vecSelfSum;
+		shRows= num_rows;
+	}
+	__syncthreads();
+
+	const int row   = blockDim.x * blockIdx.x + threadIdx.x;  // global thread index
+
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+		float chi = texSel==1 ?SpMV_Ellpack_nChi2<1>(vals,colIdx,rowLength,row,shRows): SpMV_Ellpack_nChi2<2>(vals,colIdx,rowLength,row,shRows) ;
+		
+		chi=svSelfSum[row]+shMainSelfSum-4*chi;
+		results[row]= svY[row]*svAlpha[row]*expf(-shGamma*chi);
+	}	
+
+}
+
+
+/****
+vals	  - support vector non zero values (Ellpack format)
+colIdx    - support vector non zero columns indexes (Ellpack format)
+rowLength -support vector row length, number of non zeros (Ellpack format)
+svAlpha   - alpha values
+svY       - support vector labels
+results   - output array, stores kernel computation between all sv and main vector
+num_rows  - number of rows
+vecSelfSum - main vector self dot
+textSel   - texture selection parameter, from which texture we read the mainVector (1 - mainVecTexRef, 2 - mainVecTechRef2)
+*/
+extern "C" __global__ void nChi2ERTILPEvaluator(const float * vals,
+	const int * colIdx, 
+	const int * rowLength, 
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int num_rows,
+	const int texSel)
+{
+	__shared__ int shRows;
+	__shared__ float shChi[BLOCK_SIZE];
+	shChi[threadIdx.x]=0.0;	
+
+	if(threadIdx.x==0)
+	{
+		shRows= num_rows;
+	}
+	__syncthreads();
+
+	int row  = (blockDim.x * blockIdx.x + threadIdx.x)/THREADS_ROW;  // global thread index
+	const int rowsB = blockDim.x/THREADS_ROW;
+
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+		if(texSel==1){
+
+			SpMV_ERTILP_nChi2<1>(vals,colIdx,rowLength,row,rowsB,shRows,shChi);
+		}
+		else{
+			SpMV_ERTILP_nChi2<2>(vals,colIdx,rowLength,row,rowsB,shRows,shChi);
+		}
+
+		if(threadIdx.x<rowsB){
+			unsigned int row2=blockIdx.x* rowsB+threadIdx.x;
+			if(row2<shRows){
+				
+				results[row2]=svY[row2]*svAlpha[row2]*shChi[threadIdx.x];
+			} 
+		}
+	}	
+
+}
+
+
+/****
+vals	  - support vector non zero values (Ellpack format)
+colIdx    - support vector non zero columns indexes (Ellpack format)
+rowLength -support vector row length, number of non zeros (Ellpack format)
+svAlpha   - alpha values
+svY       - support vector labels
+results   - output array, stores kernel computation between all sv and main vector
+num_rows  - number of rows
+vecSelfSum - main vector self dot
+textSel   - texture selection parameter, from which texture we read the mainVector (1 - mainVecTexRef, 2 - mainVecTechRef2)
+*/
+extern "C" __global__ void expChi2ERTILPEvaluator(const float * vals,
+	const int * colIdx, 
+	const int * rowLength, 
+	const float* svSelfSum,
+	const float* svAlpha,
+	const float* svY,
+	float * results,
+	const int num_rows,
+	const float vecSelfSum,
+	const float gamma,
+	const int texSel)
+{
+	__shared__ int shRows;
+	__shared__ float shGamma;
+	__shared__ float shMainSelfSum;
+	__shared__ float shChi[BLOCK_SIZE];
+	shChi[threadIdx.x]=0.0;	
+
+	if(threadIdx.x==0)
+	{
+		shGamma = gamma;
+		shMainSelfSum = vecSelfSum;
+		shRows= num_rows;
+	}
+	__syncthreads();
+
+	int row  = (blockDim.x * blockIdx.x + threadIdx.x)/THREADS_ROW;  // global thread index
+	const int rowsB = blockDim.x/THREADS_ROW;
+
+	if(row<shRows)
+	{
+		//hack for choosing different texture reference when launch in different streams
+		if(texSel==1){
+			
+			SpMV_ERTILP_nChi2<1>(vals,colIdx,rowLength,row,rowsB,shRows,shChi);
+		}
+		else{
+			SpMV_ERTILP_nChi2<2>(vals,colIdx,rowLength,row,rowsB,shRows,shChi);
+		}
+
+		if(threadIdx.x<rowsB){
+			unsigned int row2=blockIdx.x* rowsB+threadIdx.x;
+			if(row2<shRows){
+				float chi=svSelfSum[row2]+shMainSelfSum-4*shChi[threadIdx.x];
+				results[row2]=svY[row2]*svAlpha[row2]*expf(-shGamma*chi);
+			} 
+		}
+	}	
+
+}
 
 
 /*********************** Sparse matrix dense vector multiplication helpers **********/

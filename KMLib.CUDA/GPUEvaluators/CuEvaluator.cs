@@ -23,7 +23,7 @@ namespace KMLib.GPU
     /// base class for all cuda enabled evaluators
     /// </summary>
     /// <remarks>It sores necessary data for cuda initialization</remarks>
-    public abstract class CuEvaluator : Evaluator<SparseVec>
+    public abstract class CuEvaluator : Evaluator<SparseVec>, IDisposable
     {
 
         protected const int NUM_STREAMS = 2;
@@ -408,7 +408,51 @@ namespace KMLib.GPU
 
             cuFuncReduce = cuda.GetModuleFunction(cudaReduceKernelName);
         }
-        
-        
+
+
+
+        public void Dispose()
+        {
+            if (cuda != null)
+            {
+                cuda.DestroyContext();
+            }
+        }
+
+
+        protected void DisposeResourses()
+        {
+          
+            for (int i = 0; i < NUM_STREAMS; i++)
+            {
+                cuda.FreeHost(mainVecIntPtrs[i]);
+                cuda.Free(mainVecCuPtr[i]);
+
+                cuda.Free(evalOutputCuPtr[i]);
+
+                cuda.Free(reduceCuPtr[i]);
+                cuda.FreeHost(reduceIntPtrs[i]);
+
+
+                if (cuVecTexRef[i].Pointer != IntPtr.Zero)
+                    cuda.DestroyTexture(cuVecTexRef[i]);
+
+                cuda.DestroyStream(stream[i]);
+            }
+
+            if (labelsPtr.Pointer != IntPtr.Zero)
+            {
+                cuda.Free(labelsPtr);
+                labelsPtr.Pointer = IntPtr.Zero;
+            }
+
+            if (alphasPtr.Pointer != IntPtr.Zero)
+            {
+                cuda.Free(alphasPtr);
+                alphasPtr.Pointer = IntPtr.Zero;
+            }
+            
+        }
+
     }
 }

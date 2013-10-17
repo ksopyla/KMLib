@@ -137,9 +137,6 @@ namespace KMLib.GPU
 
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
-
-           
-
             idxPtr = cuda.CopyHostToDevice(vecIdx);
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
 
@@ -160,7 +157,7 @@ namespace KMLib.GPU
 
             SetCudaFunctionParameters();
 
-            //allocate memory for main vector, size of this vector is the same as dimenson, so many 
+            //allocate memory for main vector, size of this vector is the same as dimension, so many 
             //indexes will be zero, but cuda computation is faster
             mainVector = new float[problemElements[0].Dim+1];
             CudaHelpers.FillDenseVector(problemElements[0],mainVector);

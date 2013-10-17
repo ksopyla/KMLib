@@ -11,15 +11,11 @@ using System.Text;
 
 namespace KMLib.GPU.GPUEvaluators
 {
-    public class CuRBFERTILPEvaluator : CuEvaluator
+    public class CuNChi2ERTILPEvaluator : CuEvaluator
     {
         private GASS.CUDA.Types.CUdeviceptr valsPtr;
         private GASS.CUDA.Types.CUdeviceptr idxPtr;
         private GASS.CUDA.Types.CUdeviceptr vecLengthPtr;
-        private GASS.CUDA.Types.CUdeviceptr selfDotPtr;
-
-        
-        private float gamma;
 
         /// <summary>
         /// how many threads are assigned for row
@@ -30,21 +26,19 @@ namespace KMLib.GPU.GPUEvaluators
         /// how many non zero elements are loaded in cuda kernel
         /// </summary>
         private int Prefetch=2;
+        private int vectorSelfSumParamOffset;
 
 
 
-        public CuRBFERTILPEvaluator(float gamma)
+        public CuNChi2ERTILPEvaluator(float gamma)
         {
-            this.gamma = gamma;
-            cudaEvaluatorKernelName = "rbfERTILPEvaluator";
+            cudaEvaluatorKernelName = "nChi2ERTILPEvaluator";
             cudaModuleName = "KernelsEllpack.cubin";
 
         }
 
         protected override void SetCudaEvalFunctionParams()
         {
-
-
             cuda.SetFunctionBlockShape(cuFuncEval, evalThreads, 1, 1);
 
             int offset = 0;
@@ -55,10 +49,6 @@ namespace KMLib.GPU.GPUEvaluators
 
             cuda.SetParameter(cuFuncEval, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
-
-            cuda.SetParameter(cuFuncEval, offset, selfDotPtr.Pointer);
-            offset += IntPtr.Size;
-
 
             cuda.SetParameter(cuFuncEval, offset, alphasPtr.Pointer);
             offset += IntPtr.Size;
@@ -72,13 +62,6 @@ namespace KMLib.GPU.GPUEvaluators
 
             cuda.SetParameter(cuFuncEval, offset, (uint)sizeSV);
             offset += sizeof(int);
-
-            vectorSelfDotParamOffset = offset;
-            cuda.SetParameter(cuFuncEval, offset, 0);
-            offset += sizeof(int);
-
-            cuda.SetParameter(cuFuncEval, offset, gamma);
-            offset += sizeof(float);
 
             texSelParamOffset = offset;
             cuda.SetParameter(cuFuncEval, offset, 1);
@@ -112,17 +95,10 @@ namespace KMLib.GPU.GPUEvaluators
             int align = ThreadsPerRow * Prefetch;
             CudaHelpers.TransformToERTILPFormat(out vecVals, out vecColIdx, out vecLenght, TrainedModel.SupportElements, align, ThreadsPerRow);
            
-            float[] selfLinDot = TrainedModel.SupportElements.Select(c => c.DotProduct()).ToArray();
-
- 
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
-            
-            selfDotPtr = cuda.CopyHostToDevice(selfLinDot);
-
-            
 
         }
 
@@ -130,9 +106,6 @@ namespace KMLib.GPU.GPUEvaluators
         {
             if (cuda != null)
             {
-
-                cuda.Free(selfDotPtr);
-                selfDotPtr.Pointer = IntPtr.Zero;
 
                 DisposeResourses();
 

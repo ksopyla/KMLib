@@ -11,12 +11,18 @@ using System.Text;
 
 namespace KMLib.GPU.GPUEvaluators
 {
-    public class CuRBFERTILPEvaluator : CuEvaluator
+
+
+    /// <summary>
+    /// Class for prediction with Exp Chi^2 kernel in Sliced-Ellpack format 
+    /// </summary>
+    public class CuExpChiSlEllEvaluator : CuEvaluator
     {
         private GASS.CUDA.Types.CUdeviceptr valsPtr;
         private GASS.CUDA.Types.CUdeviceptr idxPtr;
         private GASS.CUDA.Types.CUdeviceptr vecLengthPtr;
-        private GASS.CUDA.Types.CUdeviceptr selfDotPtr;
+        private GASS.CUDA.Types.CUdeviceptr sliceStartPtr;
+        private GASS.CUDA.Types.CUdeviceptr selfSumPtr;
 
         
         private float gamma;
@@ -24,20 +30,26 @@ namespace KMLib.GPU.GPUEvaluators
         /// <summary>
         /// how many threads are assigned for row
         /// </summary>
-        private int ThreadsPerRow=4;
+        private int threadsPerRow;
 
         /// <summary>
-        /// how many non zero elements are loaded in cuda kernel
+        /// how big the matrix slice is
         /// </summary>
-        private int Prefetch=2;
+        private int sliceSize;
+        private int align;
+        private int vectorSelfSumParamOffset;
 
 
 
-        public CuRBFERTILPEvaluator(float gamma)
+
+        public CuExpChiSlEllEvaluator(float gamma)
         {
             this.gamma = gamma;
-            cudaEvaluatorKernelName = "rbfERTILPEvaluator";
-            cudaModuleName = "KernelsEllpack.cubin";
+            cudaEvaluatorKernelName = "expChi2SliceEllpackEvaluator";
+            cudaModuleName = "KernelsSlicedEllpack.cubin";
+
+            threadsPerRow = 4;
+            sliceSize = 64;
 
         }
 
@@ -56,7 +68,12 @@ namespace KMLib.GPU.GPUEvaluators
             cuda.SetParameter(cuFuncEval, offset, vecLengthPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFuncEval, offset, selfDotPtr.Pointer);
+            cuda.SetParameter(cuFuncEval, offset, sliceStartPtr.Pointer);
+            offset += IntPtr.Size;
+
+
+
+            cuda.SetParameter(cuFuncEval, offset, selfSumPtr.Pointer);
             offset += IntPtr.Size;
 
 
@@ -73,7 +90,10 @@ namespace KMLib.GPU.GPUEvaluators
             cuda.SetParameter(cuFuncEval, offset, (uint)sizeSV);
             offset += sizeof(int);
 
-            vectorSelfDotParamOffset = offset;
+            cuda.SetParameter(cuFuncEval, offset, (uint)align);
+            offset += sizeof(int);
+
+            vectorSelfSumParamOffset = offset;
             cuda.SetParameter(cuFuncEval, offset, 0);
             offset += sizeof(int);
 
@@ -94,33 +114,40 @@ namespace KMLib.GPU.GPUEvaluators
         {
             base.Init();
 
-             SetCudaDataForERTILP();
+            SetCudaDataForFormat();
 
              SetCudaEvalFunctionParams();
         }
 
-        private void SetCudaDataForERTILP()
+        private void SetCudaDataForFormat()
         {
+
+
+            evalThreads = threadsPerRow * sliceSize;
+            int N = sizeSV;
+            evalBlocks = (int)Math.Ceiling(1.0 * N * threadsPerRow / evalThreads);
+
+            align = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
+
 
             float[] vecVals;
             int[] vecColIdx;
             int[] vecLenght;
+            int[] sliceStart;
 
-            
+            CudaHelpers.TransformToSlicedEllpack(out vecVals, out vecColIdx, out sliceStart, out vecLenght, TrainedModel.SupportElements, threadsPerRow, sliceSize);
 
-            evalBlocks = (int)Math.Ceiling((ThreadsPerRow * sizeSV + 0.0) / evalThreads);
-            int align = ThreadsPerRow * Prefetch;
-            CudaHelpers.TransformToERTILPFormat(out vecVals, out vecColIdx, out vecLenght, TrainedModel.SupportElements, align, ThreadsPerRow);
-           
-            float[] selfLinDot = TrainedModel.SupportElements.Select(c => c.DotProduct()).ToArray();
+            float[] selfSum = TrainedModel.SupportElements.AsParallel().Select(c => c.Values.Sum()).ToArray();
 
  
+            //copy data to device, set cuda function parameters
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
             idxPtr = cuda.CopyHostToDevice(vecColIdx);
             vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
+            sliceStartPtr = cuda.CopyHostToDevice(sliceStart);
             
-            selfDotPtr = cuda.CopyHostToDevice(selfLinDot);
+            selfSumPtr = cuda.CopyHostToDevice(selfSum);
 
             
 
@@ -131,8 +158,8 @@ namespace KMLib.GPU.GPUEvaluators
             if (cuda != null)
             {
 
-                cuda.Free(selfDotPtr);
-                selfDotPtr.Pointer = IntPtr.Zero;
+                cuda.Free(selfSumPtr);
+                selfSumPtr.Pointer = IntPtr.Zero;
 
                 DisposeResourses();
 
