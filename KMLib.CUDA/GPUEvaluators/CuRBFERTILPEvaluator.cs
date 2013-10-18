@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KMLib.Helpers;
 
 namespace KMLib.GPU.GPUEvaluators
 {
@@ -30,6 +31,7 @@ namespace KMLib.GPU.GPUEvaluators
         /// how many non zero elements are loaded in cuda kernel
         /// </summary>
         private int Prefetch=2;
+        private int vectorSelfDotParamOffset;
 
 
 
@@ -86,7 +88,12 @@ namespace KMLib.GPU.GPUEvaluators
 
             cuda.SetParameterSize(cuFuncEval, (uint)offset);
         }
-         
+
+
+        protected override void SetCudaEvalFuncParamsForVector(SparseVec vec)
+        {
+            cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
+        }
 
        
 

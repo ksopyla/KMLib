@@ -93,7 +93,7 @@ namespace KMLib.GPU
         /// </summary>
         protected uint vectorsDimMemSize=0;
 
-        protected int vectorSelfDotParamOffset;
+        
         protected int texSelParamOffset;
         protected int kernelResultParamOffset;  
         
@@ -179,6 +179,19 @@ namespace KMLib.GPU
 
         #endregion
 
+        
+        abstract protected void SetCudaEvalFunctionParams();
+
+
+        /// <summary>
+        /// sets the parameters for vector evaluation
+        /// </summary>
+        virtual protected void SetCudaEvalFuncParamsForVector(SparseVec vec)
+        {
+            //default empty implementation, only some kernels need set parameter based on current vector eg. RBF - needs vec.Dot()
+            //expChi2 - needs - vec.Sum();
+        }
+
         public override float[] Predict(SparseVec[] elements)
         {
 
@@ -207,8 +220,12 @@ namespace KMLib.GPU
                         cuda.CopyHostToDevice(mainVecCuPtr[s], mainVecIntPtrs[s], vectorsDimMemSize);
 
                         cuda.SetParameter(cuFuncEval, kernelResultParamOffset, evalOutputCuPtr[s]);
-                        cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
+                        //cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
+                        SetCudaEvalFuncParamsForVector(vec);
                         cuda.SetParameter(cuFuncEval, texSelParamOffset, s + 1);
+
+                        
+
                         cuda.Launch(cuFuncEval, evalBlocks, 1);
 
                         float[] t = new float[sizeSV];
@@ -267,6 +284,9 @@ namespace KMLib.GPU
             return prediction;
         }
 
+       
+        
+
       
 
         private float ReduceOnHost(IntPtr reduceIntPtr, int reduceSize)
@@ -317,7 +337,7 @@ namespace KMLib.GPU
 
         }
 
-        abstract protected void SetCudaEvalFunctionParams();
+      
         
 
         protected void SetCudaRedFunctionParams()

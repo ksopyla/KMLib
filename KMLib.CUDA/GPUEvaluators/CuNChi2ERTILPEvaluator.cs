@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KMLib.Helpers;
 
 namespace KMLib.GPU.GPUEvaluators
 {
@@ -26,10 +27,7 @@ namespace KMLib.GPU.GPUEvaluators
         /// how many non zero elements are loaded in cuda kernel
         /// </summary>
         private int Prefetch=2;
-        private int vectorSelfSumParamOffset;
-
-
-
+        
         public CuNChi2ERTILPEvaluator(float gamma)
         {
             cudaEvaluatorKernelName = "nChi2ERTILPEvaluator";
@@ -69,7 +67,6 @@ namespace KMLib.GPU.GPUEvaluators
 
             cuda.SetParameterSize(cuFuncEval, (uint)offset);
         }
-         
 
        
 

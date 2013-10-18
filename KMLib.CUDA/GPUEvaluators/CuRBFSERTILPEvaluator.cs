@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KMLib.Helpers;
 
 namespace KMLib.GPU.GPUEvaluators
 {
@@ -38,6 +39,7 @@ namespace KMLib.GPU.GPUEvaluators
         private int sliceSize;
         private int align;
         private int preFechSize;
+        private int vectorSelfDotParamOffset;
 
 
 
@@ -52,6 +54,12 @@ namespace KMLib.GPU.GPUEvaluators
             sliceSize = 64;
             preFechSize = 2;
 
+        }
+
+
+        protected override void SetCudaEvalFuncParamsForVector(SparseVec vec)
+        {
+            cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
         }
 
         protected override void SetCudaEvalFunctionParams()

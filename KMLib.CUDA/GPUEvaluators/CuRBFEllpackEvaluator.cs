@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KMLib.Helpers;
 
 namespace KMLib.GPU.GPUEvaluators
 {
@@ -20,6 +21,7 @@ namespace KMLib.GPU.GPUEvaluators
 
         
         private float gamma;
+        private int vectorSelfDotParamOffset;
 
 
 
@@ -76,8 +78,12 @@ namespace KMLib.GPU.GPUEvaluators
 
             cuda.SetParameterSize(cuFuncEval, (uint)offset);
         }
-         
 
+
+        protected override void SetCudaEvalFuncParamsForVector(SparseVec vec)
+        {
+            cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
+        }
        
 
         public override void Init()

@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KMLib.Helpers;
 
 namespace KMLib.GPU.GPUEvaluators
 {
@@ -25,6 +26,7 @@ namespace KMLib.GPU.GPUEvaluators
 
         
         private float gamma;
+        private int vectorSelfDotParamOffset;
 
 
 
@@ -34,6 +36,11 @@ namespace KMLib.GPU.GPUEvaluators
             cudaEvaluatorKernelName = "rbfCsrEvaluator";
             cudaModuleName = "KernelsEllpack.cubin";
 
+        }
+
+        protected override void SetCudaEvalFuncParamsForVector(SparseVec vec)
+        {
+            cuda.SetParameter(cuFuncEval, vectorSelfDotParamOffset, vec.DotProduct());
         }
 
         protected override void SetCudaEvalFunctionParams()
@@ -88,12 +95,12 @@ namespace KMLib.GPU.GPUEvaluators
         {
             base.Init();
 
-             SetCudaDataForEllpack();
+             SetCudaData();
 
              SetCudaEvalFunctionParams();
         }
 
-        private void SetCudaDataForEllpack()
+        private void SetCudaData()
         {
 
             float[] vecVals;
