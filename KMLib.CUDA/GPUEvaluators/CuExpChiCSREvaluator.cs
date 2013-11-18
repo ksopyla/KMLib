@@ -8,40 +8,39 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using KMLib.Helpers;
 
 namespace KMLib.GPU.GPUEvaluators
 {
 
-
     /// <summary>
-    /// Class for prediction with Chi^2 kernel in Sliced-Ellpack format 
+    /// Prediction with ExpChi2 kernel in CSR format
+    /// Prediction is done one by one, with use of Cuda streams and asynchronous computation of two prediction vectors
     /// </summary>
-    public class CuNChiSlEllEvaluator : CuEvaluator
+    public class CuExpChiCSREvaluator: CuEvaluator
     {
         private GASS.CUDA.Types.CUdeviceptr valsPtr;
         private GASS.CUDA.Types.CUdeviceptr idxPtr;
-        private GASS.CUDA.Types.CUdeviceptr vecLengthPtr;
-        private GASS.CUDA.Types.CUdeviceptr sliceStartPtr;
+        private GASS.CUDA.Types.CUdeviceptr vecPointerPtr;
+        private GASS.CUDA.Types.CUdeviceptr selfSumPtr;
 
-        /// <summary>
-        /// how many threads are assigned for row
-        /// </summary>
-        private int threadsPerRow=4;
+        
+        private float gamma;
+        private int vectorSelfSumParamOffset;
 
-        /// <summary>
-        /// how big the matrix slice is
-        /// </summary>
-        private int sliceSize=64;
-        private int align;
 
-        public CuNChiSlEllEvaluator(float gamma)
+
+        public CuExpChiCSREvaluator(float gamma)
         {
-            cudaEvaluatorKernelName = "nChi2SliceEllpackEvaluator";
-            cudaModuleName = "KernelsSlicedEllpack.cubin";
+            this.gamma = gamma;
+            cudaEvaluatorKernelName = "expChiCsrEvaluator";
+            cudaModuleName = "KernelsCSR.cubin";
 
-            //threadsPerRow = 4;
-            //sliceSize = 64;
+        }
 
+        protected override void SetCudaEvalFuncParamsForVector(SparseVec vec)
+        {
+            cuda.SetParameter(cuFuncEval, vectorSelfSumParamOffset, vec.Values.Sum() );
         }
 
         protected override void SetCudaEvalFunctionParams()
@@ -56,10 +55,10 @@ namespace KMLib.GPU.GPUEvaluators
             cuda.SetParameter(cuFuncEval, offset, idxPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFuncEval, offset, vecLengthPtr.Pointer);
+            cuda.SetParameter(cuFuncEval, offset, vecPointerPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFuncEval, offset, sliceStartPtr.Pointer);
+            cuda.SetParameter(cuFuncEval, offset, selfSumPtr.Pointer);
             offset += IntPtr.Size;
 
             cuda.SetParameter(cuFuncEval, offset, alphasPtr.Pointer);
@@ -75,8 +74,12 @@ namespace KMLib.GPU.GPUEvaluators
             cuda.SetParameter(cuFuncEval, offset, (uint)sizeSV);
             offset += sizeof(int);
 
-            cuda.SetParameter(cuFuncEval, offset, (uint)align);
+            vectorSelfSumParamOffset = offset;
+            cuda.SetParameter(cuFuncEval, offset, 0);
             offset += sizeof(int);
+
+            cuda.SetParameter(cuFuncEval, offset, gamma);
+            offset += sizeof(float);
 
             texSelParamOffset = offset;
             cuda.SetParameter(cuFuncEval, offset, 1);
@@ -92,44 +95,41 @@ namespace KMLib.GPU.GPUEvaluators
         {
             base.Init();
 
-            SetCudaDataForFormat();
+             SetCudaData();
 
              SetCudaEvalFunctionParams();
         }
 
-        private void SetCudaDataForFormat()
+        private void SetCudaData()
         {
 
-
-            evalThreads = threadsPerRow * sliceSize;
-            int N = sizeSV;
-            evalBlocks = (int)Math.Ceiling(1.0 * N * threadsPerRow / evalThreads);
-
-            align = (int)Math.Ceiling(1.0 * sliceSize * threadsPerRow / 64) * 64;
-
-
             float[] vecVals;
-            int[] vecColIdx;
+            int[] vecIdx;
             int[] vecLenght;
-            int[] sliceStart;
 
-            CudaHelpers.TransformToSlicedEllpack(out vecVals, out vecColIdx, out sliceStart, out vecLenght, TrainedModel.SupportElements, threadsPerRow, sliceSize);
+            CudaHelpers.TransformToCSRFormat(out vecVals, out vecIdx, out vecLenght, TrainedModel.SupportElements);
 
-            float[] selfSum = TrainedModel.SupportElements.AsParallel().Select(c => c.Values.Sum()).ToArray();
+            
 
- 
-            //copy data to device, set cuda function parameters
+            float[] selfSumDot = TrainedModel.SupportElements.Select(c => c.Values.Sum()).ToArray();
+
+            evalBlocks = (sizeSV+evalThreads-1) / evalThreads;
+            
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
-            idxPtr = cuda.CopyHostToDevice(vecColIdx);
-            vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
-            sliceStartPtr = cuda.CopyHostToDevice(sliceStart);
+            idxPtr = cuda.CopyHostToDevice(vecIdx);
+            vecPointerPtr = cuda.CopyHostToDevice(vecLenght);
+            selfSumPtr = cuda.CopyHostToDevice(selfSumDot);
+
         }
 
         public void Dispose()
         {
             if (cuda != null)
             {
+
+                cuda.Free(selfSumPtr);
+                selfSumPtr.Pointer = IntPtr.Zero;
 
                 DisposeResourses();
 

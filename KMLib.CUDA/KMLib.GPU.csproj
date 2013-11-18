@@ -151,12 +151,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GPUEvaluators\CuNChi2CSREvaluator.cs" />
+    <Compile Include="GPUEvaluators\CuExpChiCSREvaluator.cs" />
     <Compile Include="GPUEvaluators\CuRBFCSREvaluator.cs" />
     <Compile Include="GPUEvaluators\CuNChi2ERTILPEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuExpChiERTILPEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuNChi2SERTILPEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuExpChiSERTILPEvaluator.cs" />
-    <Compile Include="GPUEvaluators\CuNChiSlEllEvaluator.cs" />
+    <Compile Include="GPUEvaluators\CuNChi2SlEllEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuExpChiSlEllEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuNChi2EllpackEvaluator.cs" />
     <Compile Include="GPUEvaluators\CuExpChiEllpackEvaluator.cs" />

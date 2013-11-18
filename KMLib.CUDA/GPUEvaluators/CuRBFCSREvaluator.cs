@@ -34,7 +34,7 @@ namespace KMLib.GPU.GPUEvaluators
         {
             this.gamma = gamma;
             cudaEvaluatorKernelName = "rbfCsrEvaluator";
-            cudaModuleName = "KernelsEllpack.cubin";
+            cudaModuleName = "KernelsCSR.cubin";
 
         }
 
@@ -122,6 +122,25 @@ namespace KMLib.GPU.GPUEvaluators
             selfDotPtr = cuda.CopyHostToDevice(selfLinDot);
 
         }
+
+        public void Dispose()
+        {
+            if (cuda != null)
+            {
+
+                cuda.Free(selfDotPtr);
+                selfDotPtr.Pointer = IntPtr.Zero;
+
+                DisposeResourses();
+
+                cuda.UnloadModule(cuModule);
+                base.Dispose();
+                cuda.Dispose();
+                cuda = null;
+            }
+        }
+
+
 
     }
 }

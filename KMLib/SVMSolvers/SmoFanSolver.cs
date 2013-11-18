@@ -726,6 +726,10 @@ namespace KMLib.SVMSolvers
         }
 
 
+        public override string ToString()
+        {
+            return "SmoFanSolver";
+        }
         
     }
 }

@@ -12,31 +12,31 @@ using KMLib.Helpers;
 
 namespace KMLib.GPU.GPUEvaluators
 {
-    public class CuNChi2ERTILPEvaluator : CuEvaluator
+
+    /// <summary>
+    /// Prediction with Chi2 kernel in CSR format
+    /// Prediction is done one by one, with use of Cuda streams and asynchronous computation of two prediction vectors
+    /// </summary>
+    public class CuNChi2CSREvaluator: CuEvaluator
     {
         private GASS.CUDA.Types.CUdeviceptr valsPtr;
         private GASS.CUDA.Types.CUdeviceptr idxPtr;
-        private GASS.CUDA.Types.CUdeviceptr vecLengthPtr;
+        private GASS.CUDA.Types.CUdeviceptr vecPointerPtr;
 
-        /// <summary>
-        /// how many threads are assigned for row
-        /// </summary>
-        private int ThreadsPerRow=4;
 
-        /// <summary>
-        /// how many non zero elements are loaded in cuda kernel
-        /// </summary>
-        private int Prefetch=2;
-        
-        public CuNChi2ERTILPEvaluator()
+
+        public CuNChi2CSREvaluator()
         {
-            cudaEvaluatorKernelName = "nChi2ERTILPEvaluator";
-            cudaModuleName = "KernelsEllpack.cubin";
+            cudaEvaluatorKernelName = "nChi2CsrEvaluator";
+            cudaModuleName = "KernelsCSR.cubin";
 
         }
 
+       
         protected override void SetCudaEvalFunctionParams()
         {
+
+
             cuda.SetFunctionBlockShape(cuFuncEval, evalThreads, 1, 1);
 
             int offset = 0;
@@ -45,7 +45,7 @@ namespace KMLib.GPU.GPUEvaluators
             cuda.SetParameter(cuFuncEval, offset, idxPtr.Pointer);
             offset += IntPtr.Size;
 
-            cuda.SetParameter(cuFuncEval, offset, vecLengthPtr.Pointer);
+            cuda.SetParameter(cuFuncEval, offset, vecPointerPtr.Pointer);
             offset += IntPtr.Size;
 
             cuda.SetParameter(cuFuncEval, offset, alphasPtr.Pointer);
@@ -67,35 +67,32 @@ namespace KMLib.GPU.GPUEvaluators
 
             cuda.SetParameterSize(cuFuncEval, (uint)offset);
         }
-
        
 
         public override void Init()
         {
             base.Init();
 
-             SetCudaDataForERTILP();
+             SetCudaData();
 
              SetCudaEvalFunctionParams();
         }
 
-        private void SetCudaDataForERTILP()
+        private void SetCudaData()
         {
 
             float[] vecVals;
-            int[] vecColIdx;
+            int[] vecIdx;
             int[] vecLenght;
 
+            CudaHelpers.TransformToCSRFormat(out vecVals, out vecIdx, out vecLenght, TrainedModel.SupportElements);
+          
+            evalBlocks = (sizeSV+evalThreads-1) / evalThreads;
             
-
-            evalBlocks = (int)Math.Ceiling((ThreadsPerRow * sizeSV + 0.0) / evalThreads);
-            int align = ThreadsPerRow * Prefetch;
-            CudaHelpers.TransformToERTILPFormat(out vecVals, out vecColIdx, out vecLenght, TrainedModel.SupportElements, align, ThreadsPerRow);
-           
             //copy data to device, set cuda function parameters
             valsPtr = cuda.CopyHostToDevice(vecVals);
-            idxPtr = cuda.CopyHostToDevice(vecColIdx);
-            vecLengthPtr = cuda.CopyHostToDevice(vecLenght);
+            idxPtr = cuda.CopyHostToDevice(vecIdx);
+            vecPointerPtr = cuda.CopyHostToDevice(vecLenght);
 
         }
 

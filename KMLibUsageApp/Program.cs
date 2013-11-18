@@ -132,7 +132,7 @@ namespace KMLibUsageApp
             //IKernel<Vector> kernel = new PolinominalKernel(3, 0.5, 0.5);
             //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
-            // IKernel<SparseVec> kernel = new ChiSquaredKernel();
+            //IKernel<SparseVec> kernel = new ChiSquaredKernel();
             //IKernel<SparseVec> kernel = new ChiSquaredNormKernel();
             IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
             
@@ -403,6 +403,9 @@ namespace KMLibUsageApp
             Evaluator<SparseVec> evaluator = new CudaLinearCSREvaluator();
             IKernel<SparseVec> kernel = new CuLinearKernel();
 
+
+            
+
             foreach (var data in dataSetsToTest)
             {
                 trainningFile = data.Item1;
@@ -454,13 +457,12 @@ namespace KMLibUsageApp
             Trace.AutoFlush = true;
 
 
-            
+            //Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+            //IList<IKernel<SparseVec>> kernelsCollection = CreateKernels();
 
-
-            Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
             Model<SparseVec> model=null;
 
-            IList<IKernel<SparseVec>> kernelsCollection = CreateKernels();
+            var kerEval = CreatePairsKernelEvaluator();
 
             IList<string> solversStr = new List<string> { "ParallelSMO","GpuFanSolver" };// "ParallelSMO", 
 
@@ -490,9 +492,13 @@ namespace KMLibUsageApp
                 {
 
                     Trace.WriteLine(string.Format("Solver: {0}", solverStr));
-                    Trace.WriteLine(string.Format("Results time[s]:{0,68} {1,9} {2,12} {3,9}", "it", "obj","nSV","acc" ));
-                    foreach (var kernel in kernelsCollection)
+                    Trace.WriteLine(string.Format("Results time[s]:{0,38} {1,30} {2,9} {3,12} {4,9}","predTime", "it", "obj","nSV","acc" ));
+                    foreach (var kernelEval in kerEval)
                     {
+
+                        var kernel = kernelEval.Item1;
+                        var evaluator = kernelEval.Item2;
+
                         string kernelStr = kernel.ToString();
                         Trace.Write(string.Format("{0}  {1,-17}:", DateTime.Now, kernelStr));
 
@@ -516,13 +522,21 @@ namespace KMLibUsageApp
                                 double mTime = modelTimes[i] / 1000.0;
                                 Trace.Write(string.Format(" {0,9}; ", mTime.ToString("0.0")));
 
+                                SaveModel(trainningFile, model, kernel, solver);
+
                             }
                         }
-                        catch (Exception e)
+                        catch (OutOfMemoryException e)
                         {
 
                             Trace.WriteLine(string.Format(" {0,9}; ", "xxxx"));
-                            //Trace.TraceError(e.Message);
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine("** Error **");
+                            Trace.TraceError(ex.Message);
+                            Trace.WriteLine("** Error **");
                             continue;
                         }
                         finally
@@ -539,20 +553,51 @@ namespace KMLibUsageApp
 
                         }
 
+
+                        try
+                        {
                         evaluator.Kernel = kernel;
                         evaluator.TrainedModel = model;
 
                         evaluator.Init();
- 
+
+                        Stopwatch predTime = Stopwatch.StartNew();
                         float[] predictions = evaluator.Predict(test.Elements);
+                        predTime.Stop();
+
                         double acc = GetAccuracy(test, predictions);
 
                         int it = model.Iter;
                         float obj = model.Obj;
                         int nSv = model.SupportElements.Length;
 
-                        Trace.WriteLine(string.Format("{0,7}\t{1}\t{2}\t{3} ", it, obj.ToString("0.00"), nSv, acc.ToString("n5")));
+                        double predT = predTime.ElapsedMilliseconds / 1000.0;
                         
+
+                        Trace.WriteLine(string.Format("{0,7}\t{1}\t{2}\t{3}\t{4} ", predT.ToString("0.0"), it, obj.ToString("0.00"), nSv, acc.ToString("n5")));
+                        }
+                        catch (OutOfMemoryException e)
+                        {
+
+                            Trace.WriteLine(string.Format(" {0,9}; ", "xxxx"));
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine("** Error **");
+                            Trace.TraceError(ex.Message);
+                            Trace.WriteLine("** Error **");
+                            continue;
+                        }
+                        finally
+                        {
+
+
+                            var disEvaluator = evaluator as IDisposable;
+                            if (disEvaluator != null)
+                                disEvaluator.Dispose();
+                        }
+
                     }
 
                 }
@@ -587,6 +632,20 @@ namespace KMLibUsageApp
             };
 
             return kernelsCollection;
+        }
+
+
+        private static IList<Tuple<IKernel<SparseVec>, Evaluator<SparseVec>>> CreatePairsKernelEvaluator()
+        {
+            IList<Tuple<IKernel<SparseVec>,Evaluator<SparseVec>>>  list= new List<Tuple<IKernel<SparseVec>,Evaluator<SparseVec>>> {
+                new Tuple<IKernel<SparseVec>,Evaluator<SparseVec>>(new CuExpChiCSRKernel(gamma),new CuExpChiCSREvaluator(gamma)),
+                new Tuple<IKernel<SparseVec>,Evaluator<SparseVec>>(new CuExpChiEllKernel(gamma),new CuExpChiEllpackEvaluator(gamma)),
+                new Tuple<IKernel<SparseVec>,Evaluator<SparseVec>>(new CuExpChiSlEllKernel(gamma),new CuExpChiSlEllEvaluator(gamma)),
+                new Tuple<IKernel<SparseVec>,Evaluator<SparseVec>>(new CuExpChiERTILPKernel(gamma),new CuExpChiERTILPEvaluator(gamma)),
+                new Tuple<IKernel<SparseVec>,Evaluator<SparseVec>>(new CuExpChiSERTILPKernel(gamma),new CuExpChiSERTILPEvaluator(gamma)),
+            };
+
+            return list;
         }
 
         private static double GetAccuracy(Problem<SparseVec> test, float[] predictions)
@@ -635,15 +694,15 @@ namespace KMLibUsageApp
 
 
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/w8a",
-            //    dataFolder + "/w8a.t",
-            //    300));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/w8a",
+                dataFolder + "/w8a.t",
+                300));
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/a9a",
-            //    dataFolder + "/a9a.t",
-            //    123));
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/a9a",
+                dataFolder + "/a9a.t",
+                123));
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/news20.binary",
@@ -684,17 +743,17 @@ namespace KMLibUsageApp
                dataFolder + "/webspam_wc_normalized_unigram.svm",
                254));
 
-            //dataSets.Add(new Tuple<string, string, int>(
-            //    dataFolder + "/kytea-msr_first_1M.train",
-            //    dataFolder + "/kytea-msr.test",
-            //    8683737));
 
             dataSets.Add(new Tuple<string, string, int>(
                 dataFolder + "/kytea-msr_first_500k.train",
                 dataFolder + "/kytea-msr.test",
                 8683737));
 
-            
+
+            dataSets.Add(new Tuple<string, string, int>(
+                dataFolder + "/kytea-msr_first_1M.train",
+                dataFolder + "/kytea-msr.test",
+                8683737));
 
             //dataSets.Add(new Tuple<string, string, int>(
             //   dataFolder + "/url_combined_1.5M.train",
@@ -750,12 +809,12 @@ namespace KMLibUsageApp
             #endregion
 
 
-            trainningFile = dataFolder + "/a1a.train";
-            //testFile = dataFolder + "/a1a.test";
-            ////testFile = dataFolder + "/a1a.train";
-            testFile = dataFolder + "/a1a.train";
-            //in a1a problem max index is 123
-            numberOfFeatures = 123;
+            //trainningFile = dataFolder + "/a1a.train";
+            ////testFile = dataFolder + "/a1a.test";
+            //////testFile = dataFolder + "/a1a.train";
+            //testFile = dataFolder + "/a1a.train";
+            ////in a1a problem max index is 123
+            //numberOfFeatures = 123;
 
 
             //trainningFile = dataFolder + "/a9a";
@@ -768,9 +827,9 @@ namespace KMLibUsageApp
             ////testFile = dataFolder + "/a9a";
             //numberOfFeatures = 123;
 
-            //trainningFile = dataFolder + "/w8a";
-            //testFile = dataFolder + "/w8a.t";
-            //numberOfFeatures = 300;
+            trainningFile = dataFolder + "/w8a";
+            testFile = dataFolder + "/w8a.t";
+            numberOfFeatures = 300;
 
             ////trainningFile = dataFolder + "/rcv1_train.binary";
             ////testFile = dataFolder + "/rcv1_test.binary";
@@ -875,10 +934,29 @@ namespace KMLibUsageApp
             
             //Evaluator<SparseVec> evaluator = new RBFDualEvaluator(gamma);
             Evaluator<SparseVec> evaluator = new DualEvaluator<SparseVec>();
+
+            //CSR
+            //Evaluator<SparseVec> evaluator = new CuRBFCSREvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new CuNChi2CSREvaluator();
+            //Evaluator<SparseVec> evaluator = new CuExpChiCSREvaluator(gamma);
+            
+            //ELL-ILP
             //Evaluator<SparseVec> evaluator = new CuRBFEllILPEvaluator(gamma);
+            
+            //ELLPACK
             //Evaluator<SparseVec> evaluator = new CuRBFEllpackEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new CuNChi2EllpackEvaluator();
+            //Evaluator<SparseVec> evaluator = new CuExpChiEllpackEvaluator(gamma);
+            
+            //ERTILP
             //Evaluator<SparseVec> evaluator = new CuRBFERTILPEvaluator(gamma);
+            //Evaluator<SparseVec> evaluator = new CuNChi2ERTILPEvaluator();
+            //Evaluator<SparseVec> evaluator = new CuExpChiERTILPEvaluator(gamma);
+            
+            //SLIECED ELLPACK
             //Evaluator<SparseVec> evaluator = new CuRBFSlEllEvaluator(gamma);
+            
+            //SERTILP
             //Evaluator<SparseVec> evaluator = new CuRBFSERTILPEvaluator(gamma);
 
 
@@ -910,9 +988,10 @@ namespace KMLibUsageApp
 
             //********** ExpChi2 Kernels ********************//
             
-            //IKernel<SparseVec> kernel = new CuExpChiCSRKernel(gamma);
+            IKernel<SparseVec> kernel = new CuExpChiCSRKernel(gamma);
+            
             //IKernel<SparseVec> kernel = new CuExpChiERTILPKernel(gamma);
-            IKernel<SparseVec> kernel = new CuExpChiSERTILPKernel(gamma);
+            //IKernel<SparseVec> kernel = new CuExpChiSERTILPKernel(gamma);
 
             //IKernel<SparseVec> kernel = new CuExpChiEllKernel(gamma);
             //IKernel<SparseVec> kernel = new CuExpChiSlEllKernel(gamma);
@@ -921,6 +1000,8 @@ namespace KMLibUsageApp
             #endregion
             //IKernel<SparseVec> kernel = new RbfKernel(gamma);
             //IKernel<SparseVec> kernel = new LinearKernel();
+            //IKernel<SparseVec> kernel = new ExpChiSquareKernel(gamma);
+
 
             Console.WriteLine("kernel init");
             kernel.ProblemElements = train.Elements;
@@ -1258,8 +1339,6 @@ namespace KMLibUsageApp
             acc = validation.TrainAndTestValidation(train, test);
             //.TestValidation(train, test, kernel, penaltyC[i]);
             timer.Stop();
-
-            
 
             Console.WriteLine("Validation on test data best acuuracy = {0} C={1} time={2} ms={3}", acc, paramC, timer.Elapsed, timer.ElapsedMilliseconds);
 

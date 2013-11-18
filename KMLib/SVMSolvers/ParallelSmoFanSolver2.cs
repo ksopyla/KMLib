@@ -179,7 +179,7 @@ namespace KMLib.SVMSolvers
         /// size of each problem chunk
         /// </summary>
         int rangeSize;
-        private int IterMaX=3000000;
+        private int IterMaX=5000000;
 
         #endregion
 
@@ -399,6 +399,7 @@ namespace KMLib.SVMSolvers
 
             int processors = Environment.ProcessorCount;
 
+           
             while (iter<IterMaX)
             {
                 if (--counter == 0)
@@ -424,11 +425,15 @@ namespace KMLib.SVMSolvers
                 int i = working_set[0];
                 int j = working_set[1];
 
+                
+               
+
                 ++iter;
                 // update alpha[i] and alpha[j], handle bounds carefully
                 float[] Q_i = Q.GetQ(i, active_size);
                 float[] Q_j = Q.GetQ(j, active_size);
 
+               
                 float C_i = get_C(i);
                 float C_j = get_C(j);
 
@@ -529,19 +534,7 @@ namespace KMLib.SVMSolvers
 
 
 
-                //for (int k = 0; k < active_size; k++)
-                //{
-                //    G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
-
-                //    if (float.IsNaN(G[k]))
-                //    {
-                //        Console.WriteLine("iter=" + iter);
-                //        Console.WriteLine("k={0} i={1} j={2} ", k, i,j);
-                //        Console.WriteLine("{0} {1} {2} {3} {4}", G[k], Q_i[k], delta_alpha_i, Q_j[k], delta_alpha_j);
-
-                //        System.Environment.Exit(-1);
-                //    }
-                //}
+               
 
 
                 UpdateGradients(Q_i, Q_j, delta_alpha_i, delta_alpha_j);
@@ -579,21 +572,26 @@ namespace KMLib.SVMSolvers
                     }
                 }
 
+              
+
             }//end while
 
+
+
+            
+            
             // calculate rho
+
 
             si.rho = calculate_rho();
             si.iter = iter;
 
             // calculate objective value
             {
-                float v = 0;
-                int i;
-                for (i = 0; i < problemSize; i++)
-                    v += alpha[i] * (G[i] + p[i]);
+                double v = ObjVal();
 
-                si.obj = v / 2;
+
+                si.obj = (float)v;
             }
 
             // put back the solution
@@ -608,6 +606,16 @@ namespace KMLib.SVMSolvers
 
             si.upper_bound_p = Cp;
             si.upper_bound_n = Cn;
+        }
+
+        private double ObjVal()
+        {
+            double v = 0;
+            int i;
+            for (i = 0; i < problemSize; i++)
+                v += alpha[i] * (G[i] + p[i]);
+            v = v / 2;
+            return v;
         }
 
         private void UpdateGradients(float[] Q_i, float[] Q_j, float delta_alpha_i, float delta_alpha_j)
@@ -1087,7 +1095,10 @@ namespace KMLib.SVMSolvers
         }
 
 
-
+        public override string ToString()
+        {
+            return "ParallelSmoFanSolver2";
+        }
 
 
         public void Dispose()

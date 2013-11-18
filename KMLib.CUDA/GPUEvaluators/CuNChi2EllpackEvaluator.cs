@@ -22,7 +22,7 @@ namespace KMLib.GPU.GPUEvaluators
         private GASS.CUDA.Types.CUdeviceptr idxPtr;
         private GASS.CUDA.Types.CUdeviceptr vecLengthPtr;
 
-        public CuNChi2EllpackEvaluator(float gamma)
+        public CuNChi2EllpackEvaluator()
         {
             cudaEvaluatorKernelName = "nChi2EllpackEvaluator";
             cudaModuleName = "KernelsEllpack.cubin";

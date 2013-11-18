@@ -791,5 +791,12 @@ namespace KMLib.GPU.Solvers
 
             }
         }
+
+
+        public override string ToString()
+        {
+            return "GPUSmoFanSolver";
+        }
+
     }
 }

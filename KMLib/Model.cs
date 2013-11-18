@@ -80,7 +80,8 @@ namespace KMLib
                 file.WriteLine("Kernel Params={0}",string.Join(";",KernelParams) );
                 file.WriteLine("#");
 
-                string.Join(System.Environment.NewLine, Alpha);
+                string alphaStr= string.Join(System.Environment.NewLine, Alpha);
+                file.Write(alphaStr);
 
             }
 

@@ -107,6 +107,8 @@ namespace KMLib.Kernels
 
                 kernel.AllProducts(i, data);
 
+                //System.IO.File.WriteAllLines("kernel.txt", data.Select(d => d.ToString()));
+
                 // for (j = start; j < len; j++)
                 //     data[j] = (y[i] * y[j] * kernel.Product(i, j));
 
