@@ -47,11 +47,10 @@ namespace KMLib.SVMSolvers
 
             int[] perm = new int[l];
             // group training data of the same class
-            //GroupClassesReturn rv = groupClasses(prob, perm);
             int nr_class = 0;
-            int[] label;// = new int[l];// = rv.label;
-            int[] start;// = rv.start;
-            int[] count;// = rv.count;
+            int[] label;
+            int[] start;
+            int[] count;
 
             groupClasses(problem, out nr_class, out label, out start, out count, perm);
 
@@ -94,11 +93,6 @@ namespace KMLib.SVMSolvers
             {
 
                 float[] w = new float[w_size];
-                //for (int z = 0; z < w.Length; z++)
-                //{
-                //    w[z] = 1.0f;
-                //}
-
 
                 int e0 = start[0] + count[0];
                 int k = 0;
@@ -110,7 +104,6 @@ namespace KMLib.SVMSolvers
 
 
                 solve_l2r_l2_svc_parallel(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
-                //solve_l2r_l1l2_svc(model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
 
                 model.W = new double[w_size];
                 for (int s = 0; s < w.Length; s++)
@@ -138,7 +131,6 @@ namespace KMLib.SVMSolvers
                     for (; k < sub_prob.ElementsCount; k++)
                         sub_prob.Y[k] = -1;
 
-                    //train_one(sub_prob, param, w, weighted_C[i], param.C);
                     solve_l2r_l2_svc_parallel(sub_prob, w, epsilon, weighted_C[i], C);
 
                     for (j = 0; j < n; j++)
@@ -222,8 +214,6 @@ namespace KMLib.SVMSolvers
                 // xtemp = xi+hess_step*pi;
                 UpdateWandAlpha(alpha_temp, w_temp, alpha, w, hess_step, pi,sub_prob);
                 obj = ComputeObj(w_temp, alpha_temp, sub_prob, diag);
-                //computes -gradient
-                //grad = b-A*xtemp, 
                 ComputeGradient(sub_prob, w_temp, alpha_temp, diag,ref projGrad);
 
                 ComputeHessianVectorProduct(oldGrad, projGrad, hess_step, ref hessProd);
@@ -257,10 +247,6 @@ namespace KMLib.SVMSolvers
            
 
             Console.WriteLine("Objective value = {0} time={1} ms={2}", obj,st.Elapsed, st.ElapsedMilliseconds);
-            //Debug.WriteLine("nSV = {0}", nSV);
-
-
-
         }
 
 
@@ -354,7 +340,6 @@ namespace KMLib.SVMSolvers
                 var spVec = sub_prob.Elements[p];
                 float d = (update_alpha[p] - old_alpha); // we multiply by *y_i  4 lines lower
                 
-                //jeśli uaktualinienie jest małe
                 if (Math.Abs(d) < 1e-10)
                     continue;
                 sbyte y_i = (sbyte)sub_prob.Y[p];
@@ -410,11 +395,6 @@ namespace KMLib.SVMSolvers
                 {
                     grad[i] = Math.Min(0, grad[i]);
                 }
-                //else
-                //{
-                //    grad[i] = grad[i];
-                //    // projGrad_i[i] = grad_i[i];
-                //}
 
                 //minus gradient - descent direction
                 grad[i] = -grad[i];
