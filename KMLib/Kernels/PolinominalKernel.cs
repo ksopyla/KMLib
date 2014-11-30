@@ -28,9 +28,6 @@ namespace KMLib.Kernels
                 linKernel.ProblemElements = value;
 
                 base.ProblemElements = value;
-
-                //ComputeDiagonalDotCache();
-
             }
         }
 
@@ -47,9 +44,7 @@ namespace KMLib.Kernels
             Coef = coef;
             Gamma = gamma;
 
-            linKernel = new LinearKernel();
-
-            
+            linKernel = new LinearKernel();    
         }
 
 
