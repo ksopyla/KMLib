@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-//using dnAnalytics.LinearAlgebra;
 using KMLib.Kernels;
 using System.Threading.Tasks;
 using KMLib.Helpers;
@@ -54,9 +53,7 @@ namespace KMLib.Evaluate
                 i =>
                 {
 
-                    //for (int i = 0; i < elements.Length; i++)
-                    //{
-                    float x1Squere = elements[i].DotProduct();// linKernel.Product(elements[i], elements[i]);//linKernel.DiagonalDotCache[i];
+                    float x1Squere = elements[i].DotProduct();
                     
                     float sum = 0;
 
@@ -71,7 +68,6 @@ namespace KMLib.Evaluate
 
                         float rbfVal = (float)Math.Exp(-gamma * (x1Squere + x2Squere - 2 * dot));
 
-
                         index = TrainedModel.SupportElementsIndexes[k];
                         sum += TrainedModel.Alpha[index] * TrainedModel.Y[k] * rbfVal;
                     }
@@ -81,7 +77,6 @@ namespace KMLib.Evaluate
             );
 
             return predictions;
-
         }
 
         public override float PredictVal(SparseVec element)
@@ -100,14 +95,11 @@ namespace KMLib.Evaluate
 
                 float rbfVal = (float)Math.Exp(-gamma * (x1Squere + x2Squere - 2 * dot));
 
-
                 index = TrainedModel.SupportElementsIndexes[k];
                 sum += TrainedModel.Alpha[index] * TrainedModel.Y[k] * rbfVal;
             }
             sum -= TrainedModel.Bias;
             return sum;
         }
-
-       
     }
 }
