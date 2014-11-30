@@ -21,7 +21,6 @@ namespace KMLib.Kernels
             out float C, 
             out IKernel<SparseVec> kernel)
         {
-         //   throw new NotImplementedException();
             Debug.WriteLine("Starting Parameter Selection for Linear kernel");
 
             //create range for penalty parameter C
@@ -55,21 +54,12 @@ namespace KMLib.Kernels
 
                     double acc = valid.CrossValidateOnFolds(problem.ElementsCount, foldsElements, foldsLabels);
 
-                    //old code
-                    //var tmpKernel = new LinearKernel();
-
-                    //double acc = Validation.CrossValidateOnFolds(problem.ElementsCount,
-                    //                                             foldsElements,
-                    //                                             foldsLabels, tmpKernel,
-                    //                                             (float)paramC);
-
                     lock (lockObj)
                     {
                         if (acc > crossValidation)
                         {
                             crossValidation = acc;
                             maxC = paramC;
-                           // bestKernel = tmpKernel;
                         }
                     }
 
@@ -82,7 +72,6 @@ namespace KMLib.Kernels
 
             C = (float)maxC;
             kernel = bestKernel;
-
 
             Debug.WriteLine("\n");
             Debug.WriteLine("-------------- Grid Search summary ------------");
