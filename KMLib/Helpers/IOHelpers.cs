@@ -3,95 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-//using dnaLA = dnAnalytics.LinearAlgebra;
 using System.Globalization;
 
 namespace KMLib.Helpers
 {
     public class IOHelper
     {
-        /// <summary>
-        /// Reads vectos from file.
-        /// File format like in LIbSVM
-        /// label index:value index2:value .....
-        /// -1        4:0.5       10:0.9 ....
-        /// </summary>
-        /// <param name="fileName">Data set file name</param>
-        /// <returns></returns>
-        //public static Problem<Vector> ReadVectorsFromFile(string fileName)
-        //{
-
-
-
-        //    List<float> labels = new List<float>();
-
-        //    List<Vector> vectors = new List<Vector>();
-
-        //    using (FileStream fileStream = File.OpenRead(fileName))
-        //    {
-        //        using (StreamReader input = new StreamReader(fileStream))
-        //        {
-
-        //            int max_index = 0;
-
-        //            while (input.Peek() > -1)
-        //            {
-        //                string[] parts = input.ReadLine().Trim().Split();
-
-        //                //label
-        //                labels.Add(float.Parse(parts[0]));
-
-        //                //other parts with index and value
-        //                int m = parts.Length - 1;
-
-
-        //                List<Vector.Node> nodes = new List<Vector.Node>();
-
-
-        //                int index = 0;
-        //                float value;
-        //                for (int j = 0; j < m; j++)
-        //                {
-
-        //                    string[] nodeParts = parts[j + 1].Split(':');
-        //                    index = int.Parse(nodeParts[0]);
-        //                    value = float.Parse(nodeParts[1], System.Globalization.CultureInfo.InvariantCulture);
-
-        //                    nodes.Add(new Vector.Node(index, (float)value));
-        //                    // v[index] = value;
-
-        //                }
-
-        //                if (m > 0)
-        //                {
-        //                    max_index = Math.Max(max_index, index);
-        //                }
-        //                vectors.Add(new Vector(nodes));
-        //            }
-
-        //            //assing max index as  vector Dimension,
-        //            //not always true for different data sets
-        //            for (int i = 0; i < vectors.Count; i++)
-        //            {
-        //                vectors[i].Dimension = max_index;
-        //            }
-
-        //        }
-        //    }
-
-        //    //Problem<Vector> vectorProblem = new Problem<Vector>(vectors.ToArray(),labels.ToArray());
-
-
-        //    //vectorProblem.Elements = vectors.ToArray();
-        //    //vectorProblem.ElementsCount = vectors.Count;
-        //    //vectorProblem.Labels = labels.ToArray();
-
-        //    //return vectorProblem;
-
-        //    return new Problem<Vector>(vectors.ToArray(), labels.ToArray());
-        //}
-
-
         /// <summary>
         /// Reads vectos from file.
         /// File format like in LIbSVM
@@ -114,10 +31,6 @@ namespace KMLib.Helpers
             //counts how many labels we have
             Dictionary<float, int> coutLabels = new Dictionary<float, int>(10);
 
-            //list of array, each array symbolize vector
-            // List<KeyValuePair<int, float>[]> vectors = new List<KeyValuePair<int, float>[]>(listCapacity);
-            //new List<List<KeyValuePair<int, double>>>();
-
             //vector parts (index and value) separator
             char[] vecPartsSeparator = new char[] { ' ' };
             //separator between index and value in one part
@@ -133,8 +46,6 @@ namespace KMLib.Helpers
             {
                 using (StreamReader input = new StreamReader(fileStream))
                 {
-
-
                     //todo: string split function to many memory allocation, http://msdn.microsoft.com/en-us/library/b873y76a.aspx
                     while (input.Peek() > -1)
                     {
@@ -144,42 +55,6 @@ namespace KMLib.Helpers
                         int index = 0;
 
                         float value = 0;
-
-
-                        #region old code
-
-                        /*
-                        string[] parts =inputLine.Split(vecPartsSeparator,StringSplitOptions.RemoveEmptyEntries);
-
-                        //label
-                        labels.Add(float.Parse(parts[0],CultureInfo.InvariantCulture));
-
-                        //other parts with index and value
-                        int m = parts.Length - 1;
-
-                        //list of index and value for one vector
-                        List<KeyValuePair<int, double>> vec = new List<KeyValuePair<int, double>>(m);
-                        
-                       
-                        //extract index and value
-                        for (int j = 0; j < m; j++)
-                        {
-
-                            //string[] nodeParts = parts[j + 1].Split(idxValSeparator);
-                            //index = int.Parse(nodeParts[0]);
-                            //value = float.Parse(nodeParts[1], System.Globalization.CultureInfo.InvariantCulture);
-                            
-                            //it is more memory eficcient than above version with split
-                            indexSeparatorPosition = parts[j + 1].IndexOf(idxValSeparator[0]);
-                            index = int.Parse(parts[j+1].Substring(0,indexSeparatorPosition) );
-                            value = float.Parse(parts[j+1].Substring(indexSeparatorPosition+1));
-
-                            vec.Add(new KeyValuePair<int, double>(index, value));
-                            // v[index] = value;
-
-                        }
-                        */
-                        #endregion
 
                         //add one space to the end of line, needed for parsing
                         string oneLine = new StringBuilder(inputLine).Append(" ").ToString();
@@ -221,13 +96,11 @@ namespace KMLib.Helpers
 
                         }
 
-
                         if (vec.Count > 0)
                         {
                             max_index = Math.Max(max_index, index);
 
                         }
-
 
                         //we implictie set numberOfFeatures if max_index is less then numberOfFeatures
                         if (max_index <= numberOfFeatures)
@@ -237,8 +110,6 @@ namespace KMLib.Helpers
                             //how many previosus vectors has wrong (less) dim size
                             indexAboveFeature = dnaVectors.Count;
                         }
-
-                        // vectors.Add(vec.ToArray());
 
                         dnaVectors.Add(new SparseVec(max_index, vec));
 
@@ -256,12 +127,8 @@ namespace KMLib.Helpers
                 dnaVectors[i].Dim = max_index;
             }
 
-
-
             int numberOfClasses = coutLabels.Count;
             var elementClasses = coutLabels.Keys.ToArray();
-           
-           // Array.Sort(elementClasses);
 
             return new Problem<SparseVec>(dnaVectors.ToArray(), labels.ToArray(), max_index,numberOfClasses,elementClasses);
         }
