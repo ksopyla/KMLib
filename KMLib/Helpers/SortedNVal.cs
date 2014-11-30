@@ -16,8 +16,6 @@ namespace KMLib.Helpers
             Desc
         }
 
-        
-
         LinkedList<KeyValuePair<int, float>> sortedList;
 
         public int Count { get { return sortedList.Count; } }
@@ -36,11 +34,6 @@ namespace KMLib.Helpers
         {
             nSize = size;
             sortedList = new LinkedList<KeyValuePair<int, float>>();
-
-            //for (int i = 0; i < nSize; i++)
-            //{
-            //    sortedList.AddFirst(new KeyValuePair<int,float>(int.MinValue,float.MinValue);
-            //}
         }
 
         public SortedNVal(int size, SortMode mod)
@@ -62,8 +55,6 @@ namespace KMLib.Helpers
             {
                 return AddDesc(new KeyValuePair<int, float>(index, value));
             }
-
-
         }
 
         private bool AddDesc(KeyValuePair<int, float> pair)
@@ -81,9 +72,6 @@ namespace KMLib.Helpers
             }
             else
             {
-                //find place for element
-                //LinkedListNode<KeyValuePair<int,float>> toInsert = new LinkedListNode<KeyValuePair<int,float>>(pair);
-
                 var start = sortedList.First.Next;
                 var end = sortedList.Last;
 
@@ -142,10 +130,6 @@ namespace KMLib.Helpers
                     {
                         sortedList.AddLast(pair);
                     }
-                    //else if (start == end)
-                    //{
-                    //    sortedList.AddBefore(start, pair);
-                    //}
                     else
                     {
 
