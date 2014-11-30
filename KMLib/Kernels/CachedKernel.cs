@@ -95,53 +95,14 @@ namespace KMLib.Kernels
             float[] data = null;
             int start = 0;
 
-
-            //data = new float[problem.ElementsCount];
-            //for (int j = start; j < len; j++)
-            //    data[j] = (y[i] * y[j] * kernel.Product(i, j));
-
             //with cache
             if ((start = cache.GetData(i, ref data, len)) < len)
             {
-
-
                 kernel.AllProducts(i, data);
-
-                //System.IO.File.WriteAllLines("kernel.txt", data.Select(d => d.ToString()));
-
-                // for (j = start; j < len; j++)
-                //     data[j] = (y[i] * y[j] * kernel.Product(i, j));
-
-
-                //var  data2 = kernel.AllProducts(i);
-
-                //for (int k = 0; k < len; k++)
-                //{
-                //    if (data[k] != data2[k])
-                //        throw new InvalidOperationException(string.Format("different val on {0} position", k));
-                //}
-
-                //var partition = Partitioner.Create(start, len);
-
-                //Parallel.ForEach(partition, (range) =>
-                //{
-                //    for (int k = range.Item1; k < range.Item2; k++)
-                //    {
-                //        data[k] = (y[i] * y[k] * kernel.Product(i, k));
-                //    }
-
-                //});
-
-
-
             }
             else
                 CacheHit++;
 
-            //string debStr = i.ToString() + " ->" + string.Join("; ", data);
-            //Debug.WriteLine(debStr);
-
-            //Debug.WriteLine(i);
             return data;
         }
 
@@ -159,15 +120,8 @@ namespace KMLib.Kernels
         {
             cache.SwapIndex(i, j);
 
-            //ty była zamiana x[i] z x[i] oraz x_squere
-            //base.SwapIndex(i, j);
-
-            //_x.SwapIndex(i, j);
             y.SwapIndex(i, j);
            
-            //this change in kernel
-            // QD.SwapIndex(i, j);
-
             kernel.SwapIndex(i, j);
         }
 
