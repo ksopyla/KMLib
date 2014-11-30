@@ -35,10 +35,8 @@ namespace KMLib.Helpers
         /// <returns></returns>
         public override int GetHashCode()
         {
-            //this is faster           
+            //this is faster - early with ^          
             return X.GetHashCode()*29 + Y.GetHashCode();
-
-            //return X.GetHashCode() ^ Y.GetHashCode();
         }
 
     }
