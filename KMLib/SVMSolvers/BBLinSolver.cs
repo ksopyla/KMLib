@@ -69,11 +69,10 @@ namespace KMLib.SVMSolvers
 
             int[] perm = new int[l];
             // group training data of the same class
-            //GroupClassesReturn rv = groupClasses(prob, perm);
             int nr_class = 0;
-            int[] label;// = new int[l];// = rv.label;
-            int[] start;// = rv.start;
-            int[] count;// = rv.count;
+            int[] label;
+            int[] start;
+            int[] count;
 
             groupClasses(problem, out nr_class, out label, out start, out count, perm);
 
@@ -116,12 +115,7 @@ namespace KMLib.SVMSolvers
             {
 
                 double[] w = new double[w_size];
-                //for (int z = 0; z < w.Length; z++)
-                //{
-                //    w[z] = 1.0f;
-                //}
-
-
+ 
                 int e0 = start[0] + count[0];
                 int k = 0;
                 for (; k < e0; k++)
@@ -129,11 +123,7 @@ namespace KMLib.SVMSolvers
                 for (; k < sub_prob.ElementsCount; k++)
                     sub_prob.Y[k] = -1;
 
-
-
                 solve_l2r_l2_svc_bb(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
-                //solve_l2r_l2_svc_nm_bb(sub_prob, w, epsilon, weighted_C[0], weighted_C[1]);
-                //solve_l2r_l1l2_svc(model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
 
                 model.W = new double[w_size];
                 for (int s = 0; s < w.Length; s++)
@@ -145,7 +135,6 @@ namespace KMLib.SVMSolvers
             {
                 model.W = new double[w_size * nr_class];
                 double[] w = new double[w_size];
-
 
                 ///one against many
                 for (int i = 0; i < nr_class; i++)
@@ -176,18 +165,11 @@ namespace KMLib.SVMSolvers
 
         private void solve_l2r_l2_svc_bb(Problem<SparseVec> sub_prob, double[] w, double epsilon, double Cp, double Cn)
         {
-
-
             double obj = Double.PositiveInfinity;
-           
-          
+                 
             double[] alpha = new double[sub_prob.ElementsCount];
 
             double[] alphaOld = new double[sub_prob.ElementsCount];
-
-
-            //float[] deltas = new float[sub_prob.ElementsCount];
-            //float[] vals = new float[sub_prob.ElementsCount];
 
             double[] diag = new double[] { (double)(0.5 / Cn), 0, (double)(0.5 / Cp) };
 
@@ -203,20 +185,14 @@ namespace KMLib.SVMSolvers
            
             Stopwatch st = new Stopwatch();
             st.Start();
-
-
-          //  obj = ComputeObj(w, alpha, sub_prob, diag);
-          
-
+        
             while (iter <= maxIter)
             {
                 
-
                 //remember old alpha
                 Buffer.BlockCopy(alpha, 0, alphaOld, 0, alpha.Length * sizeof(double));
 
                 //do  projected sep step
-                //x_new = Proj( x_old-step*grad)
                 UpdateWandAlpha(alpha, w, -step, projGrad,sub_prob);
 
 #if DEBUG
@@ -225,7 +201,6 @@ namespace KMLib.SVMSolvers
 #endif
                 Buffer.BlockCopy(projGrad, 0, oldGrad, 0, projGrad.Length * sizeof(double));
                 //computes -gradient
-                //grad = b-A*xtemp, 
                 gradNorm= ComputeGradient(sub_prob, w, alpha, diag,ref projGrad);
 
                 //stop condition
@@ -243,16 +218,11 @@ namespace KMLib.SVMSolvers
            obj= ComputeObj(w, alpha, sub_prob, diag);
            
              Console.WriteLine("Objective value = {0} time={1} ms={2} iter={3}", obj,st.Elapsed, st.ElapsedMilliseconds,iter);
-            //Debug.WriteLine("nSV = {0}", nSV);
-
         }
 
         private void solve_l2r_l2_svc_nm_bb(Problem<SparseVec> sub_prob, double[] w, double epsilon, double Cp, double Cn)
         {
-
-
-            double obj = Double.PositiveInfinity;
-            
+            double obj = Double.PositiveInfinity;   
 
             double[] alpha = new double[sub_prob.ElementsCount];
 
@@ -286,11 +256,6 @@ namespace KMLib.SVMSolvers
             Stopwatch st = new Stopwatch();
             st.Start();
 
-           
-
-            //  obj = ComputeObj(w, alpha, sub_prob, diag);
-
-
             while (iter <= maxIter)
             {
 
@@ -322,27 +287,21 @@ namespace KMLib.SVMSolvers
 
                 //remember old alpha
 
-                //Buffer.BlockCopy(alpha, 0, alphaOld, 0, alpha.Length * sizeof(double));
-                //Buffer.BlockCopy(alpha_tmp, 0, alpha, 0, alpha.Length * sizeof(double));
                 var tmpPtr = alphaOld;
                 alphaOld = alpha;
                 alpha = alpha_tmp;
                 alpha_tmp = tmpPtr;
 
-                //Buffer.BlockCopy(w_tmp, 0, w, 0, w.Length * sizeof(double));
                 var w_tmpPtr = w;
                 w = w_tmp;
                 w_tmp = w_tmpPtr;
 
-               
-               // Buffer.BlockCopy(projGrad, 0, oldGrad, 0, projGrad.Length * sizeof(double));
                 var grad_tmpPtr = oldGrad;
                 oldGrad = projGrad;
                 projGrad = grad_tmpPtr;
 
 
                 //computes -gradient
-                //grad = b-A*xtemp, 
                 gradNorm = ComputeGradient(sub_prob, w, alpha, diag, ref projGrad);
 
                 //stop condition
@@ -360,7 +319,6 @@ namespace KMLib.SVMSolvers
             obj = ComputeObj(w, alpha, sub_prob, diag);
 
             Console.WriteLine("Objective value = {0} time={1} ms={2} iter={3}", obj, st.Elapsed, st.ElapsedMilliseconds, iter);
-            //Debug.WriteLine("nSV = {0}", nSV);
 
         }
 
@@ -432,11 +390,6 @@ namespace KMLib.SVMSolvers
             step2 = xgPart / ggPart;
 
             step = step1;
-            //todo: try different schemes for choosing step
-            //if ((iter + 1) % 2 == 0)
-            //{
-            //    step = step2;
-            //}
 
             //random step works better then modulo step (alternating iter%2)
             double rndProb = rnd.NextDouble();
@@ -444,15 +397,6 @@ namespace KMLib.SVMSolvers
             {
                 step = step2;
             }
-
-            //step from paper "Gradient Methods with Adaptive Step-Sizes"
-            //double kappa = step2 / step1;
-            //if (kappa < 0.4) //lub odwrotnie
-            //{
-            //    step = step2;
-            //}
-
-            //step = Math.Min(10e7, Math.Max(10e-7, step));
             return step;
         }
 
@@ -549,30 +493,11 @@ namespace KMLib.SVMSolvers
 
                 grad[i] = (double)(dot * y_i + alpha[i] * diag[y_i + 1] - 1);
 
-
-                //projection
-                if (alpha[i] == 0)
-                {
-                    // grad[i] = Math.Min(0, grad[i]);
-                }
-                //else
-                //{
-                //    grad[i] = grad[i];
-                //    // projGrad_i[i] = grad_i[i];
-                //}
-
-                //minus gradient - descent direction
-                // grad[i] = -grad[i];
-
                 //projected maximum norm
                 if (Math.Abs(alpha[i]) > 10e-10)
                 {
                     max = Math.Max(max, Math.Abs(grad[i]));
                 }
-                //else
-                //{
-                //    max = Math.Max(max, Math.Abs(grad[i]));
-                //}
             }
 
             return max;
