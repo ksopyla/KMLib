@@ -41,16 +41,6 @@ namespace KMLib.SVMSolvers
 
             public Pair<int, float> Pair { get; set; }
 
-            ///// <summary>
-            ///// labels
-            ///// </summary>
-            //public sbyte[] Y { get; set; }
-
-            ///// <summary>
-            ///// gradient
-            ///// </summary>
-            //public float[] G { get; set; }
-
             /// <summary>
             /// Array range for processing
             /// </summary>
@@ -84,24 +74,6 @@ namespace KMLib.SVMSolvers
             public Tuple<int, int> Range { get; set; }
         }
 
-        /// <summary>
-        /// Internal helper class, whitch store computed solution
-        /// </summary>
-        //internal class SolutionInfo
-        //{
-        //    /// <summary>
-        //    /// objective function value
-        //    /// </summary>
-        //    public float obj;
-        //    /// <summary>
-        //    /// rho == b prameter in function
-        //    /// </summary>
-        //    public float rho;
-        //    public float upper_bound_p;
-        //    public float upper_bound_n;
-        //    public float r;	// for Solver_NU
-        //    public int iter;
-        //}
 
         #region variables from LibSVM
         protected int active_size;
@@ -112,8 +84,6 @@ namespace KMLib.SVMSolvers
         private const byte FREE = 2;
         private byte[] alpha_status;	// LOWER_BOUND, UPPER_BOUND, FREE
         private float[] alpha;
-        //protected IQMatrix Q;
-        //protected float[] QD;
         protected float EPS = 0.001f;
         private float Cp, Cn;
         private float[] p;
@@ -194,7 +164,6 @@ namespace KMLib.SVMSolvers
             //get diagonal cache, kernel should compute that
             QD = Q.GetQD();
 
-            //Shrinking = false;
             //todo: change it, add array to base class with different penalty for labels
             Cp = C;
             Cn = C;
@@ -217,9 +186,6 @@ namespace KMLib.SVMSolvers
             minPairThreadsData = new MinFindingThreadData[numberOfThreads];
             minPairs = new Pair<int, float>[numberOfThreads];
 
-            //int startRange = 0;
-            //int endRange = startRange + rangeSize;
-
             Tuple<int, int>[] ranges = ListHelper.CreateRanges(problemSize, numberOfThreads);
 
             for (int i = 0; i < numberOfThreads; i++)
@@ -231,7 +197,6 @@ namespace KMLib.SVMSolvers
                 {
                     ResetEvent = resetEvents[i],
                     Pair = maxPairs[i],
-                    //Range = new Tuple<int, int>(startRange, endRange)
                     Range = ranges[i]
                 };
 
@@ -242,19 +207,10 @@ namespace KMLib.SVMSolvers
                 {
                     ResetEvent = resetEvents[i],
                     Pair = minPairs[i],
-                    //Range = new Tuple<int, int>(startRange, endRange)
                     Range = ranges[i]
                 };
 
                 minPairsWaitCallbacks[i] = new WaitCallback(this.FindMinPairInThread);
-
-
-                //change the range
-                //startRange = endRange;
-                //int rangeSum = endRange + rangeSize;
-                //endRange = rangeSum < problemSize ? rangeSum : problemSize;
-
-
             }
 
         }
@@ -335,21 +291,12 @@ namespace KMLib.SVMSolvers
         {
 
             #region initialization
-            //this.l = l;
-            //this.Q = Q;
 
             p = (float[])minusOnes.Clone();
             y = (sbyte[])y_.Clone();
             alpha = (float[])alpha_.Clone();
-            //this.Cp = Cp;
-            //this.Cn = Cn;
-
-
-
 
             this.unshrink = false;
-
-
 
             // initialize alpha_status
             {
@@ -406,7 +353,6 @@ namespace KMLib.SVMSolvers
                 {
                     counter = Math.Min(problemSize, 1000);
                     if (shrinking) do_shrinking();
-                    //Procedures.info(".");
                 }
 
                 if (select_working_set(working_set, processors) != 0)
@@ -415,7 +361,6 @@ namespace KMLib.SVMSolvers
                     reconstruct_gradient();
                     // reset active set size and check
                     active_size = problemSize;
-                    // Procedures.info("*");
                     if (select_working_set(working_set, processors) != 0)
                         break;
                     else
@@ -539,8 +484,6 @@ namespace KMLib.SVMSolvers
 
                 UpdateGradients(Q_i, Q_j, delta_alpha_i, delta_alpha_j);
 
-                //  Parallel.ForEach(partition, UpdateGradient);
-
                 // update alpha_status and G_bar
 
                 {
@@ -575,13 +518,7 @@ namespace KMLib.SVMSolvers
               
 
             }//end while
-
-
-
-            
-            
             // calculate rho
-
 
             si.rho = calculate_rho();
             si.iter = iter;
@@ -598,7 +535,6 @@ namespace KMLib.SVMSolvers
             {
                 for (int i = 0; i < problemSize; i++)
                 {
-                    //alpha_[active_set[i]] = alpha[i];
                     //we don't set indexes to previous order
                     alpha_[i] = alpha[i];
                 }
@@ -633,15 +569,12 @@ namespace KMLib.SVMSolvers
             });
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
         void do_shrinking()
         {
             Console.WriteLine("->{0}",active_size);
             int i;
-            float GMax1 = -INF;		// Max { -y_i * grad(f)_i | i in I_up(\alpha) }
-            float GMax2 = -INF;		// Max { y_i * grad(f)_i | i in I_low(\alpha) }
+            float GMax1 = -INF;
+            float GMax2 = -INF;
 
             // find Maximal violating pair first
             for (i = 0; i < active_size; i++)
@@ -745,11 +678,6 @@ namespace KMLib.SVMSolvers
                 if (is_free(j))
                     nr_free++;
 
-            /*
-            if (2 * nr_free < active_size)
-                Procedures.info("\nWarning: using -h 0 may be faster\n");
-            */
-
             if (nr_free * problemSize > 2 * active_size * (problemSize - active_size))
             {
                 for (i = active_size; i < problemSize; i++)
@@ -788,8 +716,6 @@ namespace KMLib.SVMSolvers
             float GMax2 = -INF;
             int GMax_idx = -1;
             int GMin_idx = -1;
-            //float obj_diff_Min = INF;
-            //float obj_diff_NMin = INF;
 
             #region find max i
 
@@ -985,7 +911,7 @@ namespace KMLib.SVMSolvers
                 {
                     if (!is_upper_bound(t))
                     {
-                        if (-G[t] > localMax.Second) //wcześniej było większe lub równe
+                        if (-G[t] > localMax.Second)
                         {
                             localMax.First = t;
                             localMax.Second = -G[t];
@@ -996,7 +922,7 @@ namespace KMLib.SVMSolvers
                 {
                     if (!is_lower_bound(t))
                     {
-                        if (G[t] > localMax.Second) //wcześniej było >=
+                        if (G[t] > localMax.Second)
                         {
 
                             localMax.First = t;
