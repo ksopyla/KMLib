@@ -51,162 +51,6 @@ namespace KMLib.SVMSolvers
 
         }
 
-        /*
-        public override Model<TProblemElement> ComputeModel()
-        {
-            errorCache = new float[problem.ElementsCount];
-            alpha = new float[problem.ElementsCount];
-            // SMO algorithm
-            int numChange = 0;
-            int examineAll = 1;
-            int kktViolatiors = 0;
-            int cores = System.Environment.ProcessorCount;
-
-            while (numChange > 0 || examineAll > 0)
-            {
-                numChange = 0;
-
-                for (int k = 0; k < problem.ElementsCount; k++)
-                {
-
-                    int i2 = -1;
-                    //find first index
-                    if (ExamineExample(k))
-                    {
-                        List<AlphaPair> newAlphasPair = FindSubIndexes(cores, k);
-
-                        if (newAlphasPair.Count == 0)
-                            continue;
-                        else
-                            numChange += newAlphasPair.Count;
-
-                        
-                        
-                       var newAlphas= MergeSteps(newAlphasPair);
-                        
-                        
-
-                        int modSize = newAlphas.Count;
-                        //list of modified alphas
-                        //list for changes in alpha_i -  = y1 * (a1 - alph1);
-                        //key - alpha index, value- alpha step
-                        List<KeyValuePair<int, float>> alphaStep = new List<KeyValuePair<int, float>>();
-
-
-                        int index = k;
-                        float yi, oldAlpha, newAlpha;
-                        //error for first index
-                                                //errors for second indexes, we start from One to #cores+1
-                        //in order to fill up the alphaStep array, we have to remeber 
-                        //that modAlphas start form 0 to #cores so its is nessesary to substrac One
-                        foreach (var item in newAlphas)
-                        {
-                            index = item.First;
-                            newAlpha = item.Second;
-                            yi = problem.Labels[index];
-                            oldAlpha = alpha[index];
-                            
-                            alphaStep.Add(new KeyValuePair<int, float>(index, yi * (newAlpha - oldAlpha)));
-                        }
-
-
-                        //float t1 = y1 * (a1 - alph1);
-                        //float t2 = y2 * (a2 - alph2);
-
-                        for (int i = 0; i < problem.ElementsCount; i++)
-                        {
-                            if (0 < alpha[i] && alpha[i] < C)
-                            {
-                                for (int j = 0; j < alphaStep.Count; j++)
-                                {
-                                    int alphaIndex = alphaStep[j].Key;
-                                    errorCache[i] += alphaStep[j].Value * Product(i, alphaIndex);
-                                }
-                                errorCache[i] -= delta_b;
-                                //old version -errorCache[i] +=t1 * Product(i1, i)+ t2 * Product(i2, i) - delta_b;
-                            }
-                        }
-
-                        //update erroCache for alpha's
-                        for (int j = 0; j < alphaStep.Count; j++)
-                        {
-                            int alphaIndex = alphaStep[j].Key;
-                            //zero error on modified alphas
-                            errorCache[alphaIndex] = 0f;
-                        }
-                        //errorCache[i1] = 0f;
-                        //errorCache[i2] = 0f;
-
-                        //update alphas
-                        foreach (var item in newAlphas)
-                        {
-                            //take arithmetic average of alphas
-                            alpha[item.First] = item.Second;
-                        }
-
-                        //update alpha, first index
-                       //alpha[k] = avgAlpha1;
-                    }
-                }
-                if (examineAll == 1)
-                {
-                    examineAll = 0;
-                }
-                else if (numChange == 0)
-                {
-                    examineAll = 1;
-                }
-                #region Old code
-                //else
-                //{
-                //    for (int k = 0; k < problem.ElementsCount; k++)
-                //    {
-                //        if (alpha[k] != 0 && alpha[k] != C)
-                //        {
-                //            if (ExamineExample(k)) numChange++;
-                //        }
-                //    }
-                //}
-
-                //if (examineAll == 1)
-                //{
-                //    examineAll = 0;
-                //}
-                //else if (numChange == 0)
-                //{
-                //    examineAll = 1;
-                //}
-                #endregion
-            }
-
-            // cleaning
-            errorCache = null;
-
-            #region Building Model
-            Model<TProblemElement> model = new Model<TProblemElement>();
-            model.NumberOfClasses = 2;
-            model.Alpha = alpha;
-            model.Rho = b;
-
-
-            List<TProblemElement> supportElements = new List<TProblemElement>();
-            List<int> suporrtIndexes = new List<int>(alpha.Length);
-            for (int i = 0; i < alpha.Length; i++)
-            {
-                if (alpha[i] > 0)
-                {
-                    supportElements.Add(problem.Elements[i]);
-                    suporrtIndexes.Add(i);
-                }
-
-            }
-            model.SupportElements = supportElements.ToArray();
-            model.SupportElementsIndexes = suporrtIndexes.ToArray();
-            #endregion
-
-            return model;
-        }
-        */
 
         public override Model<TProblemElement> ComputeModel()
         {
@@ -215,7 +59,6 @@ namespace KMLib.SVMSolvers
             // SMO algorithm
             int numChange = 0;
             int examineAll = 1;
-            //int kktViolatiors = 0;
             int cores = System.Environment.ProcessorCount;
 
             float E1 = float.MinValue;
@@ -231,32 +74,6 @@ namespace KMLib.SVMSolvers
 
                 mainIter++;
 
-
-                //if (examineAll > 0)
-                //{
-                //    for (int k = 0; k < problem.ElementsCount; k++)
-                //    {
-                //        if (ExamineExample(k))
-                //        {
-                //            numChange++;
-                //            subIter++;
-                //        }
-                //    }
-                //}
-                //else
-                //{
-                //    for (int k = 0; k < problem.ElementsCount; k++)
-                //    {
-                //        if (alpha[k] != 0 && alpha[k] != C)
-                //        {
-                //            if (ExamineExample(k))
-                //            {
-                //                numChange++;
-                //                subIter++;
-                //            }
-                //        }
-                //    }
-                //}
 
 
                 if (examineAll > 0)
@@ -349,22 +166,6 @@ namespace KMLib.SVMSolvers
             model.Alpha = alpha;
             model.Bias = b;
 
-
-            //List<TProblemElement> supportElements = new List<TProblemElement>();
-            //List<int> suporrtIndexes = new List<int>(alpha.Length);
-            //for (int i = 0; i < alpha.Length; i++)
-            //{
-            //    if (alpha[i] > 0)
-            //    {
-            //        supportElements.Add(problem.Elements[i]);
-            //        suporrtIndexes.Add(i);
-            //    }
-
-            //}
-            //model.SupportElements = supportElements.ToArray();
-            //model.SupportElementsIndexes = suporrtIndexes.ToArray();
-
-
             List<TProblemElement> supportElements = new List<TProblemElement>(alpha.Length);
             List<int> suporrtIndexes = new List<int>(alpha.Length);
             List<float> supportLabels = new List<float>(alpha.Length);
@@ -394,19 +195,11 @@ namespace KMLib.SVMSolvers
 
         private void UpdateAlpha(AlphaInfo[] newAlphas)
         {
-            // float yi, oldAlpha, newAlpha;
-
             for (int i = 0; i < newAlphas.Length; i++)
             {
                 var st = newAlphas[i];
                 st.AlphaStep = st.Y * (st.Alpha - alpha[st.Index]);
             }
-
-            //float t1 = y1 * (a1 - alph1);
-            //float t2 = y2 * (a2 - alph2);
-
-            //for (int i = 0; i < problem.ElementsCount; i++)
-            //{
 
             var rangePart = Partitioner.Create(0, problem.ElementsCount);
 
@@ -423,7 +216,6 @@ namespace KMLib.SVMSolvers
                             errorCache[i] += newAlphas[j].AlphaStep * Product(i, alphaIndex);
                         }
                         errorCache[i] -= delta_b;
-                        //old version -errorCache[i] +=t1 * Product(i1, i)+ t2 * Product(i2, i) - delta_b;
                     }
                 }
             });
@@ -448,19 +240,6 @@ namespace KMLib.SVMSolvers
 
             int k = st1.Index;
 
-
-            //foreach (var i2 in GlobalHeuristic(k))
-            //{
-            //    StepPairVariable ap = ComputeAlphaStep(st1, i2);
-
-            //    if (ap == null) continue;
-
-
-            //    newAlphas.Add(ap);
-
-            //    if (newAlphas.Count >= cores)
-            //        break;
-            //}
 
             #region Parallel version
 
@@ -516,9 +295,6 @@ namespace KMLib.SVMSolvers
 
 
             a1 = WeightedEtaMerge(st1, newAlphas, modAlphas);
-            //a1 = WeightedSmallEtaMerge(st1, newAlphas, modAlphas);
-            //a1 = AvgMerge(st1, newAlphas, modAlphas);
-            //a1 = WeightedDistMerge(st1, newAlphas, modAlphas);
 
             if (a1 < 0)
             {
@@ -539,23 +315,16 @@ namespace KMLib.SVMSolvers
                     modAlphas[i].Alpha += newAlphas[i - 1].Si * t;
                 }
 
-                //a2 += s * t;
                 a1 = C;
             }
 
-            // modAlphas.AddFirst(new Pair<int, float>(index1, a1));
-
             modAlphas[0].Alpha = a1;
 
-            //float b1 = 0, b2 = 0;
             float bnew = 0;
 
             if (a1 > 0 && a1 < C)
             {
-                // bnew = b + E1 + y1 * (a1 - alph1) * k11 + y2 * (a2 - alph2) * k12;
-
                 bnew = b + E1 + y1 * (a1 - alpha1) * k11;
-                // int j = 0;
                 for (int i = 1; i < size; i++)
                 {
                     var item = modAlphas[i];
@@ -585,9 +354,6 @@ namespace KMLib.SVMSolvers
                         for (int j = 1; j < modAlphas.Length; j++)
                         {
                             var st = modAlphas[j];
-                            //if (mIndex == st.Index)
-                            //    bnew += st.Error;
-
                             bnew += st.Y * (st.Alpha - alpha[st.Index]) * Product(mIndex, st.Index);
 
                         }
@@ -595,19 +361,6 @@ namespace KMLib.SVMSolvers
                         break;
                     }
                 }
-
-
-                //if (a2 > 0 && a2 < C)
-                //{
-                //    bnew = b + E2 + y1 * (a1 - alph1) * k12 + y2 * (a2 - alph2) * k22;
-                //}
-                //else
-                //{
-                //    b1 = b + E1 + y1 * (a1 - alph1) * k11 + y2 * (a2 - alph2) * k12;
-                //    b2 = b + E2 + y1 * (a1 - alph1) * k12 + y2 * (a2 - alph2) * k22;
-                //    bnew = (b1 + b2) / 2;
-                //}
-
 
             }
 
@@ -978,8 +731,6 @@ namespace KMLib.SVMSolvers
 
             }
 
-            // return groupedIndexes;
-
             foreach (var item in groupedIndexes)
             {
                 yield return item;
@@ -1076,9 +827,6 @@ namespace KMLib.SVMSolvers
 
             if (eta < 0)
             {
-                //original version with plus  
-                //a2 = alph2 + y2 * (E2 - E1) / eta;
-
                 a2 = alph2 - y2 * (E1 - E2) / eta;
 
                 if (a2 < L) a2 = L;
@@ -1135,32 +883,6 @@ namespace KMLib.SVMSolvers
 
             return new AlphaPair() { FirstIndex = i1, FirstAlpha = a1, SecondIndex = i2, SecondAlpha = a2, Threshold = bnew };
 
-            //todo: plus or minus?
-            //float delta_b = bnew - b;
-            //b = bnew;
-
-
-            //float t1 = y1 * (a1 - alph1);
-            //float t2 = y2 * (a2 - alph2);
-
-            //for (int i = 0; i < problem.ElementsCount; i++)
-            //{
-            //    if (0 < alpha[i] && alpha[i] < C)
-            //    {
-            //        errorCache[i] +=
-            //            t1 * Product(i1, i)
-            //            + t2 * Product(i2, i) - delta_b;
-            //    }
-            //}
-
-            //errorCache[i1] = 0f;
-            //errorCache[i2] = 0f;
-
-
-            //alpha[i1] = a1;
-            //alpha[i2] = a2;
-
-            //return true; // step taken
         }
 
 
