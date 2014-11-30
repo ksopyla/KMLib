@@ -22,23 +22,6 @@ namespace KMLib.SVMSolvers
     public class SmoFirstOrderSolver<TProblemElement> : Solver<TProblemElement>
     {
 
-        /// <summary>
-        /// Internal helper class, whitch store computed solution
-        /// </summary>
-        //internal class SolutionInfo
-        //{
-        //    /// <summary>
-        //    /// objective function value
-        //    /// </summary>
-        //    public float obj;
-        //    /// <summary>
-        //    /// rho == b prameter in function
-        //    /// </summary>
-        //    public float rho;
-        //    public float upper_bound_p;
-        //    public float upper_bound_n;
-        //   // public float r;	// for Solver_NU
-        //}
 
         #region variables from LibSVM
         protected int active_size;
@@ -49,8 +32,6 @@ namespace KMLib.SVMSolvers
         private const byte FREE = 2;
         private byte[] alpha_status;	// LOWER_BOUND, UPPER_BOUND, FREE
         private float[] alpha;
-        //protected IQMatrix Q;
-        //protected float[] QD;
         protected float EPS = 0.001f;
         private float Cp, Cn;
         private float[] p;
@@ -82,7 +63,6 @@ namespace KMLib.SVMSolvers
 
             QD = Q.GetQD();
 
-           // Shrinking = false;
             //todo: change it, add array to base class with different penalty for labels
             Cp = C;
             Cn = C;
@@ -166,14 +146,9 @@ namespace KMLib.SVMSolvers
         /// <param name="shrinking"></param>
         private void Solve(float[] minusOnes, sbyte[] y_, float[] alpha_, SolutionInfo si, bool shrinking)
         {
-            //this.l = l;
-            //this.Q = Q;
-
             p = (float[])minusOnes.Clone();
             y = (sbyte[])y_.Clone();
             alpha = (float[])alpha_.Clone();
-            //this.Cp = Cp;
-            //this.Cn = Cn;
 
             this.unshrink = false;
 
@@ -382,7 +357,6 @@ namespace KMLib.SVMSolvers
                     int k;
                     if (ui != is_upper_bound(i))
                     {
-                        //Q_i = Q.GetQ(i, problemSize);
                         if (ui)
                             for (k = 0; k < problemSize; k++)
                                 G_bar[k] -= C_i * Q_i[k];
@@ -393,7 +367,6 @@ namespace KMLib.SVMSolvers
 
                     if (uj != is_upper_bound(j))
                     {
-                       // Q_j = Q.GetQ(j, problemSize);
                         if (uj)
                             for (k = 0; k < problemSize; k++)
                                 G_bar[k] -= C_j * Q_j[k];
@@ -427,9 +400,6 @@ namespace KMLib.SVMSolvers
                 for (int i = 0; i < problemSize; i++)
                 {
                     alpha_[i] = alpha[i];
-                    //alpha_[active_set[i]] = alpha[i];
-
-                    //kernel.SwapIndex(i, active_set[i]);
                 }
             }
 
@@ -487,11 +457,6 @@ namespace KMLib.SVMSolvers
             for (j = 0; j < active_size; j++)
                 if (is_free(j))
                     nr_free++;
-
-            /*
-            if (2 * nr_free < active_size)
-                Procedures.info("\nWarning: using -h 0 may be faster\n");
-            */
 
             if (nr_free * problemSize > 2 * active_size * (problemSize - active_size))
             {
