@@ -85,18 +85,6 @@ namespace KMLib.SVMSolvers
 
         public override Model<SparseVec> ComputeModel()
         {
-            //throw new NotImplementedException();
-
-            //check if features are in correct order
-            //for (FeatureNode[] nodes : prob.x) {
-            //    int indexBefore = 0;
-            //    for (FeatureNode n : nodes) {
-            //        if (n.index <= indexBefore) {
-            //            throw new IllegalArgumentException("feature nodes must be sorted by index in ascending order");
-            //        }
-            //        indexBefore = n.index;
-            //    }
-            //}
 
             int j;
             int l = problem.ElementsCount; //prob.l;
@@ -113,23 +101,14 @@ namespace KMLib.SVMSolvers
             else
                 model.FeaturesCount = n;
 
-            //    if (Bias >= 0)
-            //    model.nr_feature = n - 1;
-            //else
-            //    model.nr_feature = n;
-
-
-            //model.solverType = param.solverType;
-            //model.bias = prob.bias;
             model.Bias = bias;
 
             int[] perm = new int[l];
             // group training data of the same class
-            //GroupClassesReturn rv = groupClasses(prob, perm);
             int nr_class = 0;
-            int[] label;// = new int[l];// = rv.label;
-            int[] start;// = rv.start;
-            int[] count;// = rv.count;
+            int[] label;
+            int[] start;
+            int[] count;
 
             groupClasses(problem, out nr_class, out label, out start, out count, perm);
 
@@ -154,11 +133,9 @@ namespace KMLib.SVMSolvers
             // constructing the subproblem
             //permutated vectors
             SparseVec[] permVec = new SparseVec[problem.ElementsCount];
-            //FeatureNode[][] x = new FeatureNode[l][];
             Debug.Assert(l == problem.ElementsCount);
             for (int i = 0; i < l; i++)
             {
-                //x[i] = prob.x[perm[i]];
                 permVec[i] = problem.Elements[perm[i]];
             }
 
@@ -169,15 +146,11 @@ namespace KMLib.SVMSolvers
             //we set labels below
             sub_prob.Y = new float[sub_prob.ElementsCount];
             sub_prob.Elements = permVec;
-            //java version
-            //for (int k = 0; k < sub_prob.ElementsCount; k++)
-            //    sub_prob.x[k] = x[k];
 
             // multi-class svm by Crammer and Singer
             //for now not used
             if (solverType == SolverType.MCSVM_CS)
             {
-                //model.w = new double[n * nr_class];
                 model.W = new double[n * nr_class];
                 for (int i = 0; i < nr_class; i++)
                 {
@@ -186,9 +159,6 @@ namespace KMLib.SVMSolvers
                         sub_prob.Y[j] = i;
                     }
                 }
-
-                //SolverMCSVM_CS solver = new SolverMCSVM_CS(sub_prob, nr_class, weighted_C, param.eps);
-                //solver.solve(model.w);
             }
             else
             {
@@ -203,7 +173,6 @@ namespace KMLib.SVMSolvers
                     for (; k < sub_prob.ElementsCount; k++)
                         sub_prob.Y[k] = -1;
 
-                    //train_one(sub_prob, param, model.w, weighted_C[0], weighted_C[1]);
                     solve_l2r_l1l2_svc(sub_prob, model.W, epsilon, weighted_C[0], weighted_C[1], solverType);
                 }
                 else
@@ -287,8 +256,8 @@ namespace KMLib.SVMSolvers
                     if (nr_class == max_nr_class)
                     {
                         max_nr_class *= 2;
-                        label = label.CopyToNewArray(max_nr_class);// copyToNewArray(label, max_nr_class);
-                        count = count.CopyToNewArray(max_nr_class);// copyToNewArray(count, max_nr_class);
+                        label = label.CopyToNewArray(max_nr_class);
+                        count = count.CopyToNewArray(max_nr_class);
                     }
                     label[nr_class] = this_label;
                     count[nr_class] = 1;
@@ -308,8 +277,6 @@ namespace KMLib.SVMSolvers
             start[0] = 0;
             for (i = 1; i < nr_class; i++)
                 start[i] = start[i - 1] + count[i - 1];
-
-            // return new GroupClassesReturn(nr_class, label, start, count);
         }
 
 
@@ -429,30 +396,12 @@ namespace KMLib.SVMSolvers
 
                 QD[i] = diag[GETI(y, i)];
 
-                //for (FeatureNode xi : prob.x[i]) {
-                //    QD[i] += xi.value * xi.value;
-                //}
                 QD[i] += sub_prob.Elements[i].DotProduct();
 
 
                 index[i] = i;
             }
             #endregion
-
-            //0.4510    0.1770    0.4570
-            //alpha[0] = 0.4510f; alpha[1] = 0.1770f; alpha[2] = 0.4570f;
-
-
-            //for (int p = 0; p < sub_prob.ElementsCount; p++)
-            //{
-            //    var spVec = sub_prob.Elements[p];
-            //    float y_i = sub_prob.Y[p];
-            //    for (int k = 0; k < spVec.Count; k++)
-            //    {
-
-            //        w[spVec.Indices[k] - 1] += alpha[p] * y_i * spVec.Values[k];
-            //    }
-            //}
 
             Stopwatch st = Stopwatch.StartNew();
             int max_iter = 5000;
@@ -482,10 +431,6 @@ namespace KMLib.SVMSolvers
                     G = 0;
                     sbyte yi = y[i];
 
-                    //for (FeatureNode xi : prob.x[i]) {
-                    //    G += w[xi.index - 1] * xi.value;
-                    //}
-                    //above changed into:
                     var element = sub_prob.Elements[i];
                     for (int k = 0; k < element.Count; k++)
                     {
@@ -502,10 +447,6 @@ namespace KMLib.SVMSolvers
                     {
                         if (G > PGmax_old)
                         {
-                            //active_size--;
-                            ////swap(index, s, active_size);
-                            //index.SwapIndex(s, active_size);
-                            //s--;
                             continue;
                         }
                         else if (G < 0)
@@ -517,10 +458,6 @@ namespace KMLib.SVMSolvers
                     {
                         if (G < PGmin_old)
                         {
-                            //active_size--;
-                            ////swap(index, s, active_size);
-                            //index.SwapIndex(s, active_size);
-                            //s--;
                             continue;
                         }
                         else if (G > 0)
@@ -548,22 +485,10 @@ namespace KMLib.SVMSolvers
                         {
                             w[spVec.Indices[k] - 1] += d * spVec.Values[k];
                         }
-                        //above 
-                        //for (FeatureNode xi : prob.x[i]) {
-                        //    w[xi.index - 1] += d * xi.value;
-                        //}
                     }
-                    // obj= ComputeObj(w, alpha, sub_prob, diag);
                 }
-                //st.Stop();
-#if DEBUG
 
-                //  obj= ComputeObj(w, alpha, sub_prob, diag);
-                // Debug.WriteLine("obj = {0}, time = {1}",obj,st.Elapsed);
-
-#endif
                 iter++;
-                //if (iter % 10 == 0) info(".");
 
                 if (PGmax_new - PGmin_new <= eps)
                 {
@@ -572,7 +497,6 @@ namespace KMLib.SVMSolvers
                     else
                     {
                         active_size = l;
-                        //  info("*");
                         PGmax_old = Double.PositiveInfinity;
                         PGmin_old = Double.NegativeInfinity;
                         continue;
@@ -611,14 +535,11 @@ namespace KMLib.SVMSolvers
                 sbyte y_i = (sbyte)sub_prob.Y[i];
 
                 //original line
-                //v += alpha[i] * (alpha[i] * diag[GETI(y_i, i)] - 2);
                 v += alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
                 if (alpha[i] > 0) ++nSV;
             }
 
             v = v / 2;
-            // Console.WriteLine("Objective value = {0}", v);
-            // Debug.WriteLine("nSV = {0}", nSV);
             return v;
         }
 
@@ -635,16 +556,11 @@ namespace KMLib.SVMSolvers
             {
                 sbyte y_i = (sbyte)sub_prob.Y[i];
 
-                //original line
-                //v += alpha[i] * (alpha[i] * diag[GETI(y_i, i)] - 2);
                 v += alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
-                // v1 += 0.5 * alpha[i] * (alpha[i] * diag[y_i + 1] - 2);
                 if (alpha[i] > 0) ++nSV;
             }
 
             v = v / 2;
-            //  Debug.WriteLine("Objective value = {0}", v);
-            //  Debug.WriteLine("nSV = {0}", nSV);
 
             return v;
         }
