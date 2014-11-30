@@ -23,23 +23,6 @@ namespace KMLib.SVMSolvers
     public class SmoFanSolver<TProblemElement> : Solver<TProblemElement>
     {
 
-        /// <summary>
-        /// Internal helper class, whitch store computed solution
-        /// </summary>
-        //internal class SolutionInfo
-        //{
-        //    /// <summary>
-        //    /// objective function value
-        //    /// </summary>
-        //    public float obj;
-        //    /// <summary>
-        //    /// rho == b prameter in function
-        //    /// </summary>
-        //    public float rho;
-        //    public float upper_bound_p;
-        //    public float upper_bound_n;
-        //   // public float r;	// for Solver_NU
-        //}
 
         #region variables from LibSVM
         protected int active_size;
@@ -50,8 +33,6 @@ namespace KMLib.SVMSolvers
         private const byte FREE = 2;
         private byte[] alpha_status;	// LOWER_BOUND, UPPER_BOUND, FREE
         private float[] alpha;
-        //protected IQMatrix Q;
-        //protected float[] QD;
         protected float EPS = 0.001f;
         private float Cp, Cn;
         private float[] p;
@@ -164,19 +145,11 @@ namespace KMLib.SVMSolvers
         /// <param name="shrinking"></param>
         private void Solve(float[] minusOnes, sbyte[] y_, float[] alpha_, SolutionInfo si, bool shrinking)
         {
-            //this.l = l;
-            //this.Q = Q;
-
             p = (float[])minusOnes.Clone();
             y = (sbyte[])y_.Clone();
             alpha = (float[])alpha_.Clone();
-            //this.Cp = Cp;
-            //this.Cn = Cn;
 
             this.unshrink = false;
-
-
-
             // initialize alpha_status
             {
                 alpha_status = new byte[problemSize];
@@ -478,10 +451,6 @@ namespace KMLib.SVMSolvers
                 if (is_free(j))
                     nr_free++;
 
-            /*
-            if (2 * nr_free < active_size)
-                Procedures.info("\nWarning: using -h 0 may be faster\n");
-            */
 
             if (nr_free * problemSize > 2 * active_size * (problemSize - active_size))
             {
