@@ -16,7 +16,6 @@ namespace KMLib.SVMSolvers
 
         static Random random = new Random();
 
-        //float C = 0.05f;
         float tolerance = 0.01f;
         float epsilon = 0.01f;
 
@@ -261,19 +260,6 @@ namespace KMLib.SVMSolvers
                     L = 0;
                     H = C-gamma;
                 }
-                /*
-                float gamma = alph1 - alph2;
-                if (gamma > 0)
-                {
-                    L = 0;
-                    H = C - gamma;
-                }
-                else
-                {
-                    L = -gamma;
-                    H = C;
-                }
-                 */ 
             }
 
             if (L == H)
@@ -290,7 +276,6 @@ namespace KMLib.SVMSolvers
             if (eta < 0)
             {
                 //original version with plus  
-                //a2 = alph2 + y2 * (E2 - E1) / eta;
 
                 a2 = alph2 - y2 * (E1 - E2) / eta;
 
