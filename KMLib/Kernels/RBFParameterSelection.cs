@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-//using dnAnalytics.LinearAlgebra;
 using KMLib.Evaluate;
 using KMLib.Helpers;
 

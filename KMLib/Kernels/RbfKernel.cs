@@ -4,8 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using KMLib.Helpers;
-//using dnAnalytics.LinearAlgebra;
-
 
 namespace KMLib.Kernels
 {
