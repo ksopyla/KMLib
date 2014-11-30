@@ -5,46 +5,11 @@ using System.Text;
 
 namespace KMLib.Helpers
 {
-
     public interface IVector<T>
     {
-
-        
         float DotProuct();
-
         float DotProduct(T otherVec);
     }
-
-    //public class DeVec : IVector<DeVec>
-    //{
-
-    //    public float DotProuct()
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-
-    //    public float DotProduct(DeVec otherVec)
-    //    {
-
-    //        otherVec.DotProduct(this);
-    //        throw new NotImplementedException();
-    //    }
-    //}
-
-    //public class SpVec : IVector<SpVec>
-    //{
-
-    //    public float DotProuct()
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-
-    //    public float DotProduct(SpVec otherVec)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-    //}
-
 
     public abstract class Vector
     {
@@ -65,7 +30,6 @@ namespace KMLib.Helpers
 
             if (SelfDotProd < 0)
             {
-                //throw new ArgumentOutOfRangeException("SelfDotProd is not computed");
                 float sum = 0;
                 for (int i = 0; i < Values.Length; i++)
                 {
@@ -97,8 +61,6 @@ namespace KMLib.Helpers
     public class SparseVec:Vector
     {
 
-       
-
         /// <summary>
         /// number of non zero positions
         /// </summary>
@@ -109,8 +71,6 @@ namespace KMLib.Helpers
                 return Indices.Length;
             }
         }
-
-       
 
         public SparseVec(int dim, ICollection<int> indexes, ICollection<float> vals)
         {
@@ -266,7 +226,6 @@ namespace KMLib.Helpers
                 }
                 else if (v1Idx < v2Idx)
                 {
-                    // this.Values[v1] - 0.0
                     vals.Add(this.Values[v1]);
                     idx.Add(v1Idx);
                     v1++;
