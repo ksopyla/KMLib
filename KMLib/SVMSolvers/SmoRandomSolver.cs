@@ -33,8 +33,6 @@ namespace KMLib.SVMSolvers
         private const byte FREE = 2;
         private byte[] alpha_status;	// LOWER_BOUND, UPPER_BOUND, FREE
         private float[] alpha;
-        //protected IQMatrix Q;
-        //protected float[] QD;
         protected float EPS = 0.001f;
         private float Cp, Cn;
         private float[] p;
@@ -148,15 +146,9 @@ namespace KMLib.SVMSolvers
         /// <param name="shrinking"></param>
         private void Solve(float[] minusOnes, sbyte[] y_, float[] alpha_, SolutionInfo si, bool shrinking)
         {
-            //this.l = l;
-            //this.Q = Q;
-
             p = (float[])minusOnes.Clone();
             y = (sbyte[])y_.Clone();
             alpha = (float[])alpha_.Clone();
-            //this.Cp = Cp;
-            //this.Cn = Cn;
-
             this.unshrink = false;
 
 
@@ -339,10 +331,6 @@ namespace KMLib.SVMSolvers
                 for (int k = 0; k < active_size; k++)
                 {
                     G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
-                    //nG += G[k] * G[k];
-                    //nL1G += Math.Abs( G[k]);
-                    //nMaxG = Math.Max(nMaxG, Math.Abs(G[k]));
-
                     if (y[k] == +1)
                     {
                         if (!is_upper_bound(k))
@@ -402,16 +390,12 @@ namespace KMLib.SVMSolvers
                 for (int i = 0; i < problemSize; i++)
                 {
                     alpha_[i] = alpha[i];
-                    //alpha_[active_set[i]] = alpha[i];
-
-                    //kernel.SwapIndex(i, active_set[i]);
                 }
             }
 
             si.upper_bound_p = Cp;
             si.upper_bound_n = Cn;
 
-            // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
 
 
@@ -463,11 +447,6 @@ namespace KMLib.SVMSolvers
             for (j = 0; j < active_size; j++)
                 if (is_free(j))
                     nr_free++;
-
-            /*
-            if (2 * nr_free < active_size)
-                Procedures.info("\nWarning: using -h 0 may be faster\n");
-            */
 
             if (nr_free * problemSize > 2 * active_size * (problemSize - active_size))
             {
@@ -710,8 +689,5 @@ namespace KMLib.SVMSolvers
 
             return r;
         }
-
-
-        
     }
 }
