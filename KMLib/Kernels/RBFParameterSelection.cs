@@ -30,15 +30,6 @@ namespace KMLib.Kernels
             //create range for gamma parameter in Rbf Kernel
             IList<double> gammaRange = PowerRange(MinGammaPower, MaxGammaPower, PowerBase, PowerStep);
 
-            ////creates Rbf kernels with different gamma's
-            //IList<RbfKernel> rbfKernels = new List<RbfKernel>(gammaRange.Count);
-            //foreach (var gamma in gammaRange)
-            //{
-            //    var tmpkernel = new RbfKernel((float)gamma);
-            //    //  tmpkernel.ProblemElements = problem.Elements;
-            //    rbfKernels.Add(tmpkernel);
-            //}
-
             double crossValidation = double.MinValue;
             double maxC = double.MinValue;
             float bestGamma = -2f;
@@ -49,14 +40,6 @@ namespace KMLib.Kernels
             List<float>[] foldsLabels;
             Validation<SparseVec>.MakeFoldsSplit(problem, NrFolds, out foldsElements, out foldsLabels);
 
-
-            //paralle search for best C and gamma, for each kernel try different C
-
-            //foreach (var rbfKernel in rbfKernels)
-            //{
-
-            //Parallel.ForEach(rbfKernels, (rbfKernel) =>
-            //{
             Parallel.ForEach(gammaRange,gamma=>{
 
                 Validation<SparseVec> valid = new Validation<SparseVec>();
