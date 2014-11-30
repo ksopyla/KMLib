@@ -94,8 +94,6 @@ namespace KMLib
 				kernel.Init();
 
 				var subProblem = new Problem<TProblemElement>(mainProblem.Elements, subLabels, mainProblem.FeaturesCount);
-				//
-				//Solver = new ParallelSmoFanSolver<TProblemElement>(problem, kernel, C);
 				//this solver works a bit faster and use less memory
 				svmSolver = new ParallelSmoFanSolver2<TProblemElement>(subProblem, kernel, C);
 

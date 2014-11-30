@@ -53,10 +53,5 @@ namespace KMLib.Transforms
             }
             return Math.Pow(sum, 1 / Power);
         }
-
-
-
-
-
     }
 }
