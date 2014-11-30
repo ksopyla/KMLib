@@ -12,8 +12,6 @@ namespace KMLib.Helpers
         public int Compare(KeyValuePair<int, float> x, KeyValuePair<int, float> y)
         {
             return x.Value.CompareTo(y.Value);
-
-           // return y.Value.CompareTo(x.Value);
         }
 
         #endregion
