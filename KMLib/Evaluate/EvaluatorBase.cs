@@ -6,10 +6,6 @@ using KMLib.Kernels;
 
 namespace KMLib.Evaluate
 {
-
-
-
-
     /// <summary>
     /// Base class for all the evaluators, used for prediction
     /// </summary>
@@ -75,7 +71,6 @@ namespace KMLib.Evaluate
                 index = TrainedModel.SupportElementsIndexes[k];
                 sum += TrainedModel.Alpha[index] * TrainedModel.Y[k] *
                                     Kernel.Product(TrainedModel.SupportElements[k], element);
-                // Kernel.Product(TrainningProblem.Elements[index], element);
             }
 
             sum -= TrainedModel.Bias;
