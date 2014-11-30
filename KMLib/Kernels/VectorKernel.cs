@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-//using dnAnalytics.LinearAlgebra;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using KMLib.Helpers;
@@ -17,8 +16,7 @@ namespace KMLib.Kernels
     {
 
         protected bool DiagonalDotCacheBuilded = false;
-        
-        //public bool IsInitilized = false;
+
         public bool IsInitialized
         {
             get;
@@ -44,9 +42,6 @@ namespace KMLib.Kernels
                 //insted of computing Diagonal Dot Cache here 
                 //it is done in Init() method
                 //  ComputeDiagonalDotCache();
-
-
-
             }
         }
 
@@ -56,9 +51,7 @@ namespace KMLib.Kernels
             DiagonalDotCacheBuilded = false;
             for (int i = 0; i < DiagonalDotCache.Length; i++)
             {
-              // DiagonalDotCache[i] = Product(ProblemElements[i], ProblemElements[i]);
-
-              DiagonalDotCache[i] = Product(i,i);
+                DiagonalDotCache[i] = Product(i,i);
             }
             DiagonalDotCacheBuilded = true;
         }
@@ -69,15 +62,7 @@ namespace KMLib.Kernels
             protected set;
         }
 
-        //public VectorKernel(Vector[] vectors)
-        //{
-        //    problemVectors = vectors;
-        //}
-
-
         #region IKernel<Vector> Members
-
-
 
         public abstract float Product(T element1, T element2);
 
@@ -105,9 +90,6 @@ namespace KMLib.Kernels
             
             if (results == null)
                 throw new ArgumentNullException("result array should not be null");
-            //for (int j = 0; j < results.Length; j++)
-            //    results[j] = (Y[element1] * Y[j] * Product(element1, j));
-
 
             var partition = Partitioner.Create(0, results.Length);
 
@@ -140,49 +122,11 @@ namespace KMLib.Kernels
 
         #endregion
 
-        #region IKernel<T> Members
-
-
-        //public float[] Predict(Model<T> model, T[] predictElements)
-        //{
-        //    float[]  sum = new float[predictElements.Length];
-
-        //    int index = -1;
-        //    for (int i = 0; i < predictElements.Length; i++)
-        //    {
-
-
-        //        for (int k = 0; k < model.SupportElementsIndexes.Length; k++)
-        //        {
-        //            index = model.SupportElementsIndexes[k];
-                    
-        //            sum[i] += model.Alpha[index] * Y[index] *
-        //                                Product(problemElements[index], predictElements[i]);
-        //        }
-
-
-        //        sum[i] -= model.Bias;
-        //        sum[i] = sum[i] > 0 ? 1 : -1;
-        //    }
-
-            
-
-        //    return sum;
-        //}
-
-        #endregion
-
-
-
-
-
         public virtual void SwapIndex(int i, int j)
         {
             Y.SwapIndex(i, j);
             DiagonalDotCache.SwapIndex(i, j);
             problemElements.SwapIndex(i, j);
-
-
         }
 
 
