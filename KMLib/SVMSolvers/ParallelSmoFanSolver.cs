@@ -57,7 +57,6 @@ namespace KMLib.SVMSolvers
         /// </summary>
         private CachedKernel<TProblemElement> Q;
         private int problemSize;
-        //   private OrderablePartitioner<Tuple<int, int>> partition;
 
         object lockObj = new object();
 
@@ -79,8 +78,6 @@ namespace KMLib.SVMSolvers
             problemSize = problem.ElementsCount;
 
             int rangeSize = (int)Math.Ceiling((problemSize + 0.0) / Environment.ProcessorCount);
-            // partition= Partitioner.Create( 0, problemSize,rangeSize);
-
         }
 
 
@@ -231,15 +228,11 @@ namespace KMLib.SVMSolvers
                     reconstruct_gradient();
                     // reset active set size and check
                     active_size = problemSize;
-                    // Procedures.info("*");
                     if (select_working_set(working_set, processors) != 0)
                         break;
                     else
                         counter = 1;	// do shrinking next iteration
                 }
-
-                //if (select_working_set(working_set, processors) != 0)
-                //    break;
 
                 int i = working_set[0];
                 int j = working_set[1];
@@ -347,14 +340,6 @@ namespace KMLib.SVMSolvers
                 float delta_alpha_i = alpha[i] - old_alpha_i;
                 float delta_alpha_j = alpha[j] - old_alpha_j;
 
-
-
-                //for (int k = 0; k < active_size; k++)
-                //{
-                //    G[k] += Q_i[k] * delta_alpha_i + Q_j[k] * delta_alpha_j;
-                //}
-
-
                 var partition = Partitioner.Create(0, active_size);
 
                 Parallel.ForEach(partition, (range) =>
@@ -420,7 +405,6 @@ namespace KMLib.SVMSolvers
             {
                 for (int i = 0; i < problemSize; i++)
                 {
-                    //alpha_[active_set[i]] = alpha[i];
                     //we don't set indexes to previous order
                     alpha_[i] = alpha[i];
                 }
@@ -428,8 +412,6 @@ namespace KMLib.SVMSolvers
 
             si.upper_bound_p = Cp;
             si.upper_bound_n = Cn;
-
-            // Procedures.info("\noptimization finished, #iter = " + iter + "\n");
         }
 
         /// <summary>
@@ -439,8 +421,8 @@ namespace KMLib.SVMSolvers
         {
             Console.Write(".");
             int i;
-            float GMax1 = -INF;		// Max { -y_i * grad(f)_i | i in I_up(\alpha) }
-            float GMax2 = -INF;		// Max { y_i * grad(f)_i | i in I_low(\alpha) }
+            float GMax1 = -INF;
+            float GMax2 = -INF;
 
             // find Maximal violating pair first
             for (i = 0; i < active_size; i++)
@@ -544,11 +526,6 @@ namespace KMLib.SVMSolvers
                 if (is_free(j))
                     nr_free++;
 
-            /*
-            if (2 * nr_free < active_size)
-                Procedures.info("\nWarning: using -h 0 may be faster\n");
-            */
-
             if (nr_free * problemSize > 2 * active_size * (problemSize - active_size))
             {
                 for (i = active_size; i < problemSize; i++)
@@ -582,14 +559,10 @@ namespace KMLib.SVMSolvers
             //    -y_j*grad(f)_j < -y_i*grad(f)_i, j in I_low(\alpha)
 
             float GMax = -INF;
-            // float GNMax = -INF;
 
             float GMax2 = -INF;
             int GMax_idx = -1;
             int GMin_idx = -1;
-            //float obj_diff_Min = INF;
-            //float obj_diff_NMin = INF;
-
 
             #region find max i
 
@@ -610,7 +583,7 @@ namespace KMLib.SVMSolvers
                       {
                           if (!is_upper_bound(t))
                           {
-                              if (-G[t] > localMax.Second) //wcześniej było większe lub równe
+                              if (-G[t] > localMax.Second)
                               {
                                   localMax.First = t;
                                   localMax.Second = -G[t];
@@ -621,7 +594,7 @@ namespace KMLib.SVMSolvers
                       {
                           if (!is_lower_bound(t))
                           {
-                              if (G[t] > localMax.Second) //wcześniej było >=
+                              if (G[t] > localMax.Second)
                               {
 
                                   localMax.First = t;
@@ -651,33 +624,6 @@ namespace KMLib.SVMSolvers
             GMax = maxPair.Second;
             GMax_idx = maxPair.First;
 
-            #region original sequential find max
-            //for (int t = 0; t < active_size; t++)
-            //{
-            //    if (y[t] == +1)
-            //    {
-            //        if (!is_upper_bound(t))
-            //        {
-            //            if (-G[t] > GMax) //wcześniej było większe lub równe
-            //            {
-            //                GMax = -G[t];
-            //                GMax_idx = t;
-            //            }
-            //        }
-            //    }
-            //    else
-            //    {
-            //        if (!is_lower_bound(t))
-            //        {
-            //            if (G[t] > GMax) //wcześniej było >=
-            //            {
-            //                GMax = G[t];
-            //                GMax_idx = t;
-            //            }
-            //        }
-            //    }
-            //}
-            #endregion
 
             #endregion
 
@@ -692,8 +638,6 @@ namespace KMLib.SVMSolvers
 
 
             GMax2 = FindMinObjParallel(GMax, partition, i, Q_i, minIdx);
-            //GMax2 = FindMinObjParallel2(GMax, i, Q_i, minIdx);
-            //GMax2 = FindMinObjSeq(GMax, GMax2, i, Q_i, minIdx);
 
             if (GMax + GMax2 < EPS)
                 return 1;
@@ -732,24 +676,8 @@ namespace KMLib.SVMSolvers
 
                             minIdx.Add(j, obj_diff);
 
-                            //if (obj_diff < obj_diff_Min) //previous "<="
-                            //{
-                            //    GMin_idx = j;
-                            //    obj_diff_Min = obj_diff;
-
-                            //    // minSecIdx.Add(new KeyValuePair<int, float>(j, obj_diff_Min));
-
-                            //}
-                            //else if (obj_diff_Min < obj_diff_NMin)
-                            //{
-                            //  //  minSecIdx.Add(new KeyValuePair<int, float>(j, obj_diff));
-
-                            //}
-                            //else continue;
                         }
-                        //else continue;
                     }
-                    //else continue;
                 }
                 else
                 {
@@ -768,33 +696,9 @@ namespace KMLib.SVMSolvers
                                 obj_diff = (float)(-(grad_diff * grad_diff) / 1e-12);
 
                             minIdx.Add(j, obj_diff);
-                            //if (obj_diff < obj_diff_Min)
-                            //{
-                            //    GMin_idx = j;
-                            //    obj_diff_Min = obj_diff;
-                            //    //minSecIdx.Add(new KeyValuePair<int, float>(j, obj_diff_Min));
-                            //}
-                            //else if (obj_diff < obj_diff_NMin)
-                            //{
-                            //    minSecIdx.Add(new KeyValuePair<int, float>(j, obj_diff));
-
-                            //}
-                            //else continue;
                         }
-                        //else continue;
                     }
-                    //else continue;
                 }
-
-                //if (minSecIdx.Count > pairsCount)
-                //{
-                //    var minPair = minSecIdx.Min;
-                //    minSecIdx.Remove(minPair);
-
-
-                //    obj_diff_NMin = minPair.Value;
-                //}
-
             }
             return GMax2;
         }
@@ -804,9 +708,6 @@ namespace KMLib.SVMSolvers
 
 
             float GMax2Tmp = -INF;
-
-
-
 
             //todo: to many allocation, use range partitioner
             Parallel.ForEach(rangePart, () => new Pair<float, Pair<int, float>>(-INF, new Pair<int, float>(-1, INF)),
@@ -822,8 +723,6 @@ namespace KMLib.SVMSolvers
                                float grad_diff = GMax + G[j];
                                if (G[j] >= maxMinPair.First)
                                    maxMinPair.First = G[j];
-
-
 
                                if (grad_diff > 0)
                                {
@@ -884,13 +783,9 @@ namespace KMLib.SVMSolvers
             return GMax2Tmp;
         }
 
-
-
         //todo: remove it later, not efective
         private float FindMinObjParallel2(float GMax, int i, float[] Q_i, SortedNVal minIdx)
         {
-
-            // object lockObj = new object();
             float GMax2Tmp = -INF;
 
             //
@@ -949,8 +844,6 @@ namespace KMLib.SVMSolvers
                        }
                    }
 
-                   //if (maxMinPair.Second.First == -1)
-                   //    return null;
                    return maxMinPair;
                },
                (maxMinPair) =>
@@ -1033,10 +926,5 @@ namespace KMLib.SVMSolvers
 
             return r;
         }
-
-
-
-
-
     }
 }
