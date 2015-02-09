@@ -8,6 +8,7 @@ Library includes _GPU SVM solver_ for kernels linear,RBF,Chi-Square and Exp Chi-
 More on http://wmii.uwm.edu.pl/~ksopyla/svm-net-with-cuda-kmlib/
 
 __Author: Krzysztof Sopyła <krzysztofsopyla@gmail.com>__
+__Author: Sławomir Figiel <fivitti@gmail.com>__
 
 License: MIT
 
